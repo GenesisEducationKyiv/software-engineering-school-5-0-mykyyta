@@ -14,6 +14,8 @@ import (
 // DB is the scheduler's database instance.
 // Must be set via SetDB() before StartWeatherScheduler is called.
 var DB *gorm.DB
+var FetchWeather = weatherapi.FetchWithStatus
+var SendWeatherEmail = email.SendWeatherEmail
 
 // SetDB assigns a GORM database instance to the scheduler.
 // This allows decoupling from the main DB package for testability or modularity.
@@ -21,30 +23,27 @@ func SetDB(db *gorm.DB) {
 	DB = db
 }
 
-// StartWeatherScheduler starts the periodic task that sends weather updates
-// according to subscription frequency.
-// It aligns execution to :00 seconds of each minute to maintain precision.
+// StartWeatherScheduler starts a background task that sends weather updates.
+// It sends "hourly" updates every round hour and "daily" updates at 12:00 UTC.
 func StartWeatherScheduler() {
 	log.Println("[Scheduler] started")
 
-	// Wait until the next full minute (e.g., xx:01:00) to align the ticker
+	// Align to the next full hour (e.g., xx:00:00)
 	now := time.Now()
-	sleepDuration := time.Until(now.Truncate(time.Minute).Add(time.Minute))
-	log.Printf("[Scheduler] waiting %v to align to :00 seconds\n", sleepDuration)
-	time.Sleep(sleepDuration)
+	nextHour := now.Truncate(time.Hour).Add(time.Hour)
+	sleep := time.Until(nextHour)
+	log.Printf("[Scheduler] sleeping %v to align to next full hour\n", sleep)
+	time.Sleep(sleep)
 
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(1 * time.Hour)
 	for {
 		now := time.Now()
-
-		// For demo/testing: send "daily" every 5 minutes
-		// In production: use e.g. now.Hour() == 9
-		sendDaily := now.Minute()%5 == 0
-
 		log.Println("[Scheduler] running tick", now.Format("15:04:05"))
-		sendWeatherUpdates("hourly")
-		if sendDaily {
-			sendWeatherUpdates("daily")
+
+		go sendWeatherUpdates("hourly")
+
+		if now.Hour() == 12 {
+			go sendWeatherUpdates("daily")
 		}
 
 		<-ticker.C
@@ -76,9 +75,9 @@ func sendWeatherUpdates(frequency string) {
 // ProcessSubscription fetches the weather for a single subscription
 // and sends the email using the stored unsubscribe token.
 func ProcessSubscription(sub model.Subscription) error {
-	weather, _, err := weatherapi.FetchWithStatus(sub.City)
+	weather, _, err := FetchWeather(sub.City)
 	if err != nil {
 		return err
 	}
-	return email.SendWeatherEmail(sub.Email, weather, sub.City, sub.Token)
+	return SendWeatherEmail(sub.Email, weather, sub.City, sub.Token)
 }

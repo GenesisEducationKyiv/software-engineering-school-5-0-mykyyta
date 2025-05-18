@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
 	"weatherApi/config"
 
 	"github.com/google/uuid"

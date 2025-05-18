@@ -15,11 +15,11 @@ func RegisterRoutes(r *gin.Engine) {
 		api.GET("/confirm/:token", confirmHandler)
 		api.GET("/unsubscribe/:token", unsubscribeHandler)
 		api.GET("/weather", getWeatherHandler)
+	}
 
-		// Register only in non-production mode
-		if gin.Mode() != gin.ReleaseMode {
-			api.GET("/subscriptions", listSubscriptionsHandler)
-		}
+	// Register only in non-production mode
+	if gin.Mode() != gin.ReleaseMode {
+		r.GET("/subscriptions", listSubscriptionsHandler)
 	}
 
 	// Health check endpoint
@@ -34,5 +34,9 @@ func RegisterRoutes(r *gin.Engine) {
 
 	r.GET("/subscribe", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "subscribe.html", nil)
+	})
+
+	r.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusFound, "/subscribe")
 	})
 }

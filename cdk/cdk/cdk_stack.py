@@ -93,9 +93,7 @@ class CdkStack(Stack):
             image=ecs.ContainerImage.from_registry(f"{repo.repository_uri}:latest"),
             logging=ecs.LogDriver.aws_logs(stream_prefix="weather"),
             secrets=secrets,
-            environment={
-                "FORCE_REDEPLOY": str(datetime.datetime.utcnow())
-            }
+            environment={}
         )
         container.add_port_mappings(ecs.PortMapping(container_port=8080))
 

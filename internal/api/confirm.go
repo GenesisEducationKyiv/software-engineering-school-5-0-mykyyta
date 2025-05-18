@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"weatherApi/pkg/scheduler"
 
 	"weatherApi/internal/model"
 	"weatherApi/pkg/jwtutil"
@@ -32,6 +33,11 @@ func confirmHandler(c *gin.Context) {
 
 	sub.IsConfirmed = true
 	DB.Save(&sub)
+
+	if err := scheduler.ProcessSubscription(sub); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send weather forecast email"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription confirmed successfully"})
 }

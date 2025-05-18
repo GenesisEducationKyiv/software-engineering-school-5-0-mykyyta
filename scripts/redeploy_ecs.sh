@@ -15,12 +15,13 @@ SERVICE=$(aws cloudformation describe-stacks \
   --query "Stacks[0].Outputs[?OutputKey=='EcsServiceName'].OutputValue" \
   --output text)
 
-echo "🔄 Redeploying service: $SERVICE in cluster: $CLUSTER"
+echo "🔁 Redeploying $SERVICE"
 
 aws ecs update-service \
   --cluster "$CLUSTER" \
   --service "$SERVICE" \
   --force-new-deployment \
-  --region "$REGION"
+  --region "$REGION" \
+  --output text >/dev/null
 
 echo "✅ Done"

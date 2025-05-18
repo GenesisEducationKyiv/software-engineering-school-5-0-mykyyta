@@ -1,18 +1,31 @@
 package api
 
 import (
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-
 	"weatherApi/internal/model"
 	"weatherApi/pkg/jwtutil"
-
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"weatherApi/pkg/scheduler"
 )
+
+func init() {
+	scheduler.FetchWeather = func(city string) (*model.Weather, int, error) {
+		return &model.Weather{
+			Temperature: 22.5,
+			Humidity:    60,
+			Description: "Clear skies",
+		}, 200, nil
+	}
+
+	scheduler.SendWeatherEmail = func(to string, weather *model.Weather, city string, token string) error {
+		return nil // simulate success
+	}
+}
 
 // TestConfirmHandler_Success verifies that confirming a valid, unconfirmed subscription:
 // - Returns HTTP 200 with success message

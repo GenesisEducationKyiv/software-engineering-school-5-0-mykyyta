@@ -41,7 +41,7 @@ func SendEmail(toEmail, subject, plainTextContent, htmlContent string) error {
 func SendConfirmationEmail(toEmail, token string) error {
 	subject := "Підтвердіть вашу підписку на погодні сповіщення"
 
-	confirmURL := fmt.Sprintf("%s/api/unsubscribe/%s", config.C.BaseURL, token)
+	confirmURL := fmt.Sprintf("%s/api/confirm/%s", config.C.BaseURL, token)
 	plainText := "Будь ласка, підтвердіть вашу підписку: " + confirmURL
 	htmlContent := fmt.Sprintf(
 		`<p>Натисніть нижче для підтвердження вашої підписки:</p><p><a href="%s">Підтвердити підписку</a></p>`,
