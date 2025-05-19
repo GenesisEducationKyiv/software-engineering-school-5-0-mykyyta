@@ -46,7 +46,7 @@ A lightweight REST API built with Go and Gin for retrieving weather data, managi
 Copy the example file and review environment variables:
 
 ```bash
-cp .env.example .env
+cp .example .env
 ```
 
 There are two groups of variables:
