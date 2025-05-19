@@ -36,6 +36,9 @@ ecs:
 	@echo "🐳 Building Docker image for $(PLATFORM)..."
 	docker buildx build --platform=$(PLATFORM) --output=type=docker -t $(IMAGE_NAME) .
 
+	@echo "🔑 Logging in to Amazon ECR..."
+	aws ecr get-login-password --region $(REGION) | docker login --username AWS --password-stdin $(ECR_URI)
+
 	@echo "🔁 Tagging image..."
 	docker tag $(IMAGE_NAME):latest $(ECR_URI):latest
 

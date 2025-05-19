@@ -1,11 +1,10 @@
 package config
 
 import (
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"strings"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -27,12 +26,12 @@ func LoadConfig() {
 	C = &Config{
 		Port:          getEnv("PORT", "8080"),
 		DBType:        getEnv("DB_TYPE", "postgres"),
-		DBUrl:         mustGet("DB_URL"),
-		JWTSecret:     mustGet("JWT_SECRET"),
-		SendGridKey:   mustGet("SENDGRID_API_KEY"),
-		EmailFrom:     getEnv("EMAIL_FROM", "weatherapp-no-reply@woolberry.ua"),
-		WeatherAPIKey: mustGet("WEATHER_API_KEY"),
+		DBUrl:         getEnv("DB_URL", "host=your-host user=your-user password=your-password dbname=your-db port=5432 sslmode=require"),
 		BaseURL:       strings.TrimRight(getEnv("BASE_URL", "http://localhost:8080"), "/"),
+		JWTSecret:     getEnv("JWT_SECRET", "default_secret"),
+		SendGridKey:   mustGet("SENDGRID_API_KEY"),
+		EmailFrom:     mustGet("EMAIL_FROM"),
+		WeatherAPIKey: mustGet("WEATHER_API_KEY"),
 	}
 }
 
