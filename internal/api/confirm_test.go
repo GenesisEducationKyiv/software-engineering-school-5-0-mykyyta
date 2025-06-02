@@ -1,16 +1,18 @@
 package api
 
 import (
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
 	"weatherApi/internal/model"
 	"weatherApi/pkg/jwtutil"
 	"weatherApi/pkg/scheduler"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
