@@ -13,9 +13,11 @@ import (
 
 // DB is the scheduler's database instance.
 // Must be set via SetDB() before StartWeatherScheduler is called.
-var DB *gorm.DB
-var FetchWeather = weatherapi.FetchWithStatus
-var SendWeatherEmail = email.SendWeatherEmail
+var (
+	DB               *gorm.DB
+	FetchWeather     = weatherapi.FetchWithStatus
+	SendWeatherEmail = email.SendWeatherEmail
+)
 
 // SetDB assigns a GORM database instance to the scheduler.
 // This allows decoupling from the main DB package for testability or modularity.
