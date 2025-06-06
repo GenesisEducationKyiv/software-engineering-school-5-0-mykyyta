@@ -75,10 +75,10 @@ func subscribeHandler(c *gin.Context) {
 func validateCity(ctx context.Context, city string) error {
 	ok, err := cityValidator(ctx, city)
 	if err != nil {
-		return fmt.Errorf("Failed to validate city")
+		return fmt.Errorf("failed to validate city")
 	}
 	if !ok {
-		return fmt.Errorf("City not found")
+		return fmt.Errorf("city not found")
 	}
 	return nil
 }
@@ -89,7 +89,7 @@ func checkExistingSubscription(req SubscribeRequest) (*model.Subscription, error
 	err := DB.Where("email = ?", req.Email).First(&existing).Error
 	if err == nil {
 		if existing.IsConfirmed && !existing.IsUnsubscribed {
-			return nil, fmt.Errorf("Email already subscribed")
+			return nil, fmt.Errorf("email already subscribed")
 		}
 		return &existing, nil
 	}

@@ -1,66 +1,64 @@
+version: "2"
 run:
-  timeout: 2m
   tests: true
-
 linters:
   enable:
-
     # Correctness / Bugs
-    - govet             # Reports suspicious code constructs [auto-fix]
-    - errcheck          # Finds unchecked errors
     - errorlint         # Ensures proper error wrapping with %w [auto-fix]
-    - staticcheck       # Comprehensive bug and code analyzer [auto-fix]
-    - contextcheck      # Requires proper usage of context.Context
-    - rowserrcheck      # Ensures rows.Err is checked after queries
-    - sqlclosecheck     # Ensures DB objects like rows/stmts are closed
+    - contextcheck      # Requires proper use of context.Context
+    - rowserrcheck      # Ensures rows.Err is checked after queries in DB logic
+    - sqlclosecheck     # Ensures DB objects like rows/stmts are closed to avoid leaks
+    - bodyclose         # Checks that http.Response.Body is properly closed
+    - predeclared       # Detects shadowing of Go built-in identifiers [auto-fix]
     - reassign          # Disallows reassignment of global variables
-    - predeclared       # Detects shadowing of built-in identifiers [auto-fix]
-    - ineffassign       # Finds ineffectual assignments
-    - bodyclose         # Ensures http.Response.Body is closed
+    - noctx             # Detects HTTP calls made without context
+    - errname           # Enforces error variable naming convention (e.g., `err`, `myErr`)
 
     # Code Style / Readability
-    - revive            # Clean and configurable style checker [auto-fix]
-    - nolintlint        # Enforces proper use of //nolint directives [auto-fix]
-    - unconvert         # Removes unnecessary type conversions
-    - unparam           # Detects unused function parameters
-    - nakedret          # Discourages named return values without context [auto-fix]
-    - godot             # Enforces ending comments with a period [auto-fix]
-    - errname           # Checks naming conventions for errors
-    - tagliatelle       # Validates struct tag formats
+    - revive            # Configurable linter for code style, comments, naming etc. [auto-fix]
+    - nolintlint        # Checks for incorrect //nolint usage [auto-fix]
+    - godot             # Enforces that comments end with a period [auto-fix]
+    - nakedret          # Discourages naked return statements without names [auto-fix]
+    - tagliatelle       # Validates struct tag formatting, e.g., `json:"name,omitempty"`
 
     # Performance
-    - prealloc          # Suggests slice preallocation [auto-fix]
-    - noctx             # Finds HTTP calls without context
+    - prealloc          # Suggests slice preallocation when length is known [auto-fix]
 
-    # Testing Best Practices
-    - testableexamples  # Ensures Go examples have valid output
+    # Unused / Clean Code
+    - unconvert         # Detects unnecessary type conversions
+    - unparam           # Finds unused function parameters
     - thelper           # Requires test helpers to call t.Helper()
-    - tparallel         # Encourages use of t.Parallel in tests
+    - tparallel         # Encourages use of t.Parallel in unit tests
+    - testableexamples  # Ensures code examples in docs are runnable and testable
 
-formatters:
-  enable:
-    # Formatting / Imports
-    - gofmt             # Checks formatting with gofmt [auto-fix]
-    - goimports         # Ensures proper import grouping and formatting [auto-fix]
-
-linters-settings:
-  gofmt:
-    simplify: true
-
-  goimports:
-    local-prefixes: weatherApi
-
-  revive:
-    ignore-generated-header: true
-    severity: warning
-
-
+  settings:
+    revive:
+      severity: warning
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        text: should not use dot imports
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-rules:
-    - path: _test\.go
-      text: "should not use dot imports"
-
-version: "2"
+formatters:
+  enable:
+    - gofmt             # Checks formatting with gofmt [auto-fix]
+    - goimports         # Ensures proper import grouping and formatting [auto-fix]
+  settings:
+    gofmt:
+      simplify: true
+    goimports:
+      local-prefixes:
+        - weatherApi
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
