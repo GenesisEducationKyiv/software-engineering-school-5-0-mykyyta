@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -59,7 +60,7 @@ func setupTestRouterWithDB(t *testing.T) *gin.Engine {
 
 	SetDB(db)
 
-	cityValidator = func(city string) (bool, error) {
+	cityValidator = func(ctx context.Context, city string) (bool, error) {
 		return true, nil // Accept all cities in tests
 	}
 

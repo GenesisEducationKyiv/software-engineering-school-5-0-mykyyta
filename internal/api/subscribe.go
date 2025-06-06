@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -16,7 +17,9 @@ import (
 )
 
 // Allows replacing weatherapi.CityExists in tests.
-var cityValidator = weatherapi.CityExists
+var cityValidator = func(ctx context.Context, city string) (bool, error) {
+	return weatherapi.CityExists(ctx, city)
+}
 
 type SubscribeRequest struct {
 	Email     string `form:"email" binding:"required,email"`
@@ -32,7 +35,7 @@ func subscribeHandler(c *gin.Context) {
 		return
 	}
 
-	if err := validateCity(req.City); err != nil {
+	if err := validateCity(c.Request.Context(), req.City); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -69,8 +72,8 @@ func subscribeHandler(c *gin.Context) {
 }
 
 // validateCity checks if the requested city exists using the external weather API.
-func validateCity(city string) error {
-	ok, err := cityValidator(city)
+func validateCity(ctx context.Context, city string) error {
+	ok, err := cityValidator(ctx, city)
 	if err != nil {
 		return fmt.Errorf("Failed to validate city")
 	}

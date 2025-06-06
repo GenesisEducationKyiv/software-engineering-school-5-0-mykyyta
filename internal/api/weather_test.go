@@ -3,6 +3,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -15,12 +16,12 @@ import (
 )
 
 // different behaviors for weather fetching operations.
-var mockFetchWithStatus func(city string) (*model.Weather, int, error)
+var mockFetchWithStatus func(ctx context.Context, city string) (*model.Weather, int, error)
 
 // init replaces the production fetchWeather function with our test mock.
 func init() {
-	fetchWeather = func(city string) (*model.Weather, int, error) {
-		return mockFetchWithStatus(city)
+	fetchWeather = func(ctx context.Context, city string) (*model.Weather, int, error) {
+		return mockFetchWithStatus(ctx, city)
 	}
 }
 
@@ -34,7 +35,7 @@ func setupTestRouterForWeather() *gin.Engine {
 
 // correct weather data with HTTP 200 status when provided with a valid city.
 func TestWeatherHandler_Success(t *testing.T) {
-	mockFetchWithStatus = func(city string) (*model.Weather, int, error) {
+	mockFetchWithStatus = func(ctx context.Context, city string) (*model.Weather, int, error) {
 		return &model.Weather{
 			Temperature: 21.5,
 			Humidity:    60,
@@ -58,7 +59,7 @@ func TestWeatherHandler_Success(t *testing.T) {
 // an HTTP 400 error when the city parameter is missing from the request.
 func TestWeatherHandler_MissingCity(t *testing.T) {
 	router := setupTestRouterForWeather()
-	req := httptest.NewRequest(http.MethodGet, "/api/weather", nil) // без параметра city
+	req := httptest.NewRequest(http.MethodGet, "/api/weather", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -68,7 +69,7 @@ func TestWeatherHandler_MissingCity(t *testing.T) {
 
 // an HTTP 404 error when the requested city cannot be found.
 func TestWeatherHandler_CityNotFound(t *testing.T) {
-	mockFetchWithStatus = func(city string) (*model.Weather, int, error) {
+	mockFetchWithStatus = func(ctx context.Context, city string) (*model.Weather, int, error) {
 		return nil, http.StatusNotFound, errors.New("City not found")
 	}
 
