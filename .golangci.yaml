@@ -29,7 +29,6 @@ linters:
 
     # Formatting / Imports
     - gofmt             # Checks formatting with gofmt [auto-fix]
-    - gofumpt           # Stricter gofmt with additional rules [auto-fix]
     - goimports         # Ensures proper import grouping and formatting [auto-fix]
 
     # Performance
@@ -44,9 +43,6 @@ linters:
 linters-settings:
   gofmt:
     simplify: true
-
-  gofumpt:
-    extra-rules: true
 
   goimports:
     local-prefixes: weatherApi
