@@ -1,0 +1,40 @@
+# Go build artifacts
+/bin/
+/build/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go modules
+vendor/
+
+# IDE (GoLand, JetBrains)
+.idea/
+*.iml
+
+# Dependency lock file (if vendoring)
+go.sum
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.deploy
+
+# Logs
+*.log
+
+# Coverage and test reports
+coverage.*
+*.coverprofile
+*.testresult
+*.prof
+
+# System files
+.DS_Store
+Thumbs.db

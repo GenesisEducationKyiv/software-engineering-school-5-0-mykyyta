@@ -1,0 +1,26 @@
+run:
+  timeout: 2m
+  tests: true
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - typecheck
+    - ineffassign
+
+linters-settings:
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: weatherApi
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      text: "should not use dot imports"

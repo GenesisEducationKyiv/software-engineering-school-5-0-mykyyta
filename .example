@@ -1,0 +1,11 @@
+PORT=8080
+DB_TYPE=postgres
+DB_URL=host=db user=postgres password=postgres dbname=weatherdb port=5432 sslmode=disable
+BASE_URL="http://localhost:8080"
+GIN_MODE=debug
+JWT_SECRET=default_secret
+
+# REQUIRED
+SENDGRID_API_KEY=your_sendgrid_api_key_here
+EMAIL_FROM=no-reply@example.com
+WEATHER_API_KEY=your_weather_api_key_here
