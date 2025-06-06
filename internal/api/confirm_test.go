@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +17,7 @@ import (
 )
 
 func init() {
-	scheduler.FetchWeather = func(city string) (*model.Weather, int, error) {
+	scheduler.FetchWeather = func(ctx context.Context, city string) (*model.Weather, int, error) {
 		return &model.Weather{
 			Temperature: 22.5,
 			Humidity:    60,

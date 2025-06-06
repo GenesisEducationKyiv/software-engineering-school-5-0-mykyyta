@@ -34,7 +34,7 @@ func confirmHandler(c *gin.Context) {
 	sub.IsConfirmed = true
 	DB.Save(&sub)
 
-	if err := scheduler.ProcessSubscription(sub); err != nil {
+	if err := scheduler.ProcessSubscription(c.Request.Context(), sub); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send weather forecast email"})
 		return
 	}
