@@ -4,18 +4,57 @@ run:
 
 linters:
   enable:
-    - govet
-    - errcheck
-    - staticcheck
-    - unused
-    - typecheck
-    - ineffassign
+
+    # Correctness / Bugs
+    - govet             # Reports suspicious code constructs [auto-fix]
+    - errcheck          # Finds unchecked errors
+    - errorlint         # Ensures proper error wrapping with %w [auto-fix]
+    - staticcheck       # Comprehensive bug and code analyzer [auto-fix]
+    - contextcheck      # Requires proper usage of context.Context
+    - rowserrcheck      # Ensures rows.Err is checked after queries
+    - sqlclosecheck     # Ensures DB objects like rows/stmts are closed
+    - reassign          # Disallows reassignment of global variables
+    - predeclared       # Detects shadowing of built-in identifiers [auto-fix]
+
+    # Code Style / Readability
+    - revive            # Clean and configurable style checker [auto-fix]
+    - gosimple          # Suggests simpler Go code patterns [auto-fix]
+    - nolintlint        # Enforces proper use of //nolint directives [auto-fix]
+    - unconvert         # Removes unnecessary type conversions
+    - unparam           # Detects unused function parameters
+    - nakedret          # Discourages named return values without context [auto-fix]
+    - godot             # Enforces ending comments with a period [auto-fix]
+    - errname           # Checks naming conventions for errors
+    - tagliatelle       # Validates struct tag formats
+
+    # Formatting / Imports
+    - gofmt             # Checks formatting with gofmt [auto-fix]
+    - gofumpt           # Stricter gofmt with additional rules [auto-fix]
+    - goimports         # Ensures proper import grouping and formatting [auto-fix]
+
+    # Performance
+    - prealloc          # Suggests slice preallocation [auto-fix]
+    - noctx             # Finds HTTP calls without context
+
+    # Testing Best Practices
+    - testableexamples  # Ensures Go examples have valid output
+    - thelper           # Requires test helpers to call t.Helper()
+    - tparallel         # Encourages use of t.Parallel in tests\
 
 linters-settings:
   gofmt:
     simplify: true
+
+  gofumpt:
+    extra-rules: true
+
   goimports:
     local-prefixes: weatherApi
+
+  revive:
+    ignore-generated-header: true
+    severity: warning
+
 
 issues:
   exclude-use-default: false
