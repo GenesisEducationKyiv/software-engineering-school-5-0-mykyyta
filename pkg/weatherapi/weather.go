@@ -14,7 +14,7 @@ import (
 // Used internally to decode the raw JSON before mapping to our model.
 type weatherAPIResponse struct {
 	Current struct {
-		TempC     float64 `json:"temp_c"`
+		TempC     float64 `json:"tempC"`
 		Humidity  int     `json:"humidity"`
 		Condition struct {
 			Text string `json:"text"`
