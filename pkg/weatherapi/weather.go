@@ -46,18 +46,18 @@ func FetchWithStatus(ctx context.Context, city string) (*model.Weather, int, err
 
 	switch resp.StatusCode {
 	case 400:
-		return nil, http.StatusBadRequest, fmt.Errorf("Invalid city name")
+		return nil, http.StatusBadRequest, fmt.Errorf("invalid city name")
 	case 404:
-		return nil, http.StatusNotFound, fmt.Errorf("City not found")
+		return nil, http.StatusNotFound, fmt.Errorf("city not found")
 	case 200:
 		// OK — continue parsing
 	default:
-		return nil, http.StatusBadGateway, fmt.Errorf("Weather API returned unexpected status")
+		return nil, http.StatusBadGateway, fmt.Errorf("weather API returned unexpected status")
 	}
 
 	var data weatherAPIResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("Failed to parse weather data")
+		return nil, http.StatusInternalServerError, fmt.Errorf("failed to parse weather data")
 	}
 
 	// Map response data to internal model
