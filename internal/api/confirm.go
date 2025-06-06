@@ -2,15 +2,15 @@ package api
 
 import (
 	"net/http"
-	"weatherApi/pkg/scheduler"
 
 	"weatherApi/internal/model"
 	"weatherApi/pkg/jwtutil"
+	"weatherApi/pkg/scheduler"
 
 	"github.com/gin-gonic/gin"
 )
 
-// confirmHandler validates the token and marks the subscription as confirmed
+// confirmHandler validates the token and marks the subscription as confirmed.
 func confirmHandler(c *gin.Context) {
 	token := c.Param("token")
 

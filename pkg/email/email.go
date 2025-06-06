@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"weatherApi/config"
-
 	"weatherApi/internal/model"
 
 	"golang.org/x/text/cases"
@@ -53,7 +52,7 @@ func SendConfirmationEmail(toEmail, token string) error {
 
 // SendWeatherEmail sends a weather update to the user with an unsubscribe link.
 // The token is used in the unsubscribe URL and must be securely generated.
-func SendWeatherEmail(toEmail string, weather *model.Weather, city string, token string) error {
+func SendWeatherEmail(toEmail string, weather *model.Weather, city, token string) error {
 	caser := cases.Title(language.English)
 	subject := fmt.Sprintf("Ваше оновлення погоди для %s", caser.String(city))
 
