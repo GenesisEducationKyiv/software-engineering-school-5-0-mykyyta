@@ -20,7 +20,6 @@ linters:
 
     # Code Style / Readability
     - revive            # Clean and configurable style checker [auto-fix]
-    - gosimple          # Suggests simpler Go code patterns [auto-fix]
     - nolintlint        # Enforces proper use of //nolint directives [auto-fix]
     - unconvert         # Removes unnecessary type conversions
     - unparam           # Detects unused function parameters
@@ -29,10 +28,6 @@ linters:
     - errname           # Checks naming conventions for errors
     - tagliatelle       # Validates struct tag formats
 
-    # Formatting / Imports
-    - gofmt             # Checks formatting with gofmt [auto-fix]
-    - goimports         # Ensures proper import grouping and formatting [auto-fix]
-
     # Performance
     - prealloc          # Suggests slice preallocation [auto-fix]
     - noctx             # Finds HTTP calls without context
@@ -40,7 +35,13 @@ linters:
     # Testing Best Practices
     - testableexamples  # Ensures Go examples have valid output
     - thelper           # Requires test helpers to call t.Helper()
-    - tparallel         # Encourages use of t.Parallel in tests\
+    - tparallel         # Encourages use of t.Parallel in tests
+
+formatters:
+  enable:
+    # Formatting / Imports
+    - gofmt             # Checks formatting with gofmt [auto-fix]
+    - goimports         # Ensures proper import grouping and formatting [auto-fix]
 
 linters-settings:
   gofmt:
@@ -61,3 +62,5 @@ issues:
   exclude-rules:
     - path: _test\.go
       text: "should not use dot imports"
+
+version: "2"
