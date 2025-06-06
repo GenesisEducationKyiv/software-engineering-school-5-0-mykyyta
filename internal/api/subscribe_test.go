@@ -46,6 +46,7 @@ func TestMain(m *testing.M) {
 // a test router with all API routes registered. It also sets up a mock city
 // validator that accepts all cities.
 func setupTestRouterWithDB(t *testing.T) *gin.Engine {
+	t.Helper()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to connect to test DB: %v", err)
