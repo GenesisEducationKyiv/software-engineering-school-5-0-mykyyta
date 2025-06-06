@@ -4,12 +4,12 @@ run:
 
 linters:
   enable:
-    - govet             # вбудована перевірка помилок
-    - errcheck          # перевірка обробки помилок
-    - staticcheck       # глибокий аналіз
-    - unused            # невикористані змінні/імпорти
-    - typecheck         # неправильні типи
-    - ineffassign       # неефективні присвоєння
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - typecheck
+    - ineffassign
 
 linters-settings:
   gofmt:
