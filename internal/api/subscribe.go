@@ -1,21 +1,25 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"weatherApi/internal/model"
-	emailutil "weatherApi/pkg/email"
 	"weatherApi/pkg/jwtutil"
 	"weatherApi/pkg/weatherapi"
+
+	emailutil "weatherApi/pkg/email"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
-// Allows replacing weatherapi.CityExists in tests
-var cityValidator = weatherapi.CityExists
+// Allows replacing weatherapi.CityExists in tests.
+var cityValidator = func(ctx context.Context, city string) (bool, error) {
+	return weatherapi.CityExists(ctx, city)
+}
 
 type SubscribeRequest struct {
 	Email     string `form:"email" binding:"required,email"`
@@ -23,11 +27,7 @@ type SubscribeRequest struct {
 	Frequency string `form:"frequency" binding:"required,oneof=daily hourly"`
 }
 
-// subscribeHandler handles new subscription requests:
-// - validates input
-// - checks if the city exists
-// - updates or creates a subscription
-// - sends confirmation email asynchronously
+// - sends confirmation email asynchronously.
 func subscribeHandler(c *gin.Context) {
 	var req SubscribeRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -35,7 +35,7 @@ func subscribeHandler(c *gin.Context) {
 		return
 	}
 
-	if err := validateCity(req.City); err != nil {
+	if err := validateCity(c.Request.Context(), req.City); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -71,38 +71,37 @@ func subscribeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription successful. Confirmation email sent."})
 }
 
-// validateCity checks if the requested city exists using the external weather API
-func validateCity(city string) error {
-	ok, err := cityValidator(city)
+// validateCity checks if the requested city exists using the external weather API.
+func validateCity(ctx context.Context, city string) error {
+	ok, err := cityValidator(ctx, city)
 	if err != nil {
-		return fmt.Errorf("Failed to validate city")
+		return fmt.Errorf("failed to validate city")
 	}
 	if !ok {
-		return fmt.Errorf("City not found")
+		return fmt.Errorf("city not found")
 	}
 	return nil
 }
 
-// checkExistingSubscription returns an existing subscription if found,
-// or an error if the email is already subscribed and confirmed
+// or an error if the email is already subscribed and confirmed.
 func checkExistingSubscription(req SubscribeRequest) (*model.Subscription, error) {
 	var existing model.Subscription
 	err := DB.Where("email = ?", req.Email).First(&existing).Error
 	if err == nil {
 		if existing.IsConfirmed && !existing.IsUnsubscribed {
-			return nil, fmt.Errorf("Email already subscribed")
+			return nil, fmt.Errorf("email already subscribed")
 		}
 		return &existing, nil
 	}
 	return nil, nil
 }
 
-// generateToken creates a JWT for email confirmation and unsubscribe links
+// generateToken creates a JWT for email confirmation and unsubscribe links.
 func generateToken(email string) (string, error) {
 	return jwtutil.Generate(email)
 }
 
-// createSubscription saves a new unconfirmed subscription to the database
+// createSubscription saves a new unconfirmed subscription to the database.
 func createSubscription(req SubscribeRequest, token string) error {
 	sub := model.Subscription{
 		ID:             uuid.New().String(),
@@ -117,7 +116,7 @@ func createSubscription(req SubscribeRequest, token string) error {
 	return DB.Create(&sub).Error
 }
 
-// updateSubscription updates an existing subscription with new values and resets confirmation status
+// updateSubscription updates an existing subscription with new values and resets confirmation status.
 func updateSubscription(sub *model.Subscription, req SubscribeRequest, token string) error {
 	sub.City = req.City
 	sub.Frequency = req.Frequency
@@ -128,7 +127,7 @@ func updateSubscription(sub *model.Subscription, req SubscribeRequest, token str
 	return DB.Save(sub).Error
 }
 
-// sendConfirmationEmailAsync sends the confirmation email in a background goroutine
+// sendConfirmationEmailAsync sends the confirmation email in a background goroutine.
 func sendConfirmationEmailAsync(email, token string) {
 	go func() {
 		if err := emailutil.SendConfirmationEmail(email, token); err != nil {
