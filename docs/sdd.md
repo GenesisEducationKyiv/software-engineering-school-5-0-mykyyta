@@ -17,6 +17,8 @@ Detailed requirements are stored in separate files:
 
 ## 3. Architecture and Modules
 
+[View High Level Diagram](./diagrams/high-level.png)
+
 The application is organized into modules. Each folder has its own responsibility.
 
 | Module / Path            | Description                                                        |
