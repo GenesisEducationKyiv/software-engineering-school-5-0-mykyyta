@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -66,7 +67,7 @@ func sendWeatherUpdates(frequency string) {
 	}
 
 	for _, sub := range subs {
-		if err := ProcessSubscription(sub); err != nil {
+		if err := ProcessSubscription(context.Background(), sub); err != nil {
 			log.Printf("[Scheduler] Failed to process %s: %v", sub.Email, err)
 		} else {
 			log.Printf("[Scheduler] Weather sent to %s", sub.Email)
@@ -76,8 +77,8 @@ func sendWeatherUpdates(frequency string) {
 
 // ProcessSubscription fetches the weather for a single subscription
 // and sends the email using the stored unsubscribe token.
-func ProcessSubscription(sub model.Subscription) error {
-	weather, _, err := FetchWeather(sub.City)
+func ProcessSubscription(ctx context.Context, sub model.Subscription) error {
+	weather, _, err := FetchWeather(ctx, sub.City)
 	if err != nil {
 		return err
 	}

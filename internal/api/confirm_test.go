@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +17,7 @@ import (
 )
 
 func init() {
-	scheduler.FetchWeather = func(city string) (*model.Weather, int, error) {
+	scheduler.FetchWeather = func(ctx context.Context, city string) (*model.Weather, int, error) {
 		return &model.Weather{
 			Temperature: 22.5,
 			Humidity:    60,
@@ -24,15 +25,12 @@ func init() {
 		}, 200, nil
 	}
 
-	scheduler.SendWeatherEmail = func(to string, weather *model.Weather, city string, token string) error {
+	scheduler.SendWeatherEmail = func(to string, weather *model.Weather, city, token string) error {
 		return nil // simulate success
 	}
 }
 
-// TestConfirmHandler_Success verifies that confirming a valid, unconfirmed subscription:
-// - Returns HTTP 200 with success message
-// - Sets IsConfirmed=true in the database
-// - Does not modify other subscription fields
+// - Does not modify other subscription fields.
 func TestConfirmHandler_Success(t *testing.T) {
 	router := setupTestRouterWithDB(t)
 
@@ -65,10 +63,7 @@ func TestConfirmHandler_Success(t *testing.T) {
 	assert.True(t, sub.IsConfirmed)
 }
 
-// TestConfirmHandler_InvalidToken verifies that the confirmation endpoint:
-// - Rejects malformed JWT tokens
-// - Returns HTTP 400 Bad Request
-// - Includes "Invalid token" in the error message
+// - Includes "Invalid token" in the error message.
 func TestConfirmHandler_InvalidToken(t *testing.T) {
 	router := setupTestRouterWithDB(t)
 
@@ -82,9 +77,7 @@ func TestConfirmHandler_InvalidToken(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Invalid token")
 }
 
-// TestConfirmHandler_TokenButNoSubscription verifies that the confirmation endpoint:
-// - Returns HTTP 404 when token is valid but no matching subscription exists
-// - This prevents enumeration of emails via the confirmation endpoint
+// - This prevents enumeration of emails via the confirmation endpoint.
 func TestConfirmHandler_TokenButNoSubscription(t *testing.T) {
 	router := setupTestRouterWithDB(t)
 
@@ -99,11 +92,7 @@ func TestConfirmHandler_TokenButNoSubscription(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Token not found")
 }
 
-// TestConfirmHandler_AlreadyConfirmed verifies that attempting to confirm
-// an already confirmed subscription:
-// - Returns HTTP 200 (idempotent operation)
-// - Returns appropriate message indicating subscription was already confirmed
-// - Does not modify the existing confirmed subscription
+// - Does not modify the existing confirmed subscription.
 func TestConfirmHandler_AlreadyConfirmed(t *testing.T) {
 	router := setupTestRouterWithDB(t)
 

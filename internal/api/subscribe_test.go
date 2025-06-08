@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -9,7 +10,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"weatherApi/config"
+	"weatherApi/internal/model"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -18,8 +21,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-
-	"weatherApi/internal/model"
 )
 
 // mustSetEnv sets an environment variable and logs fatal error if it fails.
@@ -46,6 +47,7 @@ func TestMain(m *testing.M) {
 // a test router with all API routes registered. It also sets up a mock city
 // validator that accepts all cities.
 func setupTestRouterWithDB(t *testing.T) *gin.Engine {
+	t.Helper()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to connect to test DB: %v", err)
@@ -58,7 +60,7 @@ func setupTestRouterWithDB(t *testing.T) *gin.Engine {
 
 	SetDB(db)
 
-	cityValidator = func(city string) (bool, error) {
+	cityValidator = func(ctx context.Context, city string) (bool, error) {
 		return true, nil // Accept all cities in tests
 	}
 
@@ -68,10 +70,7 @@ func setupTestRouterWithDB(t *testing.T) *gin.Engine {
 	return r
 }
 
-// TestSubscribe_Success verifies that a valid subscription request:
-// - Returns HTTP 200 OK
-// - Returns success message about confirmation email
-// - Creates subscription record in database
+// - Creates subscription record in database.
 func TestSubscribe_Success(t *testing.T) {
 	router := setupTestRouterWithDB(t)
 
@@ -91,9 +90,7 @@ func TestSubscribe_Success(t *testing.T) {
 	assert.JSONEq(t, expected, w.Body.String())
 }
 
-// TestSubscribe_MissingEmail verifies that a subscription request without email:
-// - Returns HTTP 400 Bad Request
-// - Contains "Invalid input" in error message
+// - Contains "Invalid input" in error message.
 func TestSubscribe_MissingEmail(t *testing.T) {
 	router := setupTestRouterWithDB(t)
 
@@ -111,9 +108,7 @@ func TestSubscribe_MissingEmail(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Invalid input")
 }
 
-// TestSubscribe_InvalidFrequency verifies that subscription request with invalid frequency:
-// - Returns HTTP 400 Bad Request when frequency is not "daily" or "hourly"
-// - Contains "Invalid input" in error message
+// - Contains "Invalid input" in error message.
 func TestSubscribe_InvalidFrequency(t *testing.T) {
 	router := setupTestRouterWithDB(t)
 
@@ -132,10 +127,7 @@ func TestSubscribe_InvalidFrequency(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Invalid input")
 }
 
-// TestSubscribe_DuplicateEmail verifies that subscribing with an existing email:
-// - Returns HTTP 409 Conflict
-// - Contains appropriate error message about duplicate subscription
-// - Does not create duplicate subscription in database
+// - Does not create duplicate subscription in database.
 func TestSubscribe_DuplicateEmail(t *testing.T) {
 	router := setupTestRouterWithDB(t)
 
