@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"weatherApi/config"
-
 	"weatherApi/internal/model"
 
 	"gorm.io/driver/postgres"
@@ -34,21 +33,21 @@ func InitDatabase(dbType, dsn string) (*gorm.DB, error) {
 
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect database: %v", err)
+		return nil, fmt.Errorf("failed to connect database: %w", err)
 	}
 
 	// Enable pgcrypto (required for UUID generation, etc.)
 	if dbType == "postgres" {
 		err = db.Exec(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`).Error
 		if err != nil {
-			return nil, fmt.Errorf("failed to enable pgcrypto: %v", err)
+			return nil, fmt.Errorf("failed to enable pgcrypto: %w", err)
 		}
 	}
 
 	// Run automatic schema migration for Subscription model
 	err = db.AutoMigrate(&model.Subscription{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to migrate: %v", err)
+		return nil, fmt.Errorf("failed to migrate: %w", err)
 	}
 
 	return db, nil

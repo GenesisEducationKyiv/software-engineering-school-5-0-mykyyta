@@ -1,7 +1,7 @@
 # Format all Go files with goimports and gofumpt
 fmt:
 	goimports -w .
-	gofumpt -w .
+	gofmt -w .
 
 # Run golangci-lint static code analysis
 lint:
