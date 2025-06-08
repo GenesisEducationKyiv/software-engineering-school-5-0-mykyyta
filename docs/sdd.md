@@ -40,7 +40,7 @@ The application is organized into modules. Each folder has its own responsibilit
 
 [View Flow Sequence Diagram](./diagrams/flow-sequence-diagram.svg)
 
-### 📬 Subscription Flow
+### Subscription Flow
 
 1. The user fills out `subscribe.html` with their email and city.
 2. The backend saves the subscription and sets `IsConfirmed = false`.
@@ -137,9 +137,7 @@ Holds the weather data returned via API or email.
 
 ## 8. Limitations / TODO
 
-- No UI besides the static `subscribe.html`
 - No retries for failed email sends
-- Weather data may be mocked
 - Old or unconfirmed subscriptions not automatically removed
 
 ---
