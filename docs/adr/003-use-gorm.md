@@ -12,7 +12,7 @@ Accepted
 - database
 - backend
 
-## Context
+## Decision rationale
 
 As someone with experience in Python, I was used to working with high-level ORMs like SQLAlchemy and Django ORM.
 

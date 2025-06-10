@@ -12,7 +12,7 @@ Accepted
 - infrastructure
 - communication
 
-## Context
+## Decision rationale
 
 The project required sending emails for subscription confirmation and notifications.
 

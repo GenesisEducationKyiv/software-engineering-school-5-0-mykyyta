@@ -10,7 +10,7 @@ Accepted
 - language
 - backend
 
-## Context
+## Decision rationale
 
 The task was to implement a Weather API using one of the allowed languages: Go, Node.js, or PHP.
 
