@@ -11,7 +11,7 @@ Accepted
 - gin
 - backend
 
-## Context
+## Decision rationale
 
 Coming from a Python background, I'm used to working with web frameworks like Flask Django or FastAPI.  
 As a beginner in Go, I didn’t feel confident building HTTP routing, middleware, and request handling from scratch using `net/http`.

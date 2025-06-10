@@ -12,7 +12,7 @@ Accepted
 - security
 - backend
 
-## Context
+## Decision rationale
 
 The application needed a simple way to authenticate users for protected actions like confirming subscriptions or managing preferences.
 
