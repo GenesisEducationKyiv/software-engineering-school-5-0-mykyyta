@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
+	"weatherApi/internal/email"
 	"weatherApi/internal/model"
-	"weatherApi/pkg/email"
-	"weatherApi/pkg/weatherapi"
+	"weatherApi/internal/weatherapi"
 
 	"gorm.io/gorm"
 )

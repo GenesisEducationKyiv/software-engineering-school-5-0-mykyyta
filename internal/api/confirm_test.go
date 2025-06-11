@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"weatherApi/internal/jwtutil"
 	"weatherApi/internal/model"
-	"weatherApi/pkg/jwtutil"
-	"weatherApi/pkg/scheduler"
+	"weatherApi/internal/scheduler"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

@@ -13,7 +13,7 @@ import (
 	"weatherApi/config"
 	"weatherApi/internal/api"
 	"weatherApi/internal/db"
-	"weatherApi/pkg/scheduler"
+	"weatherApi/internal/scheduler"
 )
 
 func Run() error {
