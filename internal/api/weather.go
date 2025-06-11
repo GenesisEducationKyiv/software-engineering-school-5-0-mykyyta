@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"weatherApi/internal/model"
-	"weatherApi/pkg/weatherapi"
+	"weatherApi/internal/weatherapi"
 
 	"github.com/gin-gonic/gin"
 )

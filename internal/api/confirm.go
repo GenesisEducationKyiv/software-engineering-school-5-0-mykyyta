@@ -3,9 +3,9 @@ package api
 import (
 	"net/http"
 
+	"weatherApi/internal/jwtutil"
 	"weatherApi/internal/model"
-	"weatherApi/pkg/jwtutil"
-	"weatherApi/pkg/scheduler"
+	"weatherApi/internal/scheduler"
 
 	"github.com/gin-gonic/gin"
 )
