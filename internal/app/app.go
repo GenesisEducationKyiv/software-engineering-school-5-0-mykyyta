@@ -23,7 +23,7 @@ func Run() error {
 		mode = gin.DebugMode
 	}
 	gin.SetMode(mode)
-	log.Printf("🚀 Starting in %s mode\n", gin.Mode())
+	log.Printf("Starting in %s mode\n", gin.Mode())
 
 	// Load configuration
 	config.LoadConfig()
@@ -48,7 +48,7 @@ func Run() error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		log.Println("🔌 Shutting down gracefully...")
+		log.Println("Shutting down gracefully...")
 		cancel()
 		time.Sleep(2 * time.Second)
 		os.Exit(0)
