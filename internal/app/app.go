@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,39 +25,51 @@ func Run() error {
 		mode = gin.DebugMode
 	}
 	gin.SetMode(mode)
-	log.Printf("Starting in %s mode\n", gin.Mode())
+	log.Printf("🚀 Starting in %s mode\n", gin.Mode())
 
-	// Load configuration
+	// Load configuration and connect to DB
 	config.LoadConfig()
-
-	// Connect to DB
 	db.ConnectDefaultDB()
-	dbInstance := db.DB
+	defer db.CloseDB()
 
-	// Inject DB
-	api.SetDB(dbInstance)
-	scheduler.SetDB(dbInstance)
-
-	// Graceful shutdown context
-	_, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// Inject DB into other modules
+	api.SetDB(db.DB)
+	scheduler.SetDB(db.DB)
 
 	// Start background scheduler
 	go scheduler.StartWeatherScheduler()
 
-	// Handle OS signals
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		log.Println("Shutting down gracefully...")
-		cancel()
-		time.Sleep(2 * time.Second)
-		os.Exit(0)
-	}()
-
-	// Init and run server
+	// Set up Gin router
 	r := gin.Default()
 	api.RegisterRoutes(r)
-	return r.Run(":" + config.C.Port)
+
+	// Create HTTP server
+	srv := &http.Server{
+		Addr:    ":" + config.C.Port,
+		Handler: r,
+	}
+
+	// Start server in background
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	// Wait for termination signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutdown signal received, cleaning up...")
+
+	// Gracefully shutdown HTTP server
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("HTTP server shutdown: %w", err)
+	}
+
+	log.Println("✅ Server exited gracefully")
+	return nil
 }
