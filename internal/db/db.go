@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"weatherApi/config"
-	"weatherApi/internal/model"
-
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"weatherApi/config"
 )
 
 // DB is the globally accessible database instance used across the application.
@@ -42,12 +40,6 @@ func InitDatabase(dbType, dsn string) (*gorm.DB, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to enable pgcrypto: %w", err)
 		}
-	}
-
-	// Run automatic schema migration for Subscription model
-	err = db.AutoMigrate(&model.Subscription{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to migrate: %w", err)
 	}
 
 	return db, nil
