@@ -25,7 +25,7 @@ func Run() error {
 		mode = gin.DebugMode
 	}
 	gin.SetMode(mode)
-	log.Printf("🚀 Starting in %s mode\n", gin.Mode())
+	log.Printf("Starting in %s mode\n", gin.Mode())
 
 	// Load configuration and connect to DB
 	config.LoadConfig()
@@ -70,6 +70,6 @@ func Run() error {
 		return fmt.Errorf("HTTP server shutdown: %w", err)
 	}
 
-	log.Println("✅ Server exited gracefully")
+	log.Println("Server exited gracefully")
 	return nil
 }
