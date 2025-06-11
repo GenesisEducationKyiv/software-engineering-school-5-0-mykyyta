@@ -58,5 +58,23 @@ func ConnectDefaultDB() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Connected to DB and ran AutoMigrate")
+	fmt.Println("Connected to DB")
+}
+
+// CloseDB closes the underlying sql.DB connection from GORM.
+func CloseDB() {
+	if DB == nil {
+		log.Println("CloseDB: no DB to close (DB is nil)")
+		return
+	}
+	sqlDB, err := DB.DB()
+	if err != nil {
+		log.Printf("Could not get sql.DB from GORM: %v", err)
+		return
+	}
+	if err := sqlDB.Close(); err != nil {
+		log.Printf("Failed to close DB: %v", err)
+	} else {
+		log.Println("✅ DB connection closed")
+	}
 }

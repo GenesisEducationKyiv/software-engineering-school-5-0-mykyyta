@@ -40,5 +40,6 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    stop_grace_period: 5s
     env_file:
       - .env
