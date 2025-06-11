@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+
 	"weatherApi/internal/app"
 )
 
