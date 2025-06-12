@@ -7,18 +7,18 @@ type Provider interface {
 	CityExists(ctx context.Context, city string) (bool, error)
 }
 
-type Service struct {
+type WeatherService struct {
 	provider Provider
 }
 
-func NewService(p Provider) *Service {
-	return &Service{provider: p}
+func NewService(p Provider) *WeatherService {
+	return &WeatherService{provider: p}
 }
 
-func (s *Service) GetWeather(ctx context.Context, city string) (*Weather, error) {
+func (s *WeatherService) GetWeather(ctx context.Context, city string) (*Weather, error) {
 	return s.provider.GetCurrentWeather(ctx, city)
 }
 
-func (s *Service) CheckCity(ctx context.Context, city string) (bool, error) {
+func (s *WeatherService) CityIsValid(ctx context.Context, city string) (bool, error) {
 	return s.provider.CityExists(ctx, city)
 }

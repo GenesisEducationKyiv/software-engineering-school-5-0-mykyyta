@@ -1,26 +1,29 @@
 package jwtutil
 
 import (
+	"errors"
+	"os"
+	"time"
 	"weatherApi/config"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Generate creates a JWT token with an email claim.
-// The token has no expiration and must be verified manually if needed.
 func Generate(email string) (string, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "", errors.New("JWT_SECRET is not set")
+	}
+
 	claims := jwt.MapClaims{
 		"email": email,
-		// "exp" intentionally removed — token has no expiration
+		"exp":   time.Now().Add(24 * time.Hour).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	return token.SignedString([]byte(config.C.JWTSecret))
+	return token.SignedString([]byte(secret))
 }
 
-// Parse validates the JWT token signature and extracts the email claim.
-// It returns an error if the token is invalid, malformed, or missing the email.
 func Parse(tokenStr string) (string, error) {
 	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
 		return []byte(config.C.JWTSecret), nil

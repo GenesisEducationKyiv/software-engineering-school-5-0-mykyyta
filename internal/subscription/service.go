@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,9 +11,16 @@ import (
 	"github.com/google/uuid"
 )
 
+var (
+	ErrCityNotFound         = errors.New("city not found")
+	ErrEmailAlreadyExists   = errors.New("email already subscribed")
+	ErrInvalidToken         = errors.New("invalid token")
+	ErrSubscriptionNotFound = errors.New("subscription not found")
+)
+
 type SubscriptionService struct {
 	repo          subscriptionRepository
-	emailSender   emailSender
+	emailService  emailService
 	cityValidator cityValidator
 }
 
@@ -20,40 +28,45 @@ type subscriptionRepository interface {
 	GetByEmail(ctx context.Context, email string) (*Subscription, error)
 	Create(ctx context.Context, sub *Subscription) error
 	Update(ctx context.Context, sub *Subscription) error
+	GetConfirmedByFrequency(ctx context.Context, frequency string) ([]Subscription, error)
 }
 
-type emailSender interface {
+type emailService interface {
 	SendConfirmationEmail(email, token string) error
 }
 
 type cityValidator interface {
-	IsValid(ctx context.Context, city string) (bool, error)
+	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
 func NewSubscriptionService(
 	repo subscriptionRepository,
-	emailSender emailSender,
+	emailSender emailService,
 	cityValidator cityValidator,
 ) *SubscriptionService {
 	return &SubscriptionService{
 		repo:          repo,
-		emailSender:   emailSender,
+		emailService:  emailSender,
 		cityValidator: cityValidator,
 	}
 }
 
 func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, frequency string) error {
-	ok, err := s.cityValidator.IsValid(ctx, city)
+	ok, err := s.cityValidator.CityIsValid(ctx, city)
 	if err != nil {
 		return fmt.Errorf("failed to validate city: %w", err)
 	}
 	if !ok {
-		return fmt.Errorf("city not found")
+		return ErrCityNotFound
 	}
 
 	existing, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
 		return fmt.Errorf("failed to check existing subscription: %w", err)
+	}
+
+	if existing != nil && existing.IsConfirmed && !existing.IsUnsubscribed {
+		return ErrEmailAlreadyExists
 	}
 
 	token, err := jwtutil.Generate(email)
@@ -88,8 +101,8 @@ func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, freque
 	}
 
 	go func() {
-		if err := s.emailSender.SendConfirmationEmail(email, token); err != nil {
-			fmt.Printf("Failed to send email to %s: %v\n", email, err)
+		if err := s.emailService.SendConfirmationEmail(email, token); err != nil {
+			fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
 		}
 	}()
 
@@ -99,12 +112,15 @@ func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, freque
 func (s *SubscriptionService) Confirm(ctx context.Context, token string) error {
 	email, err := jwtutil.Parse(token)
 	if err != nil {
-		return fmt.Errorf("invalid token")
+		return ErrInvalidToken
 	}
 
 	sub, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
-		return fmt.Errorf("subscription not found")
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+	if sub == nil {
+		return ErrSubscriptionNotFound
 	}
 	if sub.IsConfirmed {
 		return nil
@@ -115,22 +131,21 @@ func (s *SubscriptionService) Confirm(ctx context.Context, token string) error {
 		return fmt.Errorf("failed to confirm subscription: %w", err)
 	}
 
-	//if err := scheduler.ProcessSubscription(ctx, *sub); err != nil {
-	//	return fmt.Errorf("failed to send forecast: %w", err)
-	//}
-
 	return nil
 }
 
 func (s *SubscriptionService) Unsubscribe(ctx context.Context, token string) error {
 	email, err := jwtutil.Parse(token)
 	if err != nil {
-		return fmt.Errorf("invalid token")
+		return ErrInvalidToken
 	}
 
 	sub, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
-		return fmt.Errorf("subscription not found")
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+	if sub == nil {
+		return ErrSubscriptionNotFound
 	}
 
 	if sub.IsUnsubscribed {
@@ -143,4 +158,8 @@ func (s *SubscriptionService) Unsubscribe(ctx context.Context, token string) err
 	}
 
 	return nil
+}
+
+func (s *SubscriptionService) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]Subscription, error) {
+	return s.repo.GetConfirmedByFrequency(ctx, frequency)
 }

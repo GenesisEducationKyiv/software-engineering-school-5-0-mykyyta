@@ -1,106 +1,99 @@
 package api
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 	"weatherApi/internal/subscription"
 
-	"weatherApi/internal/jwtutil"
-
-	"github.com/google/uuid"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-// TestUnsubscribeHandler_Success verifies that a valid unsubscribe request
-// properly updates the subscription status and returns success.
-func TestUnsubscribeHandler_Success(t *testing.T) {
-	router := setupTestRouterWithDB(t)
-
-	email := "user@unsubscribe.com"
-	token, err := jwtutil.Generate(email)
-	require.NoError(t, err)
-
-	// Create an active subscription for testing
-	err = DB.Create(&subscription.Subscription{
-		ID:             uuid.NewString(),
-		Email:          email,
-		City:           "Kyiv",
-		Frequency:      "daily",
-		IsConfirmed:    true,
-		IsUnsubscribed: false,
-		Token:          token,
-		CreatedAt:      time.Now(),
-	}).Error
-	require.NoError(t, err)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/unsubscribe/"+token, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, `{"message":"Unsubscribed successfully"}`, w.Body.String())
+// --- Mock service ---
+type mockUnsubscribeService struct {
+	unsubscribeFunc func(ctx context.Context, token string) error
 }
 
-// TestUnsubscribeHandler_InvalidToken tests the handler's response
-// when provided with a malformed or invalid JWT token.
-func TestUnsubscribeHandler_InvalidToken(t *testing.T) {
-	router := setupTestRouterWithDB(t)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/unsubscribe/not-a-token", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, `{"error":"Invalid token"}`, w.Body.String())
+func (m *mockUnsubscribeService) Unsubscribe(ctx context.Context, token string) error {
+	return m.unsubscribeFunc(ctx, token)
 }
 
-// TestUnsubscribeHandler_NotFound verifies that the handler returns
-// appropriate error when attempting to unsubscribe with a valid token
-// but no matching subscription in the database.
-func TestUnsubscribeHandler_NotFound(t *testing.T) {
-	router := setupTestRouterWithDB(t)
-
-	token, err := jwtutil.Generate("ghost@nowhere.com")
-	require.NoError(t, err)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/unsubscribe/"+token, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.JSONEq(t, `{"error":"Token not found"}`, w.Body.String())
+// --- Setup router ---
+func setupUnsubscribeRouter(s unsubscribeService) *gin.Engine {
+	handler := NewUnsubscribeHandler(s)
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	r.GET("/api/unsubscribe/:token", handler.Handle)
+	return r
 }
 
-// TestUnsubscribeHandler_AlreadyUnsubscribed ensures that attempting to
-// unsubscribe an already unsubscribed subscription returns a helpful message
-// rather than an error.
-func TestUnsubscribeHandler_AlreadyUnsubscribed(t *testing.T) {
-	router := setupTestRouterWithDB(t)
+// --- Tests ---
 
-	email := "already@unsubscribed.com"
-	token, err := jwtutil.Generate(email)
-	require.NoError(t, err)
+func TestUnsubscribeHandler(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		service := &mockUnsubscribeService{
+			unsubscribeFunc: func(ctx context.Context, token string) error {
+				return nil
+			},
+		}
+		router := setupUnsubscribeRouter(service)
 
-	// Create a subscription that's already unsubscribed
-	err = DB.Create(&subscription.Subscription{
-		ID:             uuid.NewString(),
-		Email:          email,
-		City:           "Kyiv",
-		Frequency:      "daily",
-		IsConfirmed:    true,
-		IsUnsubscribed: true,
-		Token:          token,
-		CreatedAt:      time.Now(),
-	}).Error
-	require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodGet, "/api/unsubscribe/some-valid-token", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/unsubscribe/"+token, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t, `{"message":"Unsubscribed successfully"}`, w.Body.String())
+	})
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, `{"message":"You are already unsubscribed"}`, w.Body.String())
+	t.Run("InvalidToken", func(t *testing.T) {
+		service := &mockUnsubscribeService{
+			unsubscribeFunc: func(ctx context.Context, token string) error {
+				return subscription.ErrInvalidToken
+			},
+		}
+		router := setupUnsubscribeRouter(service)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/unsubscribe/not-a-token", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.JSONEq(t, `{"error":"Invalid token"}`, w.Body.String())
+	})
+
+	t.Run("NotFound", func(t *testing.T) {
+		service := &mockUnsubscribeService{
+			unsubscribeFunc: func(ctx context.Context, token string) error {
+				return subscription.ErrSubscriptionNotFound
+			},
+		}
+		router := setupUnsubscribeRouter(service)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/unsubscribe/ghost-token", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.JSONEq(t, `{"error":"Subscription not found"}`, w.Body.String())
+	})
+
+	t.Run("InternalError", func(t *testing.T) {
+		service := &mockUnsubscribeService{
+			unsubscribeFunc: func(ctx context.Context, token string) error {
+				return errors.New("unexpected DB error")
+			},
+		}
+		router := setupUnsubscribeRouter(service)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/unsubscribe/token123", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "Something went wrong")
+	})
 }

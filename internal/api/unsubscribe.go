@@ -1,44 +1,38 @@
 package api
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"weatherApi/internal/subscription"
-
-	"weatherApi/internal/jwtutil"
 
 	"github.com/gin-gonic/gin"
 )
 
-// unsubscribeHandler marks a subscription as unsubscribed using a secure token.
-// The token is parsed to extract the user's email (acts as a form of lightweight authentication).
-// This endpoint does not require login — anyone with the token can unsubscribe.
-func unsubscribeHandler(c *gin.Context) {
+type unsubscribeService interface {
+	Unsubscribe(ctx context.Context, token string) error
+}
+
+type UnsubscribeHandler struct {
+	service unsubscribeService
+}
+
+func NewUnsubscribeHandler(service unsubscribeService) *UnsubscribeHandler {
+	return &UnsubscribeHandler{service: service}
+}
+
+func (h *UnsubscribeHandler) Handle(c *gin.Context) {
 	token := c.Param("token")
 
-	// Parse the token to extract the associated email
-	email, err := jwtutil.Parse(token)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid token"})
-		return
-	}
-
-	// Retrieve subscription by email
-	var sub subscription.Subscription
-	if err := DB.Where("email = ?", email).First(&sub).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Token not found"})
-		return
-	}
-
-	// If already unsubscribed, return early
-	if sub.IsUnsubscribed {
-		c.JSON(http.StatusOK, gin.H{"message": "You are already unsubscribed"})
-		return
-	}
-
-	// Mark subscription as unsubscribed
-	sub.IsUnsubscribed = true
-	if err := DB.Save(&sub).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unsubscribe"})
+	if err := h.service.Unsubscribe(c.Request.Context(), token); err != nil {
+		switch {
+		case errors.Is(err, subscription.ErrInvalidToken):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid token"})
+		case errors.Is(err, subscription.ErrSubscriptionNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+		}
 		return
 	}
 

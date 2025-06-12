@@ -4,119 +4,117 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
-	"time"
 	"weatherApi/internal/subscription"
-	"weatherApi/internal/weather"
 
 	"weatherApi/internal/jwtutil"
-	"weatherApi/internal/scheduler"
 
-	"github.com/google/uuid"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	scheduler.FetchWeather = func(ctx context.Context, city string) (*weather.Weather, int, error) {
-		return &weather.Weather{
-			Temperature: 22.5,
-			Humidity:    60,
-			Description: "Clear skies",
-		}, 200, nil
-	}
-
-	scheduler.SendWeatherEmail = func(to string, weather *weather.Weather, city, token string) error {
-		return nil // simulate success
-	}
+// --- Setup: TestMain для JWT_SECRET ---
+func TestMain(m *testing.M) {
+	_ = os.Setenv("JWT_SECRET", "test-secret")
+	os.Exit(m.Run())
 }
 
-// - Does not modify other subscription fields.
+// mockConfirmService реалізує confirmService (використовується в ConfirmHandler)
+type mockConfirmService struct {
+	ConfirmFunc func(ctx context.Context, token string) error
+}
+
+func (m *mockConfirmService) Confirm(ctx context.Context, token string) error {
+	return m.ConfirmFunc(ctx, token)
+}
+
+func setupRouterWithMockService(t *testing.T, mock *mockConfirmService) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+
+	handler := NewConfirmHandler(mock)
+
+	r := gin.Default()
+	r.GET("/api/confirm/:token", handler.Handle)
+	return r
+}
+
 func TestConfirmHandler_Success(t *testing.T) {
-	router := setupTestRouterWithDB(t)
-
-	email := "confirmtest@example.com"
-	token, err := jwtutil.Generate(email)
+	token, err := jwtutil.Generate("confirmtest@example.com")
 	require.NoError(t, err)
 
-	err = DB.Create(&subscription.Subscription{
-		ID:             "test-id",
-		Email:          email,
-		City:           "Kyiv",
-		Frequency:      "daily",
-		IsConfirmed:    false,
-		IsUnsubscribed: false,
-		Token:          token,
-		CreatedAt:      time.Now(),
-	}).Error
-	require.NoError(t, err)
+	mock := &mockConfirmService{
+		ConfirmFunc: func(ctx context.Context, tkn string) error {
+			assert.Equal(t, token, tkn)
+			return nil
+		},
+	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/confirm/"+token, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, 200, w.Code)
-	assert.JSONEq(t, `{"message":"Subscription confirmed successfully"}`, w.Body.String())
-
-	var sub subscription.Subscription
-	err = DB.Where("email = ?", email).First(&sub).Error
-	require.NoError(t, err)
-	assert.True(t, sub.IsConfirmed)
-}
-
-// - Includes "Invalid token" in the error message.
-func TestConfirmHandler_InvalidToken(t *testing.T) {
-	router := setupTestRouterWithDB(t)
-
-	invalidToken := "not-a-valid-jwt"
-
-	req := httptest.NewRequest(http.MethodGet, "/api/confirm/"+invalidToken, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid token")
-}
-
-// - This prevents enumeration of emails via the confirmation endpoint.
-func TestConfirmHandler_TokenButNoSubscription(t *testing.T) {
-	router := setupTestRouterWithDB(t)
-
-	token, err := jwtutil.Generate("ghost@example.com")
-	require.NoError(t, err)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/confirm/"+token, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Contains(t, w.Body.String(), "Token not found")
-}
-
-// - Does not modify the existing confirmed subscription.
-func TestConfirmHandler_AlreadyConfirmed(t *testing.T) {
-	router := setupTestRouterWithDB(t)
-
-	email := "already@confirmed.com"
-	token, err := jwtutil.Generate(email)
-	require.NoError(t, err)
-
-	err = DB.Create(&subscription.Subscription{
-		ID:             uuid.New().String(),
-		Email:          email,
-		City:           "Kyiv",
-		Frequency:      "daily",
-		IsConfirmed:    true,
-		IsUnsubscribed: false,
-		Token:          token,
-		CreatedAt:      time.Now(),
-	}).Error
-	require.NoError(t, err)
+	router := setupRouterWithMockService(t, mock)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/confirm/"+token, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "already confirmed")
+	assert.JSONEq(t, `{"message":"Subscription confirmed successfully"}`, w.Body.String())
+}
+
+func TestConfirmHandler_InvalidToken(t *testing.T) {
+	mock := &mockConfirmService{
+		ConfirmFunc: func(ctx context.Context, token string) error {
+			return subscription.ErrInvalidToken
+		},
+	}
+
+	router := setupRouterWithMockService(t, mock)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/confirm/invalid-token", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, `{"error":"Invalid token"}`, w.Body.String())
+}
+
+func TestConfirmHandler_TokenButNoSubscription(t *testing.T) {
+	token, err := jwtutil.Generate("ghost@example.com")
+	require.NoError(t, err)
+
+	mock := &mockConfirmService{
+		ConfirmFunc: func(ctx context.Context, token string) error {
+			return subscription.ErrSubscriptionNotFound
+		},
+	}
+
+	router := setupRouterWithMockService(t, mock)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/confirm/"+token, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.JSONEq(t, `{"error":"Subscription not found"}`, w.Body.String())
+}
+
+func TestConfirmHandler_AlreadyConfirmed(t *testing.T) {
+	token, err := jwtutil.Generate("already@confirmed.com")
+	require.NoError(t, err)
+
+	mock := &mockConfirmService{
+		ConfirmFunc: func(ctx context.Context, token string) error {
+			// Already confirmed — no error
+			return nil
+		},
+	}
+
+	router := setupRouterWithMockService(t, mock)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/confirm/"+token, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, `{"message":"Subscription confirmed successfully"}`, w.Body.String())
 }

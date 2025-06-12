@@ -9,17 +9,20 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"weatherApi/internal/scheduler"
 
 	"github.com/gin-gonic/gin"
 
 	"weatherApi/config"
 	"weatherApi/internal/api"
 	"weatherApi/internal/db"
-	"weatherApi/internal/scheduler"
+	"weatherApi/internal/email"
+	"weatherApi/internal/subscription"
+	"weatherApi/internal/weather"
 )
 
 func Run() error {
-	// Set GIN mode
+	// GIN mode
 	mode := os.Getenv("GIN_MODE")
 	if mode == "" {
 		mode = gin.DebugMode
@@ -27,42 +30,80 @@ func Run() error {
 	gin.SetMode(mode)
 	log.Printf("Starting in %s mode\n", gin.Mode())
 
-	// Load configuration and connect to DB
+	// Load config
 	config.LoadConfig()
-	db.ConnectDefaultDB()
-	defer db.CloseDB()
 
-	// Inject DB into other modules
-	api.SetDB(db.DB)
-	scheduler.SetDB(db.DB)
+	// Connect DB
+	dbInstance := db.ConnectDefaultDB()
+	defer db.CloseDB(dbInstance)
 
-	// Start background scheduler
-	go scheduler.StartWeatherScheduler()
+	// === ІНІЦІАЛІЗАЦІЯ ЗАЛЕЖНОСТЕЙ ===
 
-	// Set up Gin router
-	r := gin.Default()
-	api.RegisterRoutes(r)
+	// Weather service
+	weatherProvider := weather.NewWeatherAPIProvider(config.C.WeatherAPIKey)
+	weatherService := weather.NewService(weatherProvider)
 
-	// Create HTTP server
-	srv := &http.Server{
-		Addr:    ":" + config.C.Port,
-		Handler: r,
+	// Subscription service
+	repo := subscription.NewSubscriptionRepository(dbInstance)
+
+	emailProvider := email.NewSendGridProvider(config.C.EmailFrom, config.C.SendGridKey)
+	emailService := email.NewEmailService(emailProvider)
+	subService := subscription.NewSubscriptionService(repo, emailService, weatherService)
+
+	// Scheduler
+	sched := scheduler.NewScheduler(subService, weatherService, emailService)
+	go sched.Start()
+
+	// Handlers
+	subscribeHandler := api.NewSubscribeHandler(subService)
+	confirmHandler := api.NewConfirmHandler(subService)
+	unsubscribeHandler := api.NewUnsubscribeHandler(subService)
+	weatherHandler := api.NewWeatherHandler(weatherService)
+
+	// === РОУТИНГ ===
+	router := gin.Default()
+
+	apiGroup := router.Group("/api")
+	{
+		apiGroup.POST("/subscribe", subscribeHandler.Handle)
+		apiGroup.GET("/confirm/:token", confirmHandler.Handle)
+		apiGroup.GET("/unsubscribe/:token", unsubscribeHandler.Handle)
+		apiGroup.GET("/weather", weatherHandler.Handle)
 	}
 
-	// Start server in background
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	if gin.Mode() != gin.TestMode {
+		router.LoadHTMLGlob("templates/*.html")
+	}
+
+	router.GET("/subscribe", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "subscribe.html", nil)
+	})
+	router.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusFound, "/subscribe")
+	})
+
+	// server run
+	srv := &http.Server{
+		Addr:    ":" + config.C.Port,
+		Handler: router,
+	}
+
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
 
-	// Wait for termination signal
+	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutdown signal received, cleaning up...")
 
-	// Gracefully shutdown HTTP server
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
