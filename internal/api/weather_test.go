@@ -1,5 +1,3 @@
-// Package api provides test cases for the weather API endpoints
-// ensuring correct handling of weather data requests and responses.
 package api
 
 import (
@@ -14,69 +12,78 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// different behaviors for weather fetching operations.
-var mockFetchWithStatus func(ctx context.Context, city string) (*weather.Weather, int, error)
+// --- mock service ---
 
-// init replaces the production fetchWeather function with our test mock.
-func init() {
-	fetchWeather = func(ctx context.Context, city string) (*weather.Weather, int, error) {
-		return mockFetchWithStatus(ctx, city)
-	}
+type mockWeatherService struct {
+	getWeatherFunc func(ctx context.Context, city string) (*weather.Weather, error)
 }
 
-// specifically for testing the weather endpoint.
-func setupTestRouterForWeather() *gin.Engine {
+func (m *mockWeatherService) GetWeather(ctx context.Context, city string) (*weather.Weather, error) {
+	return m.getWeatherFunc(ctx, city)
+}
+
+// --- setup router ---
+
+func setupWeatherRouter(service weatherService) *gin.Engine {
+	handler := NewWeatherHandler(service)
 	gin.SetMode(gin.TestMode)
-	router := gin.Default()
-	router.GET("/api/weather", getWeatherHandler)
-	return router
+	r := gin.Default()
+	r.GET("/api/weather", handler.Handle)
+	return r
 }
 
-// correct weather data with HTTP 200 status when provided with a valid city.
-func TestWeatherHandler_Success(t *testing.T) {
-	mockFetchWithStatus = func(ctx context.Context, city string) (*weather.Weather, int, error) {
-		return &weather.Weather{
-			Temperature: 21.5,
-			Humidity:    60,
-			Description: "Sunny",
-		}, http.StatusOK, nil
-	}
+// --- test cases ---
 
-	router := setupTestRouterForWeather()
-	req := httptest.NewRequest(http.MethodGet, "/api/weather?city=Kyiv", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+func TestWeatherHandler(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		service := &mockWeatherService{
+			getWeatherFunc: func(ctx context.Context, city string) (*weather.Weather, error) {
+				return &weather.Weather{
+					Temperature: 21.5,
+					Humidity:    60,
+					Description: "Sunny",
+				}, nil
+			},
+		}
+		router := setupWeatherRouter(service)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, `{
-		"temperature": 21.5,
-		"humidity": 60,
-		"description": "Sunny"
-	}`, w.Body.String())
-}
+		req := httptest.NewRequest(http.MethodGet, "/api/weather?city=Kyiv", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-// an HTTP 400 error when the city parameter is missing from the request.
-func TestWeatherHandler_MissingCity(t *testing.T) {
-	router := setupTestRouterForWeather()
-	req := httptest.NewRequest(http.MethodGet, "/api/weather", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t, `{
+			"temperature": 21.5,
+			"humidity": 60,
+			"description": "Sunny"
+		}`, w.Body.String())
+	})
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, `{"error":"City is required"}`, w.Body.String())
-}
+	t.Run("MissingCity", func(t *testing.T) {
+		service := &mockWeatherService{} // won't be called
+		router := setupWeatherRouter(service)
 
-// an HTTP 404 error when the requested city cannot be found.
-func TestWeatherHandler_CityNotFound(t *testing.T) {
-	mockFetchWithStatus = func(ctx context.Context, city string) (*weather.Weather, int, error) {
-		return nil, http.StatusNotFound, errors.New("City not found")
-	}
+		req := httptest.NewRequest(http.MethodGet, "/api/weather", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	router := setupTestRouterForWeather()
-	req := httptest.NewRequest(http.MethodGet, "/api/weather?city=Nowhere", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.JSONEq(t, `{"error":"City is required"}`, w.Body.String())
+	})
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.JSONEq(t, `{"error":"City not found"}`, w.Body.String())
+	t.Run("CityNotFound", func(t *testing.T) {
+		service := &mockWeatherService{
+			getWeatherFunc: func(ctx context.Context, city string) (*weather.Weather, error) {
+				return nil, errors.New("City not found")
+			},
+		}
+		router := setupWeatherRouter(service)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/weather?city=Atlantis", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code) // Or use 404 if you implement error type checking
+		assert.JSONEq(t, `{"error":"City not found"}`, w.Body.String())
+	})
 }

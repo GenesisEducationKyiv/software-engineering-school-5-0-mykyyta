@@ -23,7 +23,7 @@ func NewEmailService(p EmailProvider) *EmailService {
 	}
 }
 
-func (s *EmailService) SendConfirmation(toEmail, token string) error {
+func (s *EmailService) SendConfirmationEmail(toEmail, token string) error {
 	url := fmt.Sprintf("%s/api/confirm/%s", s.baseURL, token)
 	subject := "Підтвердіть вашу підписку"
 	plain := "Будь ласка, підтвердіть вашу підписку за цим посиланням: " + url

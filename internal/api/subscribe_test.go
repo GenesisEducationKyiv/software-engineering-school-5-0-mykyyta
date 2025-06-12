@@ -2,157 +2,170 @@ package api
 
 import (
 	"context"
-	"log"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
-	"time"
 	"weatherApi/internal/subscription"
-
-	"weatherApi/config"
-
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/require"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
-// mustSetEnv sets an environment variable and logs fatal error if it fails.
-func mustSetEnv(key, value string) {
-	if err := os.Setenv(key, value); err != nil {
-		log.Fatalf("failed to set env %s: %v", key, err)
-	}
+// --- Mock Service Implementation ---
+
+type mockSubscribeService struct {
+	subscribeFunc func(ctx context.Context, email, city, frequency string) error
 }
 
-// TestMain is the entry point for tests in this package.
-func TestMain(m *testing.M) {
-	mustSetEnv("SENDGRID_API_KEY", "dummy-key")
-	mustSetEnv("EMAIL_FROM", "test@example.com")
-	mustSetEnv("DB_URL", "dummy-db-url")
-	mustSetEnv("JWT_SECRET", "dummy-jwt-secret")
-	mustSetEnv("WEATHER_API_KEY", "dummy-weather-key")
-
-	config.Reload()
-
-	os.Exit(m.Run())
+func (m *mockSubscribeService) Subscribe(ctx context.Context, email, city, frequency string) error {
+	return m.subscribeFunc(ctx, email, city, frequency)
 }
 
-// setupTestRouterWithDB creates an in-memory SQLite database and initializes
-// a test router with all API routes registered. It also sets up a mock city
-// validator that accepts all cities.
-func setupTestRouterWithDB(t *testing.T) *gin.Engine {
-	t.Helper()
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatalf("failed to connect to test DB: %v", err)
-	}
+// --- Test Cases ---
 
-	err = db.AutoMigrate(&subscription.Subscription{})
-	if err != nil {
-		t.Fatalf("failed to migrate test DB: %v", err)
-	}
-
-	SetDB(db)
-
-	cityValidator = func(ctx context.Context, city string) (bool, error) {
-		return true, nil // Accept all cities in tests
-	}
-
+func setupTestRouter(handler *SubscribeHandler) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	RegisterRoutes(r)
+	r.POST("/api/subscribe", handler.Handle)
 	return r
 }
 
-// - Creates subscription record in database.
-func TestSubscribe_Success(t *testing.T) {
-	router := setupTestRouterWithDB(t)
+func TestSubscribeHandler(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		service := &mockSubscribeService{
+			subscribeFunc: func(ctx context.Context, email, city, frequency string) error {
+				return nil
+			},
+		}
+		handler := NewSubscribeHandler(service)
+		router := setupTestRouter(handler)
 
-	form := url.Values{}
-	form.Add("email", "test@example.com")
-	form.Add("city", "Kyiv")
-	form.Add("frequency", "daily")
+		form := url.Values{}
+		form.Add("email", "test@example.com")
+		form.Add("city", "Kyiv")
+		form.Add("frequency", "daily")
 
-	req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
 
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	expected := `{"message":"Subscription successful. Confirmation email sent."}`
-	assert.JSONEq(t, expected, w.Body.String())
-}
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.JSONEq(t, `{"message":"Subscription successful. Confirmation email sent."}`, w.Body.String())
+	})
 
-// - Contains "Invalid input" in error message.
-func TestSubscribe_MissingEmail(t *testing.T) {
-	router := setupTestRouterWithDB(t)
+	t.Run("MissingEmail", func(t *testing.T) {
+		service := &mockSubscribeService{}
+		handler := NewSubscribeHandler(service)
+		router := setupTestRouter(handler)
 
-	form := url.Values{}
-	form.Add("city", "Kyiv")
-	form.Add("frequency", "daily")
+		form := url.Values{}
+		form.Add("city", "Kyiv")
+		form.Add("frequency", "daily")
 
-	req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
 
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid input")
-}
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid input")
+	})
 
-// - Contains "Invalid input" in error message.
-func TestSubscribe_InvalidFrequency(t *testing.T) {
-	router := setupTestRouterWithDB(t)
+	t.Run("InvalidFrequency", func(t *testing.T) {
+		service := &mockSubscribeService{}
+		handler := NewSubscribeHandler(service)
+		router := setupTestRouter(handler)
 
-	form := url.Values{}
-	form.Add("email", "test@example.com")
-	form.Add("city", "Kyiv")
-	form.Add("frequency", "weekly")
+		form := url.Values{}
+		form.Add("email", "test@example.com")
+		form.Add("city", "Kyiv")
+		form.Add("frequency", "weekly") // not allowed
 
-	req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
 
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid input")
-}
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid input")
+	})
 
-// - Does not create duplicate subscription in database.
-func TestSubscribe_DuplicateEmail(t *testing.T) {
-	router := setupTestRouterWithDB(t)
+	t.Run("DuplicateEmail", func(t *testing.T) {
+		service := &mockSubscribeService{
+			subscribeFunc: func(ctx context.Context, email, city, frequency string) error {
+				return subscription.ErrEmailAlreadyExists
+			},
+		}
+		handler := NewSubscribeHandler(service)
+		router := setupTestRouter(handler)
 
-	err := DB.Create(&subscription.Subscription{
-		ID:             uuid.New().String(),
-		Email:          "duplicate@example.com",
-		City:           "Kyiv",
-		Frequency:      "daily",
-		IsConfirmed:    true,
-		IsUnsubscribed: false,
-		Token:          "some-token",
-		CreatedAt:      time.Now(),
-	}).Error
-	require.NoError(t, err)
+		form := url.Values{}
+		form.Add("email", "duplicate@example.com")
+		form.Add("city", "Kyiv")
+		form.Add("frequency", "daily")
 
-	form := url.Values{}
-	form.Add("email", "duplicate@example.com")
-	form.Add("city", "Kyiv")
-	form.Add("frequency", "daily")
+		req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
 
-	req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Contains(t, w.Body.String(), "Email already subscribed")
+		assert.Equal(t, http.StatusConflict, w.Code)
+		assert.Contains(t, w.Body.String(), "Email already subscribed")
+	})
+
+	t.Run("CityNotFound", func(t *testing.T) {
+		service := &mockSubscribeService{
+			subscribeFunc: func(ctx context.Context, email, city, frequency string) error {
+				return subscription.ErrCityNotFound
+			},
+		}
+		handler := NewSubscribeHandler(service)
+		router := setupTestRouter(handler)
+
+		form := url.Values{}
+		form.Add("email", "test@example.com")
+		form.Add("city", "Atlantis")
+		form.Add("frequency", "daily")
+
+		req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "City not found")
+	})
+
+	t.Run("InternalError", func(t *testing.T) {
+		service := &mockSubscribeService{
+			subscribeFunc: func(ctx context.Context, email, city, frequency string) error {
+				return errors.New("unexpected error")
+			},
+		}
+		handler := NewSubscribeHandler(service)
+		router := setupTestRouter(handler)
+
+		form := url.Values{}
+		form.Add("email", "test@example.com")
+		form.Add("city", "Kyiv")
+		form.Add("frequency", "daily")
+
+		req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "Something went wrong")
+	})
 }

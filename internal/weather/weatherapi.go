@@ -9,12 +9,12 @@ import (
 	"net/http"
 )
 
-type weatherAPIProvider struct {
+type WeatherApiProvider struct {
 	apiKey string
 }
 
 func NewWeatherAPIProvider(apiKey string) Provider {
-	return &weatherAPIProvider{apiKey: apiKey}
+	return &WeatherApiProvider{apiKey: apiKey}
 }
 
 type weatherAPIResponse struct {
@@ -27,7 +27,7 @@ type weatherAPIResponse struct {
 	} `json:"current"`
 }
 
-func (p *weatherAPIProvider) GetCurrentWeather(ctx context.Context, city string) (*Weather, error) {
+func (p *WeatherApiProvider) GetCurrentWeather(ctx context.Context, city string) (*Weather, error) {
 	if p.apiKey == "" {
 		return nil, errors.New("weather API key not set")
 	}
@@ -55,7 +55,7 @@ func (p *weatherAPIProvider) GetCurrentWeather(ctx context.Context, city string)
 	}, nil
 }
 
-func (p *weatherAPIProvider) CityExists(ctx context.Context, city string) (bool, error) {
+func (p *WeatherApiProvider) CityExists(ctx context.Context, city string) (bool, error) {
 	if p.apiKey == "" {
 		return false, errors.New("weather API key not set")
 	}
