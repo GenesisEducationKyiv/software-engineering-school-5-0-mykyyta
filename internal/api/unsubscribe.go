@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
+	"weatherApi/internal/jwtutil"
 	"weatherApi/internal/model"
-	"weatherApi/pkg/jwtutil"
 
 	"github.com/gin-gonic/gin"
 )
