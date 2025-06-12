@@ -12,9 +12,13 @@ Accepted
 - security
 - backend
 
+## Context
+
+The task was to find a suitable method for handling user subscriptions in a secure way — including confirmation and preference updates — without requiring a full user management system.
+
 ## Decision rationale
 
-The application needed a simple way to authenticate users for protected actions like confirming subscriptions or managing preferences.
+The application needed a simple way to authenticate users for protected actions like confirming subscriptions.
 
 Given the scope of the project and the fact that it doesn't require full user sessions or social login, I opted for stateless token-based authentication.
 
@@ -25,15 +29,15 @@ Coming from a Python background, I was familiar with both session-based and toke
 - It integrates well with APIs and mobile clients
 - It allowed me to gain hands-on experience with Go’s JWT libraries
 
-## Decision
-
-Use **JWT (JSON Web Tokens)** to authenticate users in API requests.
-
 ## Alternatives Considered
 
 - **Session-based auth**: Would require server-side session store (e.g., Redis), adds complexity.
 - **API key**: Simpler, but doesn’t support user-specific access or expiration.
 - **OAuth2**: Too heavy for this use case.
+
+## Final decision
+
+Use **JWT (JSON Web Tokens)** to authenticate users in API requests.
 
 ## Consequences
 
