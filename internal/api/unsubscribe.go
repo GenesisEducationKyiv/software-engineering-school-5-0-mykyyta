@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+
 	"weatherApi/internal/subscription"
 
 	"github.com/gin-gonic/gin"

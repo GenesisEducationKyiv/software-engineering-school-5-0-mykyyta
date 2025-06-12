@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
 	"weatherApi/internal/weather"
 
 	"github.com/gin-gonic/gin"

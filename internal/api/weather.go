@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+
 	"weatherApi/internal/weather"
 
 	"github.com/gin-gonic/gin"

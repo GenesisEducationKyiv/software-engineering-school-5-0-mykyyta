@@ -2,6 +2,7 @@ package email
 
 import (
 	"fmt"
+
 	"weatherApi/internal/weather"
 
 	"weatherApi/config"

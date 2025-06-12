@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
 	"weatherApi/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-// --- Mock service ---
+// --- Mock service ---.
 type mockUnsubscribeService struct {
 	unsubscribeFunc func(ctx context.Context, token string) error
 }
@@ -21,7 +22,7 @@ func (m *mockUnsubscribeService) Unsubscribe(ctx context.Context, token string) 
 	return m.unsubscribeFunc(ctx, token)
 }
 
-// --- Setup router ---
+// --- Setup router ---.
 func setupUnsubscribeRouter(s unsubscribeService) *gin.Engine {
 	handler := NewUnsubscribeHandler(s)
 	gin.SetMode(gin.TestMode)

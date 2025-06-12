@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
 	"weatherApi/internal/subscription"
 
 	"github.com/gin-gonic/gin"
