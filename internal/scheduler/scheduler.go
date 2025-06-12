@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"log"
+
 	"weatherApi/internal/subscription"
 	"weatherApi/internal/weather"
 

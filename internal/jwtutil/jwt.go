@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"time"
+
 	"weatherApi/config"
 
 	"github.com/golang-jwt/jwt/v5"

@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
 	"weatherApi/internal/scheduler"
 
 	"github.com/gin-gonic/gin"

@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
 	"weatherApi/internal/subscription"
 
 	"weatherApi/internal/jwtutil"
@@ -15,13 +16,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// --- Setup: TestMain для JWT_SECRET ---
+// --- Setup: TestMain для JWT_SECRET ---.
 func TestMain(m *testing.M) {
 	_ = os.Setenv("JWT_SECRET", "test-secret")
 	os.Exit(m.Run())
 }
 
-// mockConfirmService реалізує confirmService (використовується в ConfirmHandler)
+// mockConfirmService реалізує confirmService (використовується в ConfirmHandler).
 type mockConfirmService struct {
 	ConfirmFunc func(ctx context.Context, token string) error
 }
@@ -31,6 +32,7 @@ func (m *mockConfirmService) Confirm(ctx context.Context, token string) error {
 }
 
 func setupRouterWithMockService(t *testing.T, mock *mockConfirmService) *gin.Engine {
+	t.Helper()
 	gin.SetMode(gin.TestMode)
 
 	handler := NewConfirmHandler(mock)
