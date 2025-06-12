@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"weatherApi/config"
-	"weatherApi/internal/model"
-
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+	"weatherApi/config"
 )
 
 // DB is the globally accessible database instance used across the application.
@@ -44,12 +43,6 @@ func InitDatabase(dbType, dsn string) (*gorm.DB, error) {
 		}
 	}
 
-	// Run automatic schema migration for Subscription model
-	err = db.AutoMigrate(&model.Subscription{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to migrate: %w", err)
-	}
-
 	return db, nil
 }
 
@@ -66,5 +59,23 @@ func ConnectDefaultDB() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Connected to DB and ran AutoMigrate")
+	fmt.Println("Connected to DB")
+}
+
+// CloseDB closes the underlying sql.DB connection from GORM.
+func CloseDB() {
+	if DB == nil {
+		log.Println("CloseDB: no DB to close (DB is nil)")
+		return
+	}
+	sqlDB, err := DB.DB()
+	if err != nil {
+		log.Printf("Could not get sql.DB from GORM: %v", err)
+		return
+	}
+	if err := sqlDB.Close(); err != nil {
+		log.Printf("Failed to close DB: %v", err)
+	} else {
+		log.Println("DB connection closed")
+	}
 }

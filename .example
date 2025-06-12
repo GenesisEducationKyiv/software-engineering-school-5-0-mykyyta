@@ -1,6 +1,6 @@
 PORT=8080
 DB_TYPE=postgres
-DB_URL=host=db user=postgres password=postgres dbname=weatherdb port=5432 sslmode=disable
+DB_URL=postgresql://postgres:postgres@db:5432/weatherdb?sslmode=disable
 BASE_URL="http://localhost:8080"
 GIN_MODE=debug
 JWT_SECRET=default_secret

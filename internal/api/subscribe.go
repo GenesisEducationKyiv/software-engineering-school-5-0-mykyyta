@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
+	"weatherApi/internal/jwtutil"
 	"weatherApi/internal/model"
-	"weatherApi/pkg/jwtutil"
-	"weatherApi/pkg/weatherapi"
+	"weatherApi/internal/weatherapi"
 
-	emailutil "weatherApi/pkg/email"
+	emailutil "weatherApi/internal/email"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
