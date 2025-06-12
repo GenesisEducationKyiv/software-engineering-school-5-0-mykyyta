@@ -2,9 +2,9 @@ package api
 
 import (
 	"net/http"
+	"weatherApi/internal/subscription"
 
 	"weatherApi/internal/jwtutil"
-	"weatherApi/internal/model"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +23,7 @@ func unsubscribeHandler(c *gin.Context) {
 	}
 
 	// Retrieve subscription by email
-	var sub model.Subscription
+	var sub subscription.Subscription
 	if err := DB.Where("email = ?", email).First(&sub).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Token not found"})
 		return

@@ -4,10 +4,10 @@ import (
 	"context"
 	"log"
 	"time"
+	"weatherApi/internal/subscription"
 
 	"weatherApi/internal/email"
-	"weatherApi/internal/model"
-	"weatherApi/internal/weatherapi"
+	"weatherApi/internal/weather"
 
 	"gorm.io/gorm"
 )
@@ -16,7 +16,7 @@ import (
 // Must be set via SetDB() before StartWeatherScheduler is called.
 var (
 	DB               *gorm.DB
-	FetchWeather     = weatherapi.FetchWithStatus
+	FetchWeather     = weather.FetchWithStatus
 	SendWeatherEmail = email.SendWeatherEmail
 )
 
@@ -56,7 +56,7 @@ func StartWeatherScheduler() {
 // sendWeatherUpdates fetches all active subscriptions with the given frequency
 // and sends weather updates for each one via email.
 func sendWeatherUpdates(frequency string) {
-	var subs []model.Subscription
+	var subs []subscription.Subscription
 
 	if err := DB.Where(
 		"is_confirmed = ? AND is_unsubscribed = ? AND frequency = ?",
@@ -77,7 +77,7 @@ func sendWeatherUpdates(frequency string) {
 
 // ProcessSubscription fetches the weather for a single subscription
 // and sends the email using the stored unsubscribe token.
-func ProcessSubscription(ctx context.Context, sub model.Subscription) error {
+func ProcessSubscription(ctx context.Context, sub subscription.Subscription) error {
 	weather, _, err := FetchWeather(ctx, sub.City)
 	if err != nil {
 		return err

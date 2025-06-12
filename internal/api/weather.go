@@ -4,14 +4,13 @@ import (
 	"context"
 	"net/http"
 
-	"weatherApi/internal/model"
-	"weatherApi/internal/weatherapi"
+	"weatherApi/internal/weather"
 
 	"github.com/gin-gonic/gin"
 )
 
-var fetchWeather = func(ctx context.Context, city string) (*model.Weather, int, error) {
-	return weatherapi.FetchWithStatus(ctx, city)
+var fetchWeather = func(ctx context.Context, city string) (*weather.Weather, int, error) {
+	return weather.FetchWithStatus(ctx, city)
 }
 
 // getWeatherHandler retrieves current weather for a given city.

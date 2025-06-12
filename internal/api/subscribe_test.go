@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"weatherApi/internal/subscription"
 
 	"weatherApi/config"
-	"weatherApi/internal/model"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -53,7 +53,7 @@ func setupTestRouterWithDB(t *testing.T) *gin.Engine {
 		t.Fatalf("failed to connect to test DB: %v", err)
 	}
 
-	err = db.AutoMigrate(&model.Subscription{})
+	err = db.AutoMigrate(&subscription.Subscription{})
 	if err != nil {
 		t.Fatalf("failed to migrate test DB: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestSubscribe_InvalidFrequency(t *testing.T) {
 func TestSubscribe_DuplicateEmail(t *testing.T) {
 	router := setupTestRouterWithDB(t)
 
-	err := DB.Create(&model.Subscription{
+	err := DB.Create(&subscription.Subscription{
 		ID:             uuid.New().String(),
 		Email:          "duplicate@example.com",
 		City:           "Kyiv",

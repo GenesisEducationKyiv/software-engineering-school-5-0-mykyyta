@@ -6,9 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"weatherApi/internal/subscription"
+	"weatherApi/internal/weather"
 
 	"weatherApi/internal/jwtutil"
-	"weatherApi/internal/model"
 	"weatherApi/internal/scheduler"
 
 	"github.com/google/uuid"
@@ -17,15 +18,15 @@ import (
 )
 
 func init() {
-	scheduler.FetchWeather = func(ctx context.Context, city string) (*model.Weather, int, error) {
-		return &model.Weather{
+	scheduler.FetchWeather = func(ctx context.Context, city string) (*weather.Weather, int, error) {
+		return &weather.Weather{
 			Temperature: 22.5,
 			Humidity:    60,
 			Description: "Clear skies",
 		}, 200, nil
 	}
 
-	scheduler.SendWeatherEmail = func(to string, weather *model.Weather, city, token string) error {
+	scheduler.SendWeatherEmail = func(to string, weather *weather.Weather, city, token string) error {
 		return nil // simulate success
 	}
 }
@@ -38,7 +39,7 @@ func TestConfirmHandler_Success(t *testing.T) {
 	token, err := jwtutil.Generate(email)
 	require.NoError(t, err)
 
-	err = DB.Create(&model.Subscription{
+	err = DB.Create(&subscription.Subscription{
 		ID:             "test-id",
 		Email:          email,
 		City:           "Kyiv",
@@ -57,7 +58,7 @@ func TestConfirmHandler_Success(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	assert.JSONEq(t, `{"message":"Subscription confirmed successfully"}`, w.Body.String())
 
-	var sub model.Subscription
+	var sub subscription.Subscription
 	err = DB.Where("email = ?", email).First(&sub).Error
 	require.NoError(t, err)
 	assert.True(t, sub.IsConfirmed)
@@ -100,7 +101,7 @@ func TestConfirmHandler_AlreadyConfirmed(t *testing.T) {
 	token, err := jwtutil.Generate(email)
 	require.NoError(t, err)
 
-	err = DB.Create(&model.Subscription{
+	err = DB.Create(&subscription.Subscription{
 		ID:             uuid.New().String(),
 		Email:          email,
 		City:           "Kyiv",

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"weatherApi/internal/subscription"
 
 	"weatherApi/internal/jwtutil"
-	"weatherApi/internal/model"
-	"weatherApi/internal/weatherapi"
+	"weatherApi/internal/weather"
 
 	emailutil "weatherApi/internal/email"
 
@@ -16,9 +16,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// Allows replacing weatherapi.CityExists in tests.
+// Allows replacing weather.CityExists in tests.
 var cityValidator = func(ctx context.Context, city string) (bool, error) {
-	return weatherapi.CityExists(ctx, city)
+	return weather.CityExists(ctx, city)
 }
 
 type SubscribeRequest struct {
@@ -84,8 +84,8 @@ func validateCity(ctx context.Context, city string) error {
 }
 
 // or an error if the email is already subscribed and confirmed.
-func checkExistingSubscription(req SubscribeRequest) (*model.Subscription, error) {
-	var existing model.Subscription
+func checkExistingSubscription(req SubscribeRequest) (*subscription.Subscription, error) {
+	var existing subscription.Subscription
 	err := DB.Where("email = ?", req.Email).First(&existing).Error
 	if err == nil {
 		if existing.IsConfirmed && !existing.IsUnsubscribed {
@@ -103,7 +103,7 @@ func generateToken(email string) (string, error) {
 
 // createSubscription saves a new unconfirmed subscription to the database.
 func createSubscription(req SubscribeRequest, token string) error {
-	sub := model.Subscription{
+	sub := subscription.Subscription{
 		ID:             uuid.New().String(),
 		Email:          req.Email,
 		City:           req.City,
@@ -117,7 +117,7 @@ func createSubscription(req SubscribeRequest, token string) error {
 }
 
 // updateSubscription updates an existing subscription with new values and resets confirmation status.
-func updateSubscription(sub *model.Subscription, req SubscribeRequest, token string) error {
+func updateSubscription(sub *subscription.Subscription, req SubscribeRequest, token string) error {
 	sub.City = req.City
 	sub.Frequency = req.Frequency
 	sub.Token = token

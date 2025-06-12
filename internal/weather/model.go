@@ -1,4 +1,4 @@
-package model
+package weather
 
 // Weather represents simplified weather data returned to the user.
 type Weather struct {
