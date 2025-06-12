@@ -2,12 +2,11 @@ package email
 
 import (
 	"fmt"
-
-	"weatherApi/config"
-	"weatherApi/internal/model"
+	"weatherApi/internal/weather"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"weatherApi/config"
 
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -52,7 +51,7 @@ func SendConfirmationEmail(toEmail, token string) error {
 
 // SendWeatherEmail sends a weather update to the user with an unsubscribe link.
 // The token is used in the unsubscribe URL and must be securely generated.
-func SendWeatherEmail(toEmail string, weather *model.Weather, city, token string) error {
+func SendWeatherEmail(toEmail string, weather *weather.Weather, city, token string) error {
 	caser := cases.Title(language.English)
 	subject := fmt.Sprintf("Ваше оновлення погоди для %s", caser.String(city))
 

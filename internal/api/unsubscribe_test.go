@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"weatherApi/internal/subscription"
 
 	"weatherApi/internal/jwtutil"
-	"weatherApi/internal/model"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +24,7 @@ func TestUnsubscribeHandler_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an active subscription for testing
-	err = DB.Create(&model.Subscription{
+	err = DB.Create(&subscription.Subscription{
 		ID:             uuid.NewString(),
 		Email:          email,
 		City:           "Kyiv",
@@ -85,7 +85,7 @@ func TestUnsubscribeHandler_AlreadyUnsubscribed(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a subscription that's already unsubscribed
-	err = DB.Create(&model.Subscription{
+	err = DB.Create(&subscription.Subscription{
 		ID:             uuid.NewString(),
 		Email:          email,
 		City:           "Kyiv",

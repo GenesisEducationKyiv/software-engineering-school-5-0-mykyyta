@@ -8,19 +8,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"weatherApi/internal/model"
+	"weatherApi/internal/weather"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
 // different behaviors for weather fetching operations.
-var mockFetchWithStatus func(ctx context.Context, city string) (*model.Weather, int, error)
+var mockFetchWithStatus func(ctx context.Context, city string) (*weather.Weather, int, error)
 
 // init replaces the production fetchWeather function with our test mock.
 func init() {
-	fetchWeather = func(ctx context.Context, city string) (*model.Weather, int, error) {
+	fetchWeather = func(ctx context.Context, city string) (*weather.Weather, int, error) {
 		return mockFetchWithStatus(ctx, city)
 	}
 }
@@ -35,8 +34,8 @@ func setupTestRouterForWeather() *gin.Engine {
 
 // correct weather data with HTTP 200 status when provided with a valid city.
 func TestWeatherHandler_Success(t *testing.T) {
-	mockFetchWithStatus = func(ctx context.Context, city string) (*model.Weather, int, error) {
-		return &model.Weather{
+	mockFetchWithStatus = func(ctx context.Context, city string) (*weather.Weather, int, error) {
+		return &weather.Weather{
 			Temperature: 21.5,
 			Humidity:    60,
 			Description: "Sunny",
@@ -69,7 +68,7 @@ func TestWeatherHandler_MissingCity(t *testing.T) {
 
 // an HTTP 404 error when the requested city cannot be found.
 func TestWeatherHandler_CityNotFound(t *testing.T) {
-	mockFetchWithStatus = func(ctx context.Context, city string) (*model.Weather, int, error) {
+	mockFetchWithStatus = func(ctx context.Context, city string) (*weather.Weather, int, error) {
 		return nil, http.StatusNotFound, errors.New("City not found")
 	}
 
