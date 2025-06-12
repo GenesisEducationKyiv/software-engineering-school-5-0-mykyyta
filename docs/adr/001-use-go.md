@@ -10,6 +10,10 @@ Accepted
 - language
 - backend
 
+## Context
+
+The project required building a Weather API using Go, Node.js, or PHP. Python, despite being my most familiar language, was not allowed. This led to an evaluation of the allowed options.
+
 ## Decision rationale
 
 The task was to implement a Weather API using one of the allowed languages: Go, Node.js, or PHP.
@@ -19,15 +23,14 @@ I chose Go for its performance, simplicity, and relevance in modern backend and 
 
 This project also served as an opportunity to learn Go through practice.
 
-## Decision
-
-Go was chosen as the main programming language for the project.
-
 ## Alternatives Considered
 
 - **Node.js**: Fast to prototype, familiar ecosystem, but weak typing.
 - **PHP**: Less relevant for modern backend development.
-- **Python**: Not allowed for this task.
+
+## Final decision
+
+Go was chosen as the main programming language for the project.
 
 ## Consequences
 

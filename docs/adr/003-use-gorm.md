@@ -12,6 +12,10 @@ Accepted
 - database
 - backend
 
+## Context
+
+The task was to choose a database access strategy for working with PostgreSQL in a Go-based API.
+
 ## Decision rationale
 
 As someone with experience in Python, I was used to working with high-level ORMs like SQLAlchemy and Django ORM.
@@ -21,15 +25,15 @@ Although Go encourages writing SQL directly (or using lightweight tools like `sq
 
 GORM is the most widely adopted ORM in the Go ecosystem, with good documentation and active community support.
 
-## Decision
-
-Use **GORM** as the ORM for working with PostgreSQL.
-
 ## Alternatives Considered
 
 - **Raw SQL with `database/sql`**: More control, idiomatic, but time-consuming and error-prone for a beginner.
 - **`sqlx`**: Lightweight extension over `database/sql`, but still requires manual query writing.
 - **`ent`**: Type-safe and modern, but adds complexity and a generation step.
+
+## Final decision
+
+Use **GORM** as the ORM for working with PostgreSQL.
 
 ## Consequences
 

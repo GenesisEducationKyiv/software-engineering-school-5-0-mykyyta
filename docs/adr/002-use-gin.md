@@ -11,6 +11,10 @@ Accepted
 - gin
 - backend
 
+## Context
+
+The task was to choose an appropriate web framework for implementing the HTTP layer of the Weather API in Go.
+
 ## Decision rationale
 
 Coming from a Python background, I'm used to working with web frameworks like Flask Django or FastAPI.  
@@ -20,15 +24,15 @@ Although Go encourages minimalism and writing everything manually, I opted for a
 
 Gin is one of the most popular and well-documented Go frameworks, with built-in support for routing, middleware, JSON binding, and request handling.
 
-## Decision
-
-Use the **Gin** web framework for building the HTTP API.
-
 ## Alternatives Considered
 
 - **net/http**: Fully standard and idiomatic, but too low-level for my current experience.
 - **Echo**: Also fast and lightweight, but smaller community.
 - **Fiber**: Inspired by Express.js, but Gin has more documentation and examples.
+
+## Final decision
+
+Use the **Gin** web framework for building the HTTP API.
 
 ## Consequences
 
