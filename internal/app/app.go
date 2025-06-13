@@ -9,15 +9,16 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"weatherApi/internal/auth"
 
 	"weatherApi/internal/scheduler"
 
 	"github.com/gin-gonic/gin"
 
 	"weatherApi/config"
-	"weatherApi/internal/api"
 	"weatherApi/internal/db"
 	"weatherApi/internal/email"
+	"weatherApi/internal/handler"
 	"weatherApi/internal/subscription"
 	"weatherApi/internal/weather"
 )
@@ -49,17 +50,18 @@ func Run() error {
 
 	emailProvider := email.NewSendGridProvider(config.C.EmailFrom, config.C.SendGridKey)
 	emailService := email.NewEmailService(emailProvider)
-	subService := subscription.NewSubscriptionService(repo, emailService, weatherService)
+	tokenService := auth.NewJWTService(config.C.JWTSecret)
+	subService := subscription.NewSubscriptionService(repo, emailService, weatherService, tokenService)
 
 	// Scheduler
 	sched := scheduler.NewScheduler(subService, weatherService, emailService)
 	go sched.Start()
 
 	// Handlers
-	subscribeHandler := api.NewSubscribeHandler(subService)
-	confirmHandler := api.NewConfirmHandler(subService)
-	unsubscribeHandler := api.NewUnsubscribeHandler(subService)
-	weatherHandler := api.NewWeatherHandler(weatherService)
+	subscribeHandler := handler.NewSubscribeHandler(subService)
+	confirmHandler := handler.NewConfirmHandler(subService)
+	unsubscribeHandler := handler.NewUnsubscribeHandler(subService)
+	weatherHandler := handler.NewWeatherHandler(weatherService)
 
 	// === РОУТИНГ ===
 	router := gin.Default()

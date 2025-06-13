@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"weatherApi/internal/jwtutil"
-
 	"github.com/google/uuid"
 )
 
@@ -17,12 +15,6 @@ var (
 	ErrInvalidToken         = errors.New("invalid token")
 	ErrSubscriptionNotFound = errors.New("subscription not found")
 )
-
-type SubscriptionService struct {
-	repo          subscriptionRepository
-	emailService  emailService
-	cityValidator cityValidator
-}
 
 type subscriptionRepository interface {
 	GetByEmail(ctx context.Context, email string) (*Subscription, error)
@@ -39,15 +31,29 @@ type cityValidator interface {
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
+type tokenService interface {
+	Generate(email string) (string, error)
+	Parse(tokenStr string) (string, error)
+}
+
+type SubscriptionService struct {
+	repo          subscriptionRepository
+	emailService  emailService
+	cityValidator cityValidator
+	tokenService  tokenService
+}
+
 func NewSubscriptionService(
 	repo subscriptionRepository,
-	emailSender emailService,
+	emailService emailService,
 	cityValidator cityValidator,
+	tokenService tokenService,
 ) *SubscriptionService {
 	return &SubscriptionService{
 		repo:          repo,
-		emailService:  emailSender,
+		emailService:  emailService,
 		cityValidator: cityValidator,
+		tokenService:  tokenService,
 	}
 }
 
@@ -69,7 +75,7 @@ func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, freque
 		return ErrEmailAlreadyExists
 	}
 
-	token, err := jwtutil.Generate(email)
+	token, err := s.tokenService.Generate(email)
 	if err != nil {
 		return fmt.Errorf("could not generate token: %w", err)
 	}
@@ -110,7 +116,7 @@ func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, freque
 }
 
 func (s *SubscriptionService) Confirm(ctx context.Context, token string) error {
-	email, err := jwtutil.Parse(token)
+	email, err := s.tokenService.Parse(token)
 	if err != nil {
 		return ErrInvalidToken
 	}
@@ -135,7 +141,7 @@ func (s *SubscriptionService) Confirm(ctx context.Context, token string) error {
 }
 
 func (s *SubscriptionService) Unsubscribe(ctx context.Context, token string) error {
-	email, err := jwtutil.Parse(token)
+	email, err := s.tokenService.Parse(token)
 	if err != nil {
 		return ErrInvalidToken
 	}
