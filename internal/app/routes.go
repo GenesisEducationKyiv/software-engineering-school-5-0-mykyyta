@@ -3,8 +3,9 @@ package app
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"weatherApi/internal/handlers"
+
+	"github.com/gin-gonic/gin"
 )
 
 func SetupRoutes(s *Services) *gin.Engine {
