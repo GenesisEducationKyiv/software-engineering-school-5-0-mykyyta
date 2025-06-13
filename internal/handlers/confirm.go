@@ -30,14 +30,14 @@ func (h *ConfirmHandler) Handle(c *gin.Context) {
 	if err := h.service.Confirm(c.Request.Context(), token); err != nil {
 		switch {
 		case errors.Is(err, subscription.ErrInvalidToken):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid token"})
+			SendError(c, http.StatusBadRequest, "Invalid token")
 		case errors.Is(err, subscription.ErrSubscriptionNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
+			SendError(c, http.StatusNotFound, "Subscription not found")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+			SendError(c, http.StatusInternalServerError, "Something went wrong")
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Subscription confirmed successfully"})
+	SendSuccess(c, "Subscription confirmed successfully")
 }

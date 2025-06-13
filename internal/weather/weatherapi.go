@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 )
@@ -17,9 +18,11 @@ func NewWeatherAPIProvider(apiKey string) Provider {
 	return &WeatherApiProvider{apiKey: apiKey}
 }
 
+var ErrCityNotFound = errors.New("city not found")
+
 type weatherAPIResponse struct {
 	Current struct {
-		TempC     float64 `json:"tempC"`
+		TempC     float64 `json:"temp_с"` //nolint:tagliatelle
 		Humidity  int     `json:"humidity"`
 		Condition struct {
 			Text string `json:"text"`
@@ -27,24 +30,24 @@ type weatherAPIResponse struct {
 	} `json:"current"`
 }
 
-func (p *WeatherApiProvider) GetCurrentWeather(ctx context.Context, city string) (*Weather, error) {
-	if p.apiKey == "" {
-		return nil, errors.New("weather API key not set")
-	}
+type errorAPIResponse struct {
+	Error struct {
+		Message string `json:"message"`
+	} `json:"error"`
+}
 
-	url := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s", p.apiKey, city)
-	resp, err := doRequestWithContext(ctx, url)
+func (p *WeatherApiProvider) GetCurrentWeather(ctx context.Context, city string) (*Weather, error) {
+	body, err := makeWeatherAPIRequest(ctx, p.apiKey, city)
 	if err != nil {
 		return nil, err
 	}
-	defer closeBody(resp)
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("weather API error: %s", resp.Status)
+	if isCityNotFound(body) {
+		return nil, ErrCityNotFound
 	}
 
 	var data weatherAPIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	if err := json.Unmarshal(body, &data); err != nil {
 		return nil, fmt.Errorf("failed to decode weather response: %w", err)
 	}
 
@@ -56,28 +59,27 @@ func (p *WeatherApiProvider) GetCurrentWeather(ctx context.Context, city string)
 }
 
 func (p *WeatherApiProvider) CityExists(ctx context.Context, city string) (bool, error) {
-	if p.apiKey == "" {
-		return false, errors.New("weather API key not set")
-	}
-
-	url := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s", p.apiKey, city)
-	resp, err := doRequestWithContext(ctx, url)
+	body, err := makeWeatherAPIRequest(ctx, p.apiKey, city)
 	if err != nil {
 		return false, err
 	}
-	defer closeBody(resp)
 
-	switch resp.StatusCode {
-	case http.StatusOK:
-		return true, nil
-	case http.StatusBadRequest, http.StatusNotFound:
+	if isCityNotFound(body) {
 		return false, nil
-	default:
-		return false, fmt.Errorf("unexpected weather API response: %s", resp.Status)
 	}
+
+	return true, nil
 }
 
-func doRequestWithContext(ctx context.Context, url string) (*http.Response, error) {
+func makeWeatherAPIRequest(ctx context.Context, apiKey, city string) ([]byte, error) {
+	if apiKey == "" {
+		return nil, errors.New("missing API key")
+	}
+	url := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s", apiKey, city)
+	return doRequestBody(ctx, url)
+}
+
+func doRequestBody(ctx context.Context, url string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -90,8 +92,22 @@ func doRequestWithContext(ctx context.Context, url string) (*http.Response, erro
 		}
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
+	defer closeBody(resp)
 
-	return resp, nil
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	return body, nil
+}
+
+func isCityNotFound(body []byte) bool {
+	var errResp errorAPIResponse
+	if err := json.Unmarshal(body, &errResp); err != nil {
+		return false
+	}
+	return errResp.Error.Message == "No matching location found."
 }
 
 func closeBody(resp *http.Response) {

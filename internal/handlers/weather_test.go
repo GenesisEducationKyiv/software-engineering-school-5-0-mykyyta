@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -75,16 +74,17 @@ func TestWeatherHandler(t *testing.T) {
 	t.Run("CityNotFound", func(t *testing.T) {
 		service := &mockWeatherService{
 			getWeatherFunc: func(ctx context.Context, city string) (*weather.Weather, error) {
-				return nil, errors.New("City not found")
+				return nil, weather.ErrCityNotFound
 			},
 		}
+
 		router := setupWeatherRouter(service)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/weather?city=Atlantis", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code) // Or use 404 if you implement error type checking
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.JSONEq(t, `{"error":"City not found"}`, w.Body.String())
 	})
 }
