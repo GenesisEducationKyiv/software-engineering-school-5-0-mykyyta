@@ -33,7 +33,9 @@ func NewApp(cfg *config.Config) (*App, error) {
 	emailProvider := email.NewSendGridProvider(cfg.EmailFrom, cfg.SendGridKey)
 	emailService := email.NewEmailService(emailProvider, cfg.BaseURL)
 
-	tokenService := auth.NewJWTService(cfg.JWTSecret)
+	tokenProvider := auth.NewJWTService(cfg.JWTSecret)
+	tokenService := auth.NewTokenService(tokenProvider)
+
 	subRepo := subscription.NewSubscriptionRepository(dbInstance.Gorm)
 	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
 
