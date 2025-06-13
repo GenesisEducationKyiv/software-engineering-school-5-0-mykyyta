@@ -2,10 +2,7 @@ package email
 
 import (
 	"fmt"
-
 	"weatherApi/internal/weather"
-
-	"weatherApi/config"
 )
 
 type EmailProvider interface {
@@ -17,10 +14,10 @@ type EmailService struct {
 	baseURL  string
 }
 
-func NewEmailService(p EmailProvider) *EmailService {
+func NewEmailService(provider EmailProvider, baseURL string) *EmailService {
 	return &EmailService{
-		provider: p,
-		baseURL:  config.C.BaseURL,
+		provider: provider,
+		baseURL:  baseURL,
 	}
 }
 

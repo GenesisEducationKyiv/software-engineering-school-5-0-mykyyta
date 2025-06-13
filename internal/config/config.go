@@ -9,6 +9,7 @@ import (
 )
 
 type Config struct {
+	GinMode       string
 	Port          string
 	DBType        string
 	DBUrl         string
@@ -19,12 +20,11 @@ type Config struct {
 	BaseURL       string
 }
 
-var C *Config
-
-func LoadConfig() {
+func LoadConfig() *Config {
 	_ = godotenv.Load()
 
-	C = &Config{
+	return &Config{
+		GinMode:       getEnv("GIN_MODE", "debug"),
 		Port:          getEnv("PORT", "8080"),
 		DBType:        getEnv("DB_TYPE", "postgres"),
 		DBUrl:         getEnv("DB_URL", "host=your-host user=your-user password=your-password dbname=your-db port=5432 sslmode=require"),
@@ -34,11 +34,6 @@ func LoadConfig() {
 		EmailFrom:     mustGet("EMAIL_FROM"),
 		WeatherAPIKey: mustGet("WEATHER_API_KEY"),
 	}
-}
-
-func Reload() {
-	C = nil
-	LoadConfig()
 }
 
 func mustGet(key string) string {
