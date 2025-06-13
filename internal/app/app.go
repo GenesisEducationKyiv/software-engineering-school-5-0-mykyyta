@@ -5,103 +5,74 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+
 	"weatherApi/internal/auth"
 	"weatherApi/internal/config"
-
-	"weatherApi/internal/scheduler"
-
-	"github.com/gin-gonic/gin"
-
 	"weatherApi/internal/db"
 	"weatherApi/internal/email"
-	"weatherApi/internal/handler"
+	"weatherApi/internal/scheduler"
 	"weatherApi/internal/subscription"
 	"weatherApi/internal/weather"
 )
 
-func Run() error {
-	cfg := config.LoadConfig()
+type App struct {
+	Server    *http.Server
+	DB        *db.DB
+	Scheduler *scheduler.WeatherScheduler
+}
 
-	gin.SetMode(cfg.GinMode)
-	log.Printf("GIN running in %s mode", gin.Mode())
-
+func NewApp(cfg *config.Config) (*App, error) {
 	dbInstance, err := db.NewDB(cfg.DBUrl)
 	if err != nil {
-		log.Fatalf("failed to init DB: %v", err)
+		return nil, fmt.Errorf("DB error: %w", err)
 	}
-	defer dbInstance.Close()
 
 	weatherProvider := weather.NewWeatherAPIProvider(cfg.WeatherAPIKey)
 	weatherService := weather.NewService(weatherProvider)
+
 	emailProvider := email.NewSendGridProvider(cfg.EmailFrom, cfg.SendGridKey)
 	emailService := email.NewEmailService(emailProvider, cfg.BaseURL)
+
 	tokenService := auth.NewJWTService(cfg.JWTSecret)
 	subRepo := subscription.NewSubscriptionRepository(dbInstance.Gorm)
 	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
 
-	sched := scheduler.NewScheduler(subService, weatherService, emailService)
-	go sched.Start()
+	scheduler := scheduler.NewScheduler(subService, weatherService, emailService)
+	go scheduler.Start()
 
-	subscribeHandler := handler.NewSubscribeHandler(subService)
-	confirmHandler := handler.NewConfirmHandler(subService)
-	unsubscribeHandler := handler.NewUnsubscribeHandler(subService)
-	weatherHandler := handler.NewWeatherHandler(weatherService)
+	router := SetupRoutes(subService, weatherService)
 
-	// === РОУТИНГ ===
-	router := gin.Default()
-
-	apiGroup := router.Group("/api")
-	{
-		apiGroup.POST("/subscribe", subscribeHandler.Handle)
-		apiGroup.GET("/confirm/:token", confirmHandler.Handle)
-		apiGroup.GET("/unsubscribe/:token", unsubscribeHandler.Handle)
-		apiGroup.GET("/weather", weatherHandler.Handle)
-	}
-
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
-
-	if gin.Mode() != gin.TestMode {
-		router.LoadHTMLGlob("templates/*.html")
-	}
-
-	router.GET("/subscribe", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "subscribe.html", nil)
-	})
-	router.GET("/", func(c *gin.Context) {
-		c.Redirect(http.StatusFound, "/subscribe")
-	})
-
-	// server run
-	srv := &http.Server{
+	server := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: router,
 	}
 
+	return &App{
+		Server:    server,
+		DB:        dbInstance,
+		Scheduler: scheduler,
+	}, nil
+}
+
+func (a *App) StartServer() {
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+		log.Printf("Server listening on %s", a.Server.Addr)
+		if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
 		}
 	}()
+}
 
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutdown signal received, cleaning up...")
+func (a *App) Shutdown(ctx context.Context) error {
+	log.Println("Shutting down application...")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	a.Scheduler.Stop() // якщо маєш Stop(), або просто залиш пустим
+	a.DB.Close()
 
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("HTTP server shutdown: %w", err)
+	if err := a.Server.Shutdown(ctx); err != nil {
+		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	log.Println("Server exited gracefully")
+	log.Println("Shutdown complete")
 	return nil
 }

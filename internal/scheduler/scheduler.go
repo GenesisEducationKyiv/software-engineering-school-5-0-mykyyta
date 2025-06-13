@@ -26,6 +26,7 @@ type WeatherScheduler struct {
 	repo    SubscriptionRepository
 	weather WeatherFetcher
 	email   EmailSender
+	cron    *cron.Cron
 }
 
 func NewScheduler(repo SubscriptionRepository, weather WeatherFetcher, email EmailSender) *WeatherScheduler {
@@ -33,14 +34,12 @@ func NewScheduler(repo SubscriptionRepository, weather WeatherFetcher, email Ema
 		repo:    repo,
 		weather: weather,
 		email:   email,
+		cron:    cron.New(),
 	}
 }
 
 func (s *WeatherScheduler) Start() {
-	c := cron.New()
-
-	// Щогодини
-	_, err := c.AddFunc("@hourly", func() {
+	_, err := s.cron.AddFunc("@hourly", func() {
 		log.Println("[Scheduler] Hourly job triggered")
 		s.sendUpdates("hourly")
 	})
@@ -48,8 +47,7 @@ func (s *WeatherScheduler) Start() {
 		log.Fatalf("Failed to schedule hourly job: %v", err)
 	}
 
-	// Щодня о 12:00 UTC
-	_, err = c.AddFunc("0 12 * * *", func() {
+	_, err = s.cron.AddFunc("0 12 * * *", func() {
 		log.Println("[Scheduler] Daily job triggered")
 		s.sendUpdates("daily")
 	})
@@ -58,7 +56,7 @@ func (s *WeatherScheduler) Start() {
 	}
 
 	log.Println("[Scheduler] Started")
-	c.Start()
+	s.cron.Start()
 }
 
 func (s *WeatherScheduler) sendUpdates(frequency string) {
@@ -87,4 +85,10 @@ func (s *WeatherScheduler) processSubscription(ctx context.Context, sub subscrip
 		return err
 	}
 	return s.email.SendWeatherReport(sub.Email, weather, sub.City, sub.Token)
+}
+
+func (s *WeatherScheduler) Stop() {
+	log.Println("[Scheduler] Stopping...")
+	s.cron.Stop()
+	log.Println("[Scheduler] Stopped")
 }
