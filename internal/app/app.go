@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 	"weatherApi/internal/auth"
+	"weatherApi/internal/config"
 
 	"weatherApi/internal/scheduler"
 
 	"github.com/gin-gonic/gin"
 
-	"weatherApi/config"
 	"weatherApi/internal/db"
 	"weatherApi/internal/email"
 	"weatherApi/internal/handler"
@@ -24,40 +24,28 @@ import (
 )
 
 func Run() error {
-	// GIN mode
-	mode := os.Getenv("GIN_MODE")
-	if mode == "" {
-		mode = gin.DebugMode
+	cfg := config.LoadConfig()
+
+	gin.SetMode(cfg.GinMode)
+	log.Printf("GIN running in %s mode", gin.Mode())
+
+	dbInstance, err := db.NewDB(cfg.DBUrl)
+	if err != nil {
+		log.Fatalf("failed to init DB: %v", err)
 	}
-	gin.SetMode(mode)
-	log.Printf("Starting in %s mode\n", gin.Mode())
+	defer dbInstance.Close()
 
-	// Load config
-	config.LoadConfig()
-
-	// Connect DB
-	dbInstance := db.ConnectDefaultDB()
-	defer db.CloseDB(dbInstance)
-
-	// === ІНІЦІАЛІЗАЦІЯ ЗАЛЕЖНОСТЕЙ ===
-
-	// Weather service
-	weatherProvider := weather.NewWeatherAPIProvider(config.C.WeatherAPIKey)
+	weatherProvider := weather.NewWeatherAPIProvider(cfg.WeatherAPIKey)
 	weatherService := weather.NewService(weatherProvider)
+	emailProvider := email.NewSendGridProvider(cfg.EmailFrom, cfg.SendGridKey)
+	emailService := email.NewEmailService(emailProvider, cfg.BaseURL)
+	tokenService := auth.NewJWTService(cfg.JWTSecret)
+	subRepo := subscription.NewSubscriptionRepository(dbInstance.Gorm)
+	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
 
-	// Subscription service
-	repo := subscription.NewSubscriptionRepository(dbInstance)
-
-	emailProvider := email.NewSendGridProvider(config.C.EmailFrom, config.C.SendGridKey)
-	emailService := email.NewEmailService(emailProvider)
-	tokenService := auth.NewJWTService(config.C.JWTSecret)
-	subService := subscription.NewSubscriptionService(repo, emailService, weatherService, tokenService)
-
-	// Scheduler
 	sched := scheduler.NewScheduler(subService, weatherService, emailService)
 	go sched.Start()
 
-	// Handlers
 	subscribeHandler := handler.NewSubscribeHandler(subService)
 	confirmHandler := handler.NewConfirmHandler(subService)
 	unsubscribeHandler := handler.NewUnsubscribeHandler(subService)
@@ -91,7 +79,7 @@ func Run() error {
 
 	// server run
 	srv := &http.Server{
-		Addr:    ":" + config.C.Port,
+		Addr:    ":" + cfg.Port,
 		Handler: router,
 	}
 
