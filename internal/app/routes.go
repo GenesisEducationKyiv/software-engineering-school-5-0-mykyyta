@@ -3,21 +3,18 @@ package app
 import (
 	"net/http"
 
-	"weatherApi/internal/handlers"
-	"weatherApi/internal/subscription"
-	"weatherApi/internal/weather"
-
 	"github.com/gin-gonic/gin"
+	"weatherApi/internal/handlers"
 )
 
-func SetupRoutes(subService *subscription.SubscriptionService, weatherService *weather.WeatherService) *gin.Engine {
+func SetupRoutes(s *Services) *gin.Engine {
 
 	router := gin.Default()
 
-	subscribeHandler := handlers.NewSubscribeHandler(subService)
-	confirmHandler := handlers.NewConfirmHandler(subService)
-	unsubscribeHandler := handlers.NewUnsubscribeHandler(subService)
-	weatherHandler := handlers.NewWeatherHandler(weatherService)
+	subscribeHandler := handlers.NewSubscribeHandler(s.SubService)
+	confirmHandler := handlers.NewConfirmHandler(s.SubService)
+	unsubscribeHandler := handlers.NewUnsubscribeHandler(s.SubService)
+	weatherHandler := handlers.NewWeatherHandler(s.WeatherService)
 
 	api := router.Group("/api")
 	{

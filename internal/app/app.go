@@ -21,6 +21,11 @@ type App struct {
 	Scheduler *scheduler.WeatherScheduler
 }
 
+type Services struct {
+	SubService     *subscription.SubscriptionService
+	WeatherService *weather.WeatherService
+}
+
 func NewApp(cfg *config.Config) (*App, error) {
 	dbInstance, err := db.NewDB(cfg.DBUrl)
 	if err != nil {
@@ -28,7 +33,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 	}
 
 	weatherProvider := weather.NewWeatherAPIProvider(cfg.WeatherAPIKey)
-	weatherService := weather.NewService(weatherProvider)
+	weatherService := weather.NewWeatherService(weatherProvider)
 
 	emailProvider := email.NewSendGridProvider(cfg.EmailFrom, cfg.SendGridKey)
 	emailService := email.NewEmailService(emailProvider, cfg.BaseURL)
@@ -42,7 +47,12 @@ func NewApp(cfg *config.Config) (*App, error) {
 	scheduler := scheduler.NewScheduler(subService, weatherService, emailService)
 	go scheduler.Start()
 
-	router := SetupRoutes(subService, weatherService)
+	services := &Services{
+		SubService:     subService,
+		WeatherService: weatherService,
+	}
+
+	router := SetupRoutes(services)
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
