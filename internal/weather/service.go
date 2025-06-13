@@ -11,7 +11,7 @@ type WeatherService struct {
 	provider Provider
 }
 
-func NewService(p Provider) *WeatherService {
+func NewWeatherService(p Provider) *WeatherService {
 	return &WeatherService{provider: p}
 }
 
