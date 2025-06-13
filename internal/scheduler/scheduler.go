@@ -39,8 +39,8 @@ func NewScheduler(repo SubscriptionRepository, weather WeatherFetcher, email Ema
 }
 
 func (s *WeatherScheduler) Start() {
-	_, err := s.cron.AddFunc("@hourly", func() {
-		log.Println("[Scheduler] Hourly job triggered")
+	_, err := s.cron.AddFunc("0 * * * *", func() {
+		log.Println("[Scheduler] Hourly job triggered on the dot")
 		s.sendUpdates("hourly")
 	})
 	if err != nil {

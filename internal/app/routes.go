@@ -3,7 +3,7 @@ package app
 import (
 	"net/http"
 
-	"weatherApi/internal/handler"
+	"weatherApi/internal/handlers"
 	"weatherApi/internal/subscription"
 	"weatherApi/internal/weather"
 
@@ -14,10 +14,10 @@ func SetupRoutes(subService *subscription.SubscriptionService, weatherService *w
 
 	router := gin.Default()
 
-	subscribeHandler := handler.NewSubscribeHandler(subService)
-	confirmHandler := handler.NewConfirmHandler(subService)
-	unsubscribeHandler := handler.NewUnsubscribeHandler(subService)
-	weatherHandler := handler.NewWeatherHandler(weatherService)
+	subscribeHandler := handlers.NewSubscribeHandler(subService)
+	confirmHandler := handlers.NewConfirmHandler(subService)
+	unsubscribeHandler := handlers.NewUnsubscribeHandler(subService)
+	weatherHandler := handlers.NewWeatherHandler(weatherService)
 
 	api := router.Group("/api")
 	{
