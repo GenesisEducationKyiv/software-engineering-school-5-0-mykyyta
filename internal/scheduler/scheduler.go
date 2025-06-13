@@ -10,31 +10,31 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type SubscriptionRepository interface {
+type SubService interface {
 	ListConfirmedByFrequency(ctx context.Context, frequency string) ([]subscription.Subscription, error)
 }
 
-type WeatherFetcher interface {
+type WeatherService interface {
 	GetWeather(ctx context.Context, city string) (*weather.Weather, error)
 }
 
-type EmailSender interface {
+type EmailService interface {
 	SendWeatherReport(toEmail string, w *weather.Weather, city, token string) error
 }
 
 type WeatherScheduler struct {
-	repo    SubscriptionRepository
-	weather WeatherFetcher
-	email   EmailSender
-	cron    *cron.Cron
+	subService     SubService
+	weatherService WeatherService
+	emailService   EmailService
+	cron           *cron.Cron
 }
 
-func NewScheduler(repo SubscriptionRepository, weather WeatherFetcher, email EmailSender) *WeatherScheduler {
+func NewScheduler(sub SubService, weather WeatherService, email EmailService) *WeatherScheduler {
 	return &WeatherScheduler{
-		repo:    repo,
-		weather: weather,
-		email:   email,
-		cron:    cron.New(),
+		subService:     sub,
+		weatherService: weather,
+		emailService:   email,
+		cron:           cron.New(),
 	}
 }
 
@@ -59,10 +59,16 @@ func (s *WeatherScheduler) Start() {
 	s.cron.Start()
 }
 
+func (s *WeatherScheduler) Stop() {
+	log.Println("[Scheduler] Stopping...")
+	s.cron.Stop()
+	log.Println("[Scheduler] Stopped")
+}
+
 func (s *WeatherScheduler) sendUpdates(frequency string) {
 	ctx := context.Background()
 
-	subs, err := s.repo.ListConfirmedByFrequency(ctx, frequency)
+	subs, err := s.subService.ListConfirmedByFrequency(ctx, frequency)
 	if err != nil {
 		log.Printf("[Scheduler] Failed to fetch subscriptions: %v", err)
 		return
@@ -80,15 +86,9 @@ func (s *WeatherScheduler) sendUpdates(frequency string) {
 }
 
 func (s *WeatherScheduler) processSubscription(ctx context.Context, sub subscription.Subscription) error {
-	weather, err := s.weather.GetWeather(ctx, sub.City)
+	weather, err := s.weatherService.GetWeather(ctx, sub.City)
 	if err != nil {
 		return err
 	}
-	return s.email.SendWeatherReport(sub.Email, weather, sub.City, sub.Token)
-}
-
-func (s *WeatherScheduler) Stop() {
-	log.Println("[Scheduler] Stopping...")
-	s.cron.Stop()
-	log.Println("[Scheduler] Stopped")
+	return s.emailService.SendWeatherReport(sub.Email, weather, sub.City, sub.Token)
 }

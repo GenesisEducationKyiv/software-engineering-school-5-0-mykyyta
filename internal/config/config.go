@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strings"
 
@@ -39,7 +38,7 @@ func LoadConfig() *Config {
 func mustGet(key string) string {
 	val := os.Getenv(key)
 	if val == "" {
-		log.Fatalf("Missing required environment variable: %s", key)
+		panic("Missing required environment variable: " + key)
 	}
 	return val
 }

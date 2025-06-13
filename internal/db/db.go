@@ -17,21 +17,13 @@ func NewDB(dsn string) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
-
-	if err := gormDB.Exec(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`).Error; err != nil {
-		return nil, fmt.Errorf("failed to enable pgcrypto: %w", err)
-	}
-
 	return &DB{Gorm: gormDB}, nil
 }
 
 func (db *DB) Close() {
-	sqlDB, err := db.Gorm.DB()
-	if err != nil {
+	if sqlDB, err := db.Gorm.DB(); err != nil {
 		log.Printf("failed to get sql.DB: %v", err)
-		return
-	}
-	if err := sqlDB.Close(); err != nil {
+	} else if err := sqlDB.Close(); err != nil {
 		log.Printf("failed to close DB: %v", err)
 	} else {
 		log.Println("DB connection closed")
