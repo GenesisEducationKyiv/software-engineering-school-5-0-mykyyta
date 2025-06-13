@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 CREATE TABLE subscriptions (
                                id TEXT PRIMARY KEY,
                                email TEXT NOT NULL UNIQUE,

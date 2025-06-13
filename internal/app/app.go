@@ -5,71 +5,86 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
-	"github.com/gin-gonic/gin"
-
-	"weatherApi/config"
-	"weatherApi/internal/api"
+	"weatherApi/internal/auth"
+	"weatherApi/internal/config"
 	"weatherApi/internal/db"
+	"weatherApi/internal/email"
 	"weatherApi/internal/scheduler"
+	"weatherApi/internal/subscription"
+	"weatherApi/internal/weather"
 )
 
-func Run() error {
-	// Set GIN mode
-	mode := os.Getenv("GIN_MODE")
-	if mode == "" {
-		mode = gin.DebugMode
-	}
-	gin.SetMode(mode)
-	log.Printf("Starting in %s mode\n", gin.Mode())
+type App struct {
+	Server    *http.Server
+	DB        *db.DB
+	Scheduler *scheduler.WeatherScheduler
+}
 
-	// Load configuration and connect to DB
-	config.LoadConfig()
-	db.ConnectDefaultDB()
-	defer db.CloseDB()
+type Services struct {
+	SubService     *subscription.SubscriptionService
+	WeatherService *weather.WeatherService
+}
 
-	// Inject DB into other modules
-	api.SetDB(db.DB)
-	scheduler.SetDB(db.DB)
-
-	// Start background scheduler
-	go scheduler.StartWeatherScheduler()
-
-	// Set up Gin router
-	r := gin.Default()
-	api.RegisterRoutes(r)
-
-	// Create HTTP server
-	srv := &http.Server{
-		Addr:    ":" + config.C.Port,
-		Handler: r,
+func NewApp(cfg *config.Config) (*App, error) {
+	dbInstance, err := db.NewDB(cfg.DBUrl)
+	if err != nil {
+		return nil, fmt.Errorf("DB error: %w", err)
 	}
 
-	// Start server in background
+	weatherProvider := weather.NewWeatherAPIProvider(cfg.WeatherAPIKey)
+	weatherService := weather.NewWeatherService(weatherProvider)
+
+	emailProvider := email.NewSendGridProvider(cfg.EmailFrom, cfg.SendGridKey)
+	emailService := email.NewEmailService(emailProvider, cfg.BaseURL)
+
+	tokenProvider := auth.NewJWTService(cfg.JWTSecret)
+	tokenService := auth.NewTokenService(tokenProvider)
+
+	subRepo := subscription.NewSubscriptionRepository(dbInstance.Gorm)
+	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
+
+	scheduler := scheduler.NewScheduler(subService, weatherService, emailService)
+	go scheduler.Start()
+
+	services := &Services{
+		SubService:     subService,
+		WeatherService: weatherService,
+	}
+
+	router := SetupRoutes(services)
+
+	server := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: router,
+	}
+
+	return &App{
+		Server:    server,
+		DB:        dbInstance,
+		Scheduler: scheduler,
+	}, nil
+}
+
+func (a *App) StartServer() {
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+		log.Printf("Server listening on %s", a.Server.Addr)
+		if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
 		}
 	}()
+}
 
-	// Wait for termination signal
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutdown signal received, cleaning up...")
+func (a *App) Shutdown(ctx context.Context) error {
+	log.Println("Shutting down application...")
 
-	// Gracefully shutdown HTTP server
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	a.Scheduler.Stop() // якщо маєш Stop(), або просто залиш пустим
+	a.DB.Close()
 
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("HTTP server shutdown: %w", err)
+	if err := a.Server.Shutdown(ctx); err != nil {
+		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	log.Println("Server exited gracefully")
+	log.Println("Shutdown complete")
 	return nil
 }
