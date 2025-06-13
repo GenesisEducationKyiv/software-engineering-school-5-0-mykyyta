@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// --- mockConfirmService реалізує domain-level ConfirmService ---
+// --- mockConfirmService реалізує domain-level ConfirmService ---.
 type mockConfirmService struct {
 	ConfirmFunc func(ctx context.Context, token string) error
 }
