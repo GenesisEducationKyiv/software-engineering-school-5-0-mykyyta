@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"weatherApi/internal/weather"
@@ -24,14 +25,18 @@ func NewWeatherHandler(service weatherService) *WeatherHandler {
 func (h *WeatherHandler) Handle(c *gin.Context) {
 	city := c.Query("city")
 	if city == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "City is required"})
+		SendError(c, http.StatusBadRequest, "City is required")
 		return
 	}
 
 	data, err := h.service.GetWeather(c.Request.Context(), city)
 	if err != nil {
-		// add errors
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, weather.ErrCityNotFound):
+			SendError(c, http.StatusBadRequest, "City not found")
+		default:
+			SendError(c, http.StatusInternalServerError, "Failed to fetch weather data")
+		}
 		return
 	}
 

@@ -31,7 +31,7 @@ type SubscribeRequest struct {
 func (h *SubscribeHandler) Handle(c *gin.Context) {
 	var req SubscribeRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		SendError(c, http.StatusBadRequest, "Invalid input")
 		return
 	}
 
@@ -39,14 +39,14 @@ func (h *SubscribeHandler) Handle(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, subscription.ErrCityNotFound):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "City not found"})
+			SendError(c, http.StatusBadRequest, "City not found")
 		case errors.Is(err, subscription.ErrEmailAlreadyExists):
-			c.JSON(http.StatusConflict, gin.H{"error": "Email already subscribed"})
+			SendError(c, http.StatusConflict, "Email already subscribed")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong"})
+			SendError(c, http.StatusInternalServerError, "Something went wrong")
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Subscription successful. Confirmation email sent."})
+	SendSuccess(c, "Subscription successful. Confirmation email sent.")
 }
