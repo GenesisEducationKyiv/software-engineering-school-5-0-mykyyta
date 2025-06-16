@@ -22,7 +22,7 @@ func NewUnsubscribeHandler(service unsubscribeService) *UnsubscribeHandler {
 	return &UnsubscribeHandler{service: service}
 }
 
-func (h *UnsubscribeHandler) Handle(c *gin.Context) {
+func (h UnsubscribeHandler) Handle(c *gin.Context) {
 	token := c.Param("token")
 
 	if err := h.service.Unsubscribe(c.Request.Context(), token); err != nil {

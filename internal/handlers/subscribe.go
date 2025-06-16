@@ -28,7 +28,7 @@ type SubscribeRequest struct {
 	Frequency string `form:"frequency" binding:"required,oneof=daily hourly"`
 }
 
-func (h *SubscribeHandler) Handle(c *gin.Context) {
+func (h SubscribeHandler) Handle(c *gin.Context) {
 	var req SubscribeRequest
 	if err := c.ShouldBind(&req); err != nil {
 		SendError(c, http.StatusBadRequest, "Invalid input")

@@ -24,7 +24,7 @@ func NewConfirmHandler(service confirmService) *ConfirmHandler {
 	}
 }
 
-func (h *ConfirmHandler) Handle(c *gin.Context) {
+func (h ConfirmHandler) Handle(c *gin.Context) {
 	token := c.Param("token")
 
 	if err := h.service.Confirm(c.Request.Context(), token); err != nil {

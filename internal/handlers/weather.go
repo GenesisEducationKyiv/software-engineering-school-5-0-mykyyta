@@ -5,8 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	weather2 "weatherApi/internal/weather"
-
 	"weatherApi/internal/weather"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +22,7 @@ func NewWeatherHandler(service weatherService) *WeatherHandler {
 	return &WeatherHandler{service: service}
 }
 
-func (h *WeatherHandler) Handle(c *gin.Context) {
+func (h WeatherHandler) Handle(c *gin.Context) {
 	city := c.Query("city")
 	if city == "" {
 		SendError(c, http.StatusBadRequest, "City is required")
@@ -34,7 +32,7 @@ func (h *WeatherHandler) Handle(c *gin.Context) {
 	data, err := h.service.GetWeather(c.Request.Context(), city)
 	if err != nil {
 		switch {
-		case errors.Is(err, weather2.ErrCityNotFound):
+		case errors.Is(err, weather.ErrCityNotFound):
 			SendError(c, http.StatusBadRequest, "City not found")
 		default:
 			SendError(c, http.StatusInternalServerError, "Failed to fetch weather data")
