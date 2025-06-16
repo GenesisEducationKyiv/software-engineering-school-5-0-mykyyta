@@ -10,26 +10,26 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type SubService interface {
+type subService interface {
 	ListConfirmedByFrequency(ctx context.Context, frequency string) ([]subscription.Subscription, error)
 }
 
-type WeatherService interface {
-	GetWeather(ctx context.Context, city string) (*weather.Weather, error)
+type weatherService interface {
+	GetWeather(ctx context.Context, city string) (weather.Weather, error)
 }
 
-type EmailService interface {
-	SendWeatherReport(toEmail string, w *weather.Weather, city, token string) error
+type emailService interface {
+	SendWeatherReport(toEmail string, w weather.Weather, city, token string) error
 }
 
 type WeatherScheduler struct {
-	subService     SubService
-	weatherService WeatherService
-	emailService   EmailService
+	subService     subService
+	weatherService weatherService
+	emailService   emailService
 	cron           *cron.Cron
 }
 
-func NewScheduler(sub SubService, weather WeatherService, email EmailService) *WeatherScheduler {
+func NewScheduler(sub subService, weather weatherService, email emailService) *WeatherScheduler {
 	return &WeatherScheduler{
 		subService:     sub,
 		weatherService: weather,

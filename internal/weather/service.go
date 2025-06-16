@@ -2,20 +2,20 @@ package weather
 
 import "context"
 
-type Provider interface {
-	GetCurrentWeather(ctx context.Context, city string) (*Weather, error)
+type weatherProvider interface {
+	GetCurrentWeather(ctx context.Context, city string) (Weather, error)
 	CityExists(ctx context.Context, city string) (bool, error)
 }
 
 type WeatherService struct {
-	provider Provider
+	provider weatherProvider
 }
 
-func NewWeatherService(p Provider) *WeatherService {
+func NewWeatherService(p weatherProvider) *WeatherService {
 	return &WeatherService{provider: p}
 }
 
-func (s *WeatherService) GetWeather(ctx context.Context, city string) (*Weather, error) {
+func (s *WeatherService) GetWeather(ctx context.Context, city string) (Weather, error) {
 	return s.provider.GetCurrentWeather(ctx, city)
 }
 

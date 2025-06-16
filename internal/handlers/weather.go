@@ -11,7 +11,7 @@ import (
 )
 
 type weatherService interface {
-	GetWeather(ctx context.Context, city string) (*weather.Weather, error)
+	GetWeather(ctx context.Context, city string) (weather.Weather, error)
 }
 
 type WeatherHandler struct {

@@ -14,7 +14,7 @@ type WeatherApiProvider struct {
 	apiKey string
 }
 
-func NewWeatherAPIProvider(apiKey string) Provider {
+func NewWeatherAPIProvider(apiKey string) *WeatherApiProvider {
 	return &WeatherApiProvider{apiKey: apiKey}
 }
 
@@ -36,22 +36,22 @@ type errorAPIResponse struct {
 	} `json:"error"`
 }
 
-func (p *WeatherApiProvider) GetCurrentWeather(ctx context.Context, city string) (*Weather, error) {
+func (p *WeatherApiProvider) GetCurrentWeather(ctx context.Context, city string) (Weather, error) {
 	body, err := makeWeatherAPIRequest(ctx, p.apiKey, city)
 	if err != nil {
-		return nil, err
+		return Weather{}, err
 	}
 
 	if isCityNotFound(body) {
-		return nil, ErrCityNotFound
+		return Weather{}, ErrCityNotFound
 	}
 
 	var data weatherAPIResponse
 	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, fmt.Errorf("failed to decode weather response: %w", err)
+		return Weather{}, fmt.Errorf("failed to decode weather response: %w", err)
 	}
 
-	return &Weather{
+	return Weather{
 		Temperature: data.Current.TempC,
 		Humidity:    data.Current.Humidity,
 		Description: data.Current.Condition.Text,

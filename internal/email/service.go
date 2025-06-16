@@ -6,16 +6,16 @@ import (
 	"weatherApi/internal/weather"
 )
 
-type EmailProvider interface {
+type emailProvider interface {
 	Send(to, subject, plainText, html string) error
 }
 
 type EmailService struct {
-	provider EmailProvider
+	provider emailProvider
 	baseURL  string
 }
 
-func NewEmailService(provider EmailProvider, baseURL string) *EmailService {
+func NewEmailService(provider emailProvider, baseURL string) *EmailService {
 	return &EmailService{
 		provider: provider,
 		baseURL:  baseURL,
@@ -31,13 +31,15 @@ func (s *EmailService) SendConfirmationEmail(toEmail, token string) error {
 	return s.provider.Send(toEmail, subject, plain, html)
 }
 
-func (s *EmailService) SendWeatherReport(toEmail string, weather *weather.Weather, city, token string) error {
+func (s *EmailService) SendWeatherReport(toEmail string, weather weather.Weather, city, token string) error {
 	url := fmt.Sprintf("%s/api/unsubscribe/%s", s.baseURL, token)
 	subject := fmt.Sprintf("Оновлення погоди для %s", city)
+
 	plain := fmt.Sprintf(
 		"Поточна погода в %s:\nТемпература: %.1f°C\nВологість: %d%%\nОпис: %s\n\nВідписатися: %s",
 		city, weather.Temperature, weather.Humidity, weather.Description, url,
 	)
+
 	html := fmt.Sprintf(
 		`<h2>Погода в %s</h2>
 		<p><strong>Температура:</strong> %.1f°C</p>
