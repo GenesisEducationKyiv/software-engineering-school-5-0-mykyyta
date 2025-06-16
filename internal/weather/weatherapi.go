@@ -11,14 +11,20 @@ import (
 )
 
 type WeatherApiProvider struct {
-	apiKey string
+	apiKey  string
+	baseURL string
 }
 
-func NewWeatherAPIProvider(apiKey string) *WeatherApiProvider {
-	return &WeatherApiProvider{apiKey: apiKey}
+func NewWeatherAPIProvider(apiKey string, baseURL ...string) *WeatherApiProvider {
+	url := "https://api.weatherapi.com/v1"
+	if len(baseURL) > 0 && baseURL[0] != "" {
+		url = baseURL[0]
+	}
+	return &WeatherApiProvider{
+		apiKey:  apiKey,
+		baseURL: url,
+	}
 }
-
-var ErrCityNotFound = errors.New("city not found")
 
 type weatherAPIResponse struct {
 	Current struct {
@@ -36,8 +42,8 @@ type errorAPIResponse struct {
 	} `json:"error"`
 }
 
-func (p *WeatherApiProvider) GetCurrentWeather(ctx context.Context, city string) (Weather, error) {
-	body, err := makeWeatherAPIRequest(ctx, p.apiKey, city)
+func (p *WeatherApiProvider) GetWeather(ctx context.Context, city string) (Weather, error) {
+	body, err := p.makeRequest(ctx, city)
 	if err != nil {
 		return Weather{}, err
 	}
@@ -58,24 +64,24 @@ func (p *WeatherApiProvider) GetCurrentWeather(ctx context.Context, city string)
 	}, nil
 }
 
-func (p *WeatherApiProvider) CityExists(ctx context.Context, city string) (bool, error) {
-	body, err := makeWeatherAPIRequest(ctx, p.apiKey, city)
+func (p *WeatherApiProvider) CityIsValid(ctx context.Context, city string) (bool, error) {
+	body, err := p.makeRequest(ctx, city)
 	if err != nil {
 		return false, err
 	}
 
 	if isCityNotFound(body) {
-		return false, nil
+		return false, ErrCityNotFound
 	}
 
 	return true, nil
 }
 
-func makeWeatherAPIRequest(ctx context.Context, apiKey, city string) ([]byte, error) {
-	if apiKey == "" {
+func (p *WeatherApiProvider) makeRequest(ctx context.Context, city string) ([]byte, error) {
+	if p.apiKey == "" {
 		return nil, errors.New("missing API key")
 	}
-	url := fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s", apiKey, city)
+	url := fmt.Sprintf("%s/current.json?key=%s&q=%s", p.baseURL, p.apiKey, city)
 	return doRequestBody(ctx, url)
 }
 

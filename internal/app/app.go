@@ -24,6 +24,30 @@ type App struct {
 type Services struct {
 	SubService     *subscription.SubscriptionService
 	WeatherService *weather.WeatherService
+	EmailService   *email.EmailService
+}
+
+type ServiceBuilder struct {
+	DB              *db.DB
+	BaseURL         string
+	EmailProvider   email.EmailProvider
+	TokenProvider   auth.TokenProvider
+	WeatherProvider weather.WeatherProvider
+}
+
+func (b *ServiceBuilder) BuildServices() (*Services, error) {
+	emailService := email.NewEmailService(b.EmailProvider, b.BaseURL)
+	tokenService := auth.NewTokenService(b.TokenProvider)
+	weatherService := weather.NewWeatherService(b.WeatherProvider)
+
+	subRepo := subscription.NewSubscriptionRepository(b.DB.Gorm)
+	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
+
+	return &Services{
+		SubService:     subService,
+		WeatherService: weatherService,
+		EmailService:   emailService,
+	}, nil
 }
 
 func NewApp(cfg *config.Config) (*App, error) {
@@ -32,25 +56,21 @@ func NewApp(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("DB error: %w", err)
 	}
 
-	weatherProvider := weather.NewWeatherAPIProvider(cfg.WeatherAPIKey)
-	weatherService := weather.NewWeatherService(weatherProvider)
-
-	emailProvider := email.NewSendGridProvider(cfg.EmailFrom, cfg.SendGridKey)
-	emailService := email.NewEmailService(emailProvider, cfg.BaseURL)
-
-	tokenProvider := auth.NewJWTService(cfg.JWTSecret)
-	tokenService := auth.NewTokenService(tokenProvider)
-
-	subRepo := subscription.NewSubscriptionRepository(dbInstance.Gorm)
-	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
-
-	scheduler := scheduler.NewScheduler(subService, weatherService, emailService)
-	go scheduler.Start()
-
-	services := &Services{
-		SubService:     subService,
-		WeatherService: weatherService,
+	builder := &ServiceBuilder{
+		DB:              dbInstance,
+		BaseURL:         cfg.BaseURL,
+		EmailProvider:   email.NewSendGridProvider(cfg.SendGridKey, cfg.EmailFrom),
+		TokenProvider:   auth.NewJWTService(cfg.JWTSecret),
+		WeatherProvider: weather.NewWeatherAPIProvider(cfg.WeatherAPIKey),
 	}
+
+	services, err := builder.BuildServices()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build services: %w", err)
+	}
+
+	scheduler := scheduler.NewScheduler(services.SubService, services.WeatherService, services.EmailService)
+	go scheduler.Start()
 
 	router := SetupRoutes(services)
 
@@ -78,7 +98,7 @@ func (a *App) StartServer() {
 func (a *App) Shutdown(ctx context.Context) error {
 	log.Println("Shutting down application...")
 
-	a.Scheduler.Stop() // якщо маєш Stop(), або просто залиш пустим
+	a.Scheduler.Stop()
 	a.DB.Close()
 
 	if err := a.Server.Shutdown(ctx); err != nil {

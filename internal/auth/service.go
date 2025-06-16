@@ -1,14 +1,14 @@
 package auth
 
-type tokenProvider interface {
+type TokenProvider interface {
 	Generate(email string) (string, error)
 	Parse(token string) (string, error)
 }
 type TokenService struct {
-	provider tokenProvider
+	provider TokenProvider
 }
 
-func NewTokenService(p tokenProvider) *TokenService {
+func NewTokenService(p TokenProvider) *TokenService {
 	return &TokenService{provider: p}
 }
 

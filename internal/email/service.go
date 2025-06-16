@@ -6,16 +6,16 @@ import (
 	"weatherApi/internal/weather"
 )
 
-type emailProvider interface {
+type EmailProvider interface {
 	Send(to, subject, plainText, html string) error
 }
 
 type EmailService struct {
-	provider emailProvider
+	provider EmailProvider
 	baseURL  string
 }
 
-func NewEmailService(provider emailProvider, baseURL string) *EmailService {
+func NewEmailService(provider EmailProvider, baseURL string) *EmailService {
 	return &EmailService{
 		provider: provider,
 		baseURL:  baseURL,

@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"errors"
 
 	"gorm.io/gorm"
 )
@@ -16,7 +17,11 @@ func NewSubscriptionRepository(db *gorm.DB) *GormSubscriptionRepository {
 
 func (r *GormSubscriptionRepository) GetByEmail(ctx context.Context, email string) (*Subscription, error) {
 	var sub Subscription
-	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&sub).Error; err != nil {
+	err := r.db.WithContext(ctx).Where("email = ?", email).First(&sub).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrSubscriptionNotFound
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &sub, nil
