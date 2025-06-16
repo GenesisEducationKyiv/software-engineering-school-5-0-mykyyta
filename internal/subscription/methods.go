@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,16 +10,16 @@ import (
 )
 
 func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, frequency string) error {
-	ok, err := s.cityValidator.CityIsValid(ctx, city)
+	_, err := s.cityValidator.CityIsValid(ctx, city)
 	if err != nil {
+		if errors.Is(err, ErrCityNotFound) {
+			return ErrCityNotFound
+		}
 		return fmt.Errorf("failed to validate city: %w", err)
-	}
-	if !ok {
-		return ErrCityNotFound
 	}
 
 	existing, err := s.repo.GetByEmail(ctx, email)
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrSubscriptionNotFound) {
 		return fmt.Errorf("failed to check existing subscription: %w", err)
 	}
 
@@ -74,10 +75,10 @@ func (s *SubscriptionService) Confirm(ctx context.Context, token string) error {
 
 	sub, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
+		if errors.Is(err, ErrSubscriptionNotFound) {
+			return ErrSubscriptionNotFound
+		}
 		return fmt.Errorf("failed to get subscription: %w", err)
-	}
-	if sub == nil {
-		return ErrSubscriptionNotFound
 	}
 	if sub.IsConfirmed {
 		return nil

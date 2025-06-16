@@ -1,24 +1,29 @@
 package weather
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
-type weatherProvider interface {
-	GetCurrentWeather(ctx context.Context, city string) (Weather, error)
-	CityExists(ctx context.Context, city string) (bool, error)
+var ErrCityNotFound = errors.New("city not found")
+
+type WeatherProvider interface {
+	GetWeather(ctx context.Context, city string) (Weather, error)
+	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
 type WeatherService struct {
-	provider weatherProvider
+	provider WeatherProvider
 }
 
-func NewWeatherService(p weatherProvider) *WeatherService {
+func NewWeatherService(p WeatherProvider) *WeatherService {
 	return &WeatherService{provider: p}
 }
 
 func (s *WeatherService) GetWeather(ctx context.Context, city string) (Weather, error) {
-	return s.provider.GetCurrentWeather(ctx, city)
+	return s.provider.GetWeather(ctx, city)
 }
 
 func (s *WeatherService) CityIsValid(ctx context.Context, city string) (bool, error) {
-	return s.provider.CityExists(ctx, city)
+	return s.provider.CityIsValid(ctx, city)
 }
