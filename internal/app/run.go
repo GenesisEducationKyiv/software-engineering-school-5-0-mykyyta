@@ -37,7 +37,7 @@ func Run() error {
 	defer cancel()
 
 	if err := app.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("HTTP server shutdown: %w", err)
+		return fmt.Errorf("App shutdown: %w", err)
 	}
 
 	log.Println("Server exited gracefully")
