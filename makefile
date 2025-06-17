@@ -5,19 +5,22 @@ fmt:
 
 # Run static code analysis
 lint:
-	golangci-lint run ./...
+	golangci-lint run --fix ./...
 
-# Run all tests with verbose output
+# Run all tests (unit + integration)
 test:
-	go test -v ./...
+	gotestsum -- -count=1 -tags=integration ./...
 
-# Run tests quietly (suppress Gin/debug output)
-test-quiet:
-	@echo "Running tests quietly..."
-	@go test ./... -v 2>&1 | grep -v -e '^\[GIN\]' -e 'record not found' -e '^=== RUN'
+# Run only unit tests (all tests that do NOT have the 'integration' build tag)
+test-unit:
+	gotestsum -- -count=1 ./...
+
+# Run only integration tests (tests with //go:build integration)
+test-integration:
+	gotestsum -- -count=1 -tags=integration ./internal/integration/...
 
 # Run formatting, linting and tests
-check: fmt lint test-quiet
+check: fmt lint test
 
 # Run locally using Docker Compose
 run:
