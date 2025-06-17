@@ -43,6 +43,10 @@ jobs:
             libcups2 libdrm2 libgbm1 libgtk-3-0 libxcomposite1 libxdamage1 \
             libxrandr2 libxshmfence1 wget unzip
 
+      - name: Create .env file
+        run: |
+          echo "DB_URL=postgres://postgres:postgres@localhost:5432/weatherdb?sslmode=disable" > .env
+
       - name: Build & start docker-compose
         run: docker compose up -d --build
 
