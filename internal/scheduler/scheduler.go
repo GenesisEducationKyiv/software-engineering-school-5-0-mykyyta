@@ -3,18 +3,18 @@ package scheduler
 import (
 	"context"
 
-	"weatherApi/internal/subscription"
-
 	"weatherApi/internal/email"
 	"weatherApi/internal/jobs"
+	"weatherApi/internal/subscription"
 	"weatherApi/internal/weather"
 )
 
 type WeatherScheduler struct {
 	queue      *jobs.LocalQueue
-	dispatcher *jobs.EmailDispatcher
+	Dispatcher *jobs.EmailDispatcher
 	worker     *jobs.Worker
 	cron       *jobs.CronScheduler
+	cancel     context.CancelFunc
 }
 
 func NewScheduler(
@@ -34,19 +34,23 @@ func NewScheduler(
 
 	return &WeatherScheduler{
 		queue:      queue,
-		dispatcher: dispatcher,
+		Dispatcher: dispatcher,
 		worker:     worker,
 		cron:       cron,
 	}
 }
 
 func (s *WeatherScheduler) Start() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancel = cancel
 	go s.worker.Start(ctx)
 	s.cron.Start()
 }
 
 func (s *WeatherScheduler) Stop() {
 	s.cron.Stop()
-	s.queue.Close() // важливо
+	s.queue.Close()
+	if s.cancel != nil {
+		s.cancel() // Завершує воркер
+	}
 }
