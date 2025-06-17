@@ -3,6 +3,7 @@ package testutils
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -18,7 +19,7 @@ import (
 	gormpostgres "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"weatherApi/internal/db" // заміни на актуальний шлях, якщо інший
+	"weatherApi/internal/db"
 )
 
 type TestPostgres struct {
@@ -93,7 +94,11 @@ func runMigrations(dsn string) error {
 	if err != nil {
 		return fmt.Errorf("sql.Open failed: %w", err)
 	}
-	defer db.Close()
+	defer func() {
+		if cerr := db.Close(); cerr != nil {
+			log.Printf("warning: failed to close db: %v", cerr)
+		}
+	}()
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
@@ -109,7 +114,7 @@ func runMigrations(dsn string) error {
 		return fmt.Errorf("migrate init failed: %w", err)
 	}
 
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("migrate up failed: %w", err)
 	}
 
