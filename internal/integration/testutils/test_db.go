@@ -2,20 +2,23 @@ package testutils
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
+	"github.com/docker/go-connections/nat"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	gormpostgres "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"weatherApi/internal/db"
+	"weatherApi/internal/db" // заміни на актуальний шлях, якщо інший
 )
 
 type TestPostgres struct {
@@ -49,7 +52,7 @@ func StartPostgres(ctx context.Context) (*TestPostgres, error) {
 		return nil, fmt.Errorf("failed to get container host: %w", err)
 	}
 
-	port, err := container.MappedPort(ctx, "5432/tcp")
+	port, err := container.MappedPort(ctx, nat.Port("5432/tcp"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container port: %w", err)
 	}
@@ -81,17 +84,34 @@ func (tp *TestPostgres) Terminate(ctx context.Context) error {
 }
 
 func runMigrations(dsn string) error {
-	wd, err := os.Getwd()
+	absPath, err := filepath.Abs("../../../migrations")
 	if err != nil {
-		return fmt.Errorf("getwd error: %w", err)
+		return fmt.Errorf("could not resolve migrations path: %w", err)
 	}
-	migrationsPath := filepath.Join(wd, "../../../migrations")
 
-	cmd := exec.Command("migrate", "-path", migrationsPath, "-database", dsn, "up")
-	output, err := cmd.CombinedOutput()
-	fmt.Println(string(output))
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		return fmt.Errorf("migration error: %w\nOutput: %s", err, string(output))
+		return fmt.Errorf("sql.Open failed: %w", err)
 	}
+	defer db.Close()
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return fmt.Errorf("postgres driver init failed: %w", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://"+absPath,
+		"postgres",
+		driver,
+	)
+	if err != nil {
+		return fmt.Errorf("migrate init failed: %w", err)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("migrate up failed: %w", err)
+	}
+
 	return nil
 }
