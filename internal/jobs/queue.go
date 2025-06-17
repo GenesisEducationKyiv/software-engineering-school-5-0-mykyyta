@@ -2,6 +2,8 @@ package jobs
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"sync"
 )
 
@@ -17,10 +19,18 @@ func NewLocalQueue(bufferSize int) *LocalQueue {
 }
 
 func (q *LocalQueue) Enqueue(ctx context.Context, task Task) error {
+	if task.Email == "" {
+		log.Printf("[Queue] Skip enqueue: empty email (city=%q)", task.City)
+		return fmt.Errorf("cannot enqueue task: missing email")
+	}
+
+	log.Printf("[Queue] Enqueuing task for: %q", task.Email)
+
 	select {
 	case q.queue <- task:
 		return nil
 	case <-ctx.Done():
+		log.Printf("[Queue] Context cancelled while enqueuing for: %q", task.Email)
 		return ctx.Err()
 	}
 }

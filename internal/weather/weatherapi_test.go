@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"weatherApi/internal/weather"
 
@@ -82,4 +83,21 @@ func TestCityExists_False(t *testing.T) {
 
 	require.ErrorIs(t, err, weather.ErrCityNotFound)
 	require.False(t, exists)
+}
+
+func TestGetCurrentWeather_Timeout(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1 * time.Second)
+	}))
+	defer mockServer.Close()
+
+	provider := weather.NewWeatherAPIProvider("fake-api-key", mockServer.URL)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	_, err := provider.GetWeather(ctx, "Kyiv")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "timed out")
 }

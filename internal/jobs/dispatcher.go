@@ -7,17 +7,17 @@ import (
 	"weatherApi/internal/subscription"
 )
 
-type TaskQueue interface {
+type taskQueue interface {
 	Enqueue(ctx context.Context, task Task) error
 }
 
-type SubService interface {
+type subservice interface {
 	ListConfirmedByFrequency(ctx context.Context, frequency string) ([]subscription.Subscription, error)
 }
 
 type EmailDispatcher struct {
-	SubService SubService
-	TaskQueue  TaskQueue
+	SubService subservice
+	TaskQueue  taskQueue
 }
 
 func (d *EmailDispatcher) DispatchScheduledEmails(freq string) {
@@ -30,6 +30,7 @@ func (d *EmailDispatcher) DispatchScheduledEmails(freq string) {
 	}
 
 	for _, sub := range subs {
+		log.Printf("[Dispatcher] Preparing task for %q", sub.Email)
 		task := Task{
 			Email: sub.Email,
 			City:  sub.City,

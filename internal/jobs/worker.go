@@ -8,21 +8,21 @@ import (
 	"weatherApi/internal/weather"
 )
 
-type EmailSender interface {
+type emailSender interface {
 	SendWeatherReport(toEmail string, w weather.Weather, city, token string) error
 }
 
-type WeatherProvider interface {
+type weatherProvider interface {
 	GetWeather(ctx context.Context, city string) (weather.Weather, error)
 }
 
 type Worker struct {
 	queue          <-chan Task
-	weatherService WeatherProvider
-	emailService   EmailSender
+	weatherService weatherProvider
+	emailService   emailSender
 }
 
-func NewWorker(queue <-chan Task, weather WeatherProvider, email EmailSender) *Worker {
+func NewWorker(queue <-chan Task, weather weatherProvider, email emailSender) *Worker {
 	return &Worker{
 		queue:          queue,
 		weatherService: weather,
@@ -35,7 +35,17 @@ func (w *Worker) Start(ctx context.Context) {
 
 	for {
 		select {
-		case task := <-w.queue:
+		case task, ok := <-w.queue:
+			if !ok {
+				log.Println("[Worker] Queue closed. Exiting.")
+				return
+			}
+
+			if task.Email == "" {
+				log.Println("[Worker] Empty email in task. Skipping.")
+				continue
+			}
+
 			go func(t Task) {
 				taskCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 				defer cancel()
