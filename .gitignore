@@ -1,0 +1,47 @@
+# Go build artifacts
+/bin/
+/build/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.bin
+*.race
+
+# Go modules
+vendor/
+
+# IDE (GoLand, JetBrains)
+.idea/
+*.iml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.deploy
+
+# Logs
+*.log
+
+# Coverage and test reports
+coverage.*
+*.coverprofile
+*.testresult
+*.prof
+
+# Temporary and test output
+/tmp/
+/testbin/
+
+# Generated files
+**/mock_*.go
+**/gen_*.go
+
+# System files
+.DS_Store
+Thumbs.db
