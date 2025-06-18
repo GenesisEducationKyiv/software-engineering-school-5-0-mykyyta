@@ -38,19 +38,16 @@ func TestSubscriptionRepository_CRUD(t *testing.T) {
 		Token:          "mock-token",
 	}
 
-	// Create
 	err = repo.Create(ctx, sub)
 	require.NoError(t, err)
 
-	// Read
 	got, err := repo.GetByEmail(ctx, "test@example.com")
 	require.NoError(t, err)
 	require.Equal(t, sub.Email, got.Email)
 	require.Equal(t, sub.City, got.City)
 	require.False(t, got.IsConfirmed)
 	require.WithinDuration(t, time.Now(), got.CreatedAt, time.Minute)
-
-	// Update
+	
 	got.IsConfirmed = true
 	err = repo.Update(ctx, got)
 	require.NoError(t, err)
