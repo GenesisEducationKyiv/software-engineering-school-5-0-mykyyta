@@ -48,8 +48,17 @@ jobs:
       - name: Build & start docker-compose
         run: docker compose up -d --build
 
-      - name: Wait for app to be ready
-        run: sleep 5
+      - name: Wait for app to respond
+        run: |
+          for i in {1..20}; do
+            curl -sf http://localhost:8080/health || curl -sf http://localhost:8080 || true
+            if [ $? -eq 0 ]; then
+              echo "App is ready"
+              break
+            fi
+            echo "Waiting for app..."
+            sleep 3
+          done
 
       - name: Run E2E tests
         run: go test -tags=e2e ./test/e2e -v
