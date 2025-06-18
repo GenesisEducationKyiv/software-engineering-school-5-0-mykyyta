@@ -11,21 +11,6 @@ jobs:
     name: Run E2E tests with Rod
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: weatherdb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -54,7 +39,7 @@ jobs:
         run: sleep 5
 
       - name: Run E2E tests
-        run: gotestsum -- -tags=e2e ./test/e2e -v
+        run: go test -tags=e2e ./test/e2e -v
 
       - name: Stop containers
         if: always()
