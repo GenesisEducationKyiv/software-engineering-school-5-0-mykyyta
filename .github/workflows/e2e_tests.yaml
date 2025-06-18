@@ -54,7 +54,7 @@ jobs:
         run: sleep 5
 
       - name: Run E2E tests
-        run: go test ./test/e2e -v
+        run: gotestsum -- -tags=e2e ./test/e2e -v
 
       - name: Stop containers
         if: always()
