@@ -26,11 +26,12 @@ jobs:
           sudo apt-get install -y \
             libnss3 libxss1 libasound2t64 libatk1.0-0 libatk-bridge2.0-0 \
             libcups2 libdrm2 libgbm1 libgtk-3-0 libxcomposite1 libxdamage1 \
-            libxrandr2 libxshmfence1 wget unzip
+            libxrandr2 libxshmfence1 wget unzip chromium-browser
 
       - name: Create .env file
         run: |
           echo "DB_URL=postgres://postgres:postgres@db:5432/weatherdb?sslmode=disable" > .env
+          echo "ROD_BROWSER_BIN=/usr/bin/chromium-browser" >> .env
 
       - name: Build & start docker-compose
         run: docker compose up -d --build
@@ -39,6 +40,8 @@ jobs:
         run: sleep 5
 
       - name: Run E2E tests
+        env:
+          ROD_BROWSER_BIN: /usr/bin/chromium-browser
         run: go test -tags=e2e ./test/e2e -v
 
       - name: Stop containers
