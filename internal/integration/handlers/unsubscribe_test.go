@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUnsubscribeHandler_Success(t *testing.T) {
+func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T) {
 	ctx := context.Background()
 
 	pg, err := testutils.StartPostgres(ctx)

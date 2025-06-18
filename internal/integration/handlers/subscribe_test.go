@@ -21,7 +21,7 @@ import (
 	"weatherApi/internal/integration/testutils"
 )
 
-func TestSubscribeHandler_Success(t *testing.T) {
+func TestSubscribeHandler_ValidRequest_CreatesSubAndSendsEmail(t *testing.T) {
 	ctx := context.Background()
 
 	pg, err := testutils.StartPostgres(ctx)

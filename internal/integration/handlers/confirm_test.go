@@ -18,7 +18,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func TestConfirmHandler_Success(t *testing.T) {
+func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T) {
 	ctx := context.Background()
 
 	pg, err := testutils.StartPostgres(ctx)

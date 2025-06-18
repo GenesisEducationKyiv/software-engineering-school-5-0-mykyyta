@@ -17,7 +17,7 @@ import (
 	"weatherApi/internal/subscription"
 )
 
-func TestEmailDispatch_DailyConfirmed(t *testing.T) {
+func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUse(t *testing.T) {
 	ctx := context.Background()
 
 	pg, err := testutils.StartPostgres(ctx)
@@ -57,18 +57,14 @@ func TestEmailDispatch_DailyConfirmed(t *testing.T) {
 	err = repo.Create(ctx, sub)
 	require.NoError(t, err)
 
-	// Запускаємо Scheduler
 	s := scheduler.NewScheduler(services.SubService, services.WeatherService, services.EmailService)
 	defer s.Stop()
 	s.Start()
 
-	// Симулюємо cron запуск
 	s.Dispatcher.DispatchScheduledEmails("daily")
 
-	// Очікуємо, поки email буде надіслано
 	time.Sleep(2 * time.Second)
 
-	// Перевірка
 	require.True(t, emailProvider.Sent, "Expected email to be sent")
 	require.Equal(t, "test@example.com", emailProvider.To)
 	require.Contains(t, emailProvider.Plain, "Kyiv")
@@ -76,10 +72,9 @@ func TestEmailDispatch_DailyConfirmed(t *testing.T) {
 	require.Contains(t, emailProvider.Plain, "Відписатися")
 }
 
-func TestEmailDispatch_HourlyAndDailyConfirmed(t *testing.T) {
+func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *testing.T) {
 	ctx := context.Background()
 
-	// Старт тестової PostgreSQL
 	pg, err := testutils.StartPostgres(ctx)
 	require.NoError(t, err)
 	defer func() {
@@ -88,12 +83,10 @@ func TestEmailDispatch_HourlyAndDailyConfirmed(t *testing.T) {
 		}
 	}()
 
-	// Тестові залежності
 	emailProvider := &testutils.FakeEmailProvider{}
 	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
 	tokenProvider := &testutils.FakeTokenProvider{}
 
-	// Сервіси
 	builder := &app.ServiceBuilder{
 		DB:              pg.DB,
 		BaseURL:         "http://localhost:8080",
