@@ -35,7 +35,10 @@ func TestSubscribeViaUI(t *testing.T) {
 		t.Logf("Connecting to remote browser: %s", remoteURL)
 		browser = rod.New().ControlURL(remoteURL).MustConnect()
 	} else {
-		launchURL := launcher.New().Headless(true).MustLaunch()
+		launchURL := launcher.New().
+			Headless(true).
+			Set("no-sandbox").
+			MustLaunch()
 		browser = rod.New().ControlURL(launchURL).MustConnect()
 	}
 	t.Cleanup(func() {
