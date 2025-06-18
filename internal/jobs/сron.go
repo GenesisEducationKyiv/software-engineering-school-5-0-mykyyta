@@ -6,26 +6,24 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type CallbackFunc func(frequency string)
-
-type CronScheduler struct {
-	callback CallbackFunc
-	cron     *cron.Cron
+type CronEventSource struct {
+	cron   *cron.Cron
+	events chan string
 }
 
-func NewCronScheduler(cb CallbackFunc) *CronScheduler {
-	return &CronScheduler{
-		callback: cb,
-		cron:     cron.New(),
+func NewCronEventSource() *CronEventSource {
+	return &CronEventSource{
+		cron:   cron.New(),
+		events: make(chan string, 10),
 	}
 }
 
-func (s *CronScheduler) Start() {
+func (s *CronEventSource) Start() {
 	log.Println("[Scheduler] Starting cron scheduler...")
 
 	_, err := s.cron.AddFunc("0 * * * *", func() {
 		log.Println("[Scheduler] Trigger: hourly")
-		s.callback("hourly")
+		s.events <- "hourly"
 	})
 	if err != nil {
 		log.Fatalf("[Scheduler] Failed to schedule hourly: %v", err)
@@ -33,7 +31,7 @@ func (s *CronScheduler) Start() {
 
 	_, err = s.cron.AddFunc("0 12 * * *", func() {
 		log.Println("[Scheduler] Trigger: daily")
-		s.callback("daily")
+		s.events <- "daily"
 	})
 	if err != nil {
 		log.Fatalf("[Scheduler] Failed to schedule daily: %v", err)
@@ -42,7 +40,12 @@ func (s *CronScheduler) Start() {
 	s.cron.Start()
 }
 
-func (s *CronScheduler) Stop() {
+func (s *CronEventSource) Events() <-chan string {
+	return s.events
+}
+
+func (s *CronEventSource) Stop() {
 	log.Println("[Scheduler] Stopping cron scheduler...")
 	s.cron.Stop()
+	close(s.events)
 }

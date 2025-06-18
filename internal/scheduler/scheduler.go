@@ -11,9 +11,9 @@ import (
 
 type WeatherScheduler struct {
 	queue      *jobs.LocalQueue
-	Dispatcher *jobs.EmailDispatcher
+	dispatcher *jobs.EmailDispatcher
 	worker     *jobs.Worker
-	cron       *jobs.CronScheduler
+	cron       *jobs.CronEventSource
 	cancel     context.CancelFunc
 }
 
@@ -22,35 +22,34 @@ func NewScheduler(
 	weatherService *weather.WeatherService,
 	emailService *email.EmailService,
 ) *WeatherScheduler {
+
 	queue := jobs.NewLocalQueue(100)
-
-	dispatcher := &jobs.EmailDispatcher{
-		SubService: subService,
-		TaskQueue:  queue,
-	}
-
-	worker := jobs.NewWorker(queue.Channel(), weatherService, emailService)
-	cron := jobs.NewCronScheduler(dispatcher.DispatchScheduledEmails)
+	cron := jobs.NewCronEventSource()
+	dispatcher := jobs.NewEmailDispatcher(subService, queue, cron)
+	worker := jobs.NewWorker(queue, weatherService, emailService)
 
 	return &WeatherScheduler{
 		queue:      queue,
-		Dispatcher: dispatcher,
+		dispatcher: dispatcher,
 		worker:     worker,
 		cron:       cron,
 	}
 }
 
-func (s *WeatherScheduler) Start() {
-	ctx, cancel := context.WithCancel(context.Background())
+func (s *WeatherScheduler) Start(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
 	s.cancel = cancel
-	go s.worker.Start(ctx)
+
 	s.cron.Start()
+	s.dispatcher.Start(ctx)
+	go s.worker.Start(ctx)
 }
 
 func (s *WeatherScheduler) Stop() {
 	s.cron.Stop()
 	s.queue.Close()
+
 	if s.cancel != nil {
-		s.cancel() // Завершує воркер
+		s.cancel()
 	}
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"weatherApi/internal/jobs"
+
 	"github.com/google/uuid"
 	"golang.org/x/net/context"
 )
@@ -116,6 +118,23 @@ func (s *SubscriptionService) Unsubscribe(ctx context.Context, token string) err
 	}
 
 	return nil
+}
+
+func (s *SubscriptionService) GenerateWeatherReportTasks(ctx context.Context, frequency string) ([]jobs.Task, error) {
+	subs, err := s.ListConfirmedByFrequency(ctx, frequency)
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := make([]jobs.Task, 0, len(subs))
+	for _, sub := range subs {
+		tasks = append(tasks, jobs.Task{
+			Email: sub.Email,
+			City:  sub.City,
+			Token: sub.Token,
+		})
+	}
+	return tasks, nil
 }
 
 func (s *SubscriptionService) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]Subscription, error) {
