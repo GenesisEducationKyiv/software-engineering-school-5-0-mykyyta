@@ -4,21 +4,29 @@ package scheduler_test
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"testing"
 	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/stretchr/testify/require"
 
 	"weatherApi/internal/app"
 	"weatherApi/internal/integration/testutils"
-	"weatherApi/internal/scheduler"
+	"weatherApi/internal/jobs"
 	"weatherApi/internal/subscription"
 )
 
-func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUse(t *testing.T) {
-	ctx := context.Background()
+type fakeEventSource struct {
+	ch chan string
+}
+
+func (f *fakeEventSource) Events() <-chan string {
+	return f.ch
+}
+
+func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	pg, err := testutils.StartPostgres(ctx)
 	require.NoError(t, err)
@@ -57,11 +65,17 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUse(t *testi
 	err = repo.Create(ctx, sub)
 	require.NoError(t, err)
 
-	s := scheduler.NewScheduler(services.SubService, services.WeatherService, services.EmailService)
-	defer s.Stop()
-	s.Start()
+	eventChan := make(chan string, 1)
+	fakeEventSource := &fakeEventSource{ch: eventChan}
 
-	s.Dispatcher.DispatchScheduledEmails("daily")
+	queue := jobs.NewLocalQueue(10)
+	dispatcher := jobs.NewEmailDispatcher(services.SubService, queue, fakeEventSource)
+	worker := jobs.NewWorker(queue, services.WeatherService, services.EmailService)
+
+	go worker.Start(ctx)
+	dispatcher.Start(ctx)
+
+	eventChan <- "daily"
 
 	time.Sleep(2 * time.Second)
 
@@ -73,7 +87,8 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUse(t *testi
 }
 
 func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	pg, err := testutils.StartPostgres(ctx)
 	require.NoError(t, err)
@@ -126,11 +141,17 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 		require.NoError(t, err)
 	}
 
-	s := scheduler.NewScheduler(services.SubService, services.WeatherService, services.EmailService)
-	defer s.Stop()
-	s.Start()
+	eventChan := make(chan string, 2)
+	fakeSource := &fakeEventSource{ch: eventChan}
 
-	s.Dispatcher.DispatchScheduledEmails("daily")
+	queue := jobs.NewLocalQueue(10)
+	dispatcher := jobs.NewEmailDispatcher(services.SubService, queue, fakeSource)
+	worker := jobs.NewWorker(queue, services.WeatherService, services.EmailService)
+
+	go dispatcher.Start(ctx)
+	go worker.Start(ctx)
+
+	eventChan <- "daily"
 	time.Sleep(1 * time.Second)
 
 	require.True(t, emailProvider.Sent, "Expected email to be sent (daily)")
@@ -142,7 +163,7 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 	emailProvider.To = ""
 	emailProvider.Plain = ""
 
-	s.Dispatcher.DispatchScheduledEmails("hourly")
+	eventChan <- "hourly"
 	time.Sleep(1 * time.Second)
 
 	require.True(t, emailProvider.Sent, "Expected email to be sent (hourly)")

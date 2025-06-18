@@ -50,7 +50,7 @@ func (b *ServiceBuilder) BuildServices() (*Services, error) {
 	}, nil
 }
 
-func NewApp(cfg *config.Config) (*App, error) {
+func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	dbInstance, err := db.NewDB(cfg.DBUrl)
 	if err != nil {
 		return nil, fmt.Errorf("DB error: %w", err)
@@ -70,7 +70,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 	}
 
 	scheduler := scheduler.NewScheduler(services.SubService, services.WeatherService, services.EmailService)
-	go scheduler.Start()
+	go scheduler.Start(ctx)
 
 	router := SetupRoutes(services)
 
