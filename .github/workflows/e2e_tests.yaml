@@ -43,7 +43,7 @@ jobs:
       - name: Create .env file
         run: |
           echo "DB_URL=postgres://postgres:postgres@db:5432/weatherdb?sslmode=disable" > .env
-          echo "ROD_REMOTE_DEBUG_URL=http://localhost:3000" > .env
+          echo "ROD_REMOTE_DEBUG_URL=http://localhost:3000" >> .env
 
       - name: Build & start docker-compose
         run: docker compose up -d --build
