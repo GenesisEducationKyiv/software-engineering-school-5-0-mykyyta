@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
 	"weatherApi/internal/auth"
 	"weatherApi/internal/config"
 	"weatherApi/internal/db"
