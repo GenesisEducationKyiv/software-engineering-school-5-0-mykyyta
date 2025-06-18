@@ -2,10 +2,7 @@ package weather
 
 import (
 	"context"
-	"errors"
 )
-
-var ErrCityNotFound = errors.New("city not found")
 
 type WeatherProvider interface {
 	GetWeather(ctx context.Context, city string) (Weather, error)
