@@ -40,9 +40,9 @@ jobs:
             sleep 3
           done
 
-      - name: Create .env file
+      - name: Create .env file from .example
         run: |
-          echo "DB_URL=postgres://postgres:postgres@db:5432/weatherdb?sslmode=disable" > .env
+          cp .example .env
           echo "ROD_REMOTE_DEBUG_URL=http://localhost:3000" >> .env
 
       - name: Build & start docker-compose
