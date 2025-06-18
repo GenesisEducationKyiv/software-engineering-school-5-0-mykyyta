@@ -24,7 +24,7 @@ e2e-up:
 	docker compose up -d --quiet-pull
 
 e2e-test:
-	go test ./test/e2e -v
+	go test -tags=e2e ./test/e2e -v
 
 e2e-down:
 	docker compose down -v
