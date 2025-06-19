@@ -5,71 +5,106 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
-	"github.com/gin-gonic/gin"
-
-	"weatherApi/config"
-	"weatherApi/internal/api"
+	"weatherApi/internal/auth"
+	"weatherApi/internal/config"
 	"weatherApi/internal/db"
+	"weatherApi/internal/email"
 	"weatherApi/internal/scheduler"
+	"weatherApi/internal/subscription"
+	"weatherApi/internal/weather"
 )
 
-func Run() error {
-	// Set GIN mode
-	mode := os.Getenv("GIN_MODE")
-	if mode == "" {
-		mode = gin.DebugMode
+type App struct {
+	Server    *http.Server
+	DB        *db.DB
+	Scheduler *scheduler.WeatherScheduler
+}
+
+type Services struct {
+	SubService     *subscription.SubscriptionService
+	WeatherService *weather.WeatherService
+	EmailService   *email.EmailService
+}
+
+type ServiceBuilder struct {
+	DB              *db.DB
+	BaseURL         string
+	EmailProvider   email.EmailProvider
+	TokenProvider   auth.TokenProvider
+	WeatherProvider weather.WeatherProvider
+}
+
+func (b *ServiceBuilder) BuildServices() (*Services, error) {
+	emailService := email.NewEmailService(b.EmailProvider, b.BaseURL)
+	tokenService := auth.NewTokenService(b.TokenProvider)
+	weatherService := weather.NewWeatherService(b.WeatherProvider)
+
+	subRepo := subscription.NewSubscriptionRepository(b.DB.Gorm)
+	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
+
+	return &Services{
+		SubService:     subService,
+		WeatherService: weatherService,
+		EmailService:   emailService,
+	}, nil
+}
+
+func NewApp(cfg *config.Config) (*App, error) {
+	dbInstance, err := db.NewDB(cfg.DBUrl)
+	if err != nil {
+		return nil, fmt.Errorf("DB error: %w", err)
 	}
-	gin.SetMode(mode)
-	log.Printf("Starting in %s mode\n", gin.Mode())
 
-	// Load configuration and connect to DB
-	config.LoadConfig()
-	db.ConnectDefaultDB()
-	defer db.CloseDB()
-
-	// Inject DB into other modules
-	api.SetDB(db.DB)
-	scheduler.SetDB(db.DB)
-
-	// Start background scheduler
-	go scheduler.StartWeatherScheduler()
-
-	// Set up Gin router
-	r := gin.Default()
-	api.RegisterRoutes(r)
-
-	// Create HTTP server
-	srv := &http.Server{
-		Addr:    ":" + config.C.Port,
-		Handler: r,
+	builder := &ServiceBuilder{
+		DB:              dbInstance,
+		BaseURL:         cfg.BaseURL,
+		EmailProvider:   email.NewSendGridProvider(cfg.SendGridKey, cfg.EmailFrom),
+		TokenProvider:   auth.NewJWTService(cfg.JWTSecret),
+		WeatherProvider: weather.NewWeatherAPIProvider(cfg.WeatherAPIKey),
 	}
 
-	// Start server in background
+	services, err := builder.BuildServices()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build services: %w", err)
+	}
+
+	scheduler := scheduler.NewScheduler(services.SubService, services.WeatherService, services.EmailService)
+	go scheduler.Start()
+
+	router := SetupRoutes(services)
+
+	server := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: router,
+	}
+
+	return &App{
+		Server:    server,
+		DB:        dbInstance,
+		Scheduler: scheduler,
+	}, nil
+}
+
+func (a *App) StartServer() {
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+		log.Printf("Server listening on %s", a.Server.Addr)
+		if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
 		}
 	}()
+}
 
-	// Wait for termination signal
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutdown signal received, cleaning up...")
+func (a *App) Shutdown(ctx context.Context) error {
+	log.Println("Shutting down application...")
 
-	// Gracefully shutdown HTTP server
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	a.Scheduler.Stop()
+	a.DB.Close()
 
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		return fmt.Errorf("HTTP server shutdown: %w", err)
+	if err := a.Server.Shutdown(ctx); err != nil {
+		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	log.Println("Server exited gracefully")
+	log.Println("Shutdown complete")
 	return nil
 }
