@@ -47,7 +47,7 @@ func TestSubscriptionRepository_CRUD(t *testing.T) {
 	require.Equal(t, sub.City, got.City)
 	require.False(t, got.IsConfirmed)
 	require.WithinDuration(t, time.Now(), got.CreatedAt, time.Minute)
-	
+
 	got.IsConfirmed = true
 	err = repo.Update(ctx, got)
 	require.NoError(t, err)

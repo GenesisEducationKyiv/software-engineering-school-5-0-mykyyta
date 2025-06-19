@@ -25,7 +25,6 @@ func NewScheduler(
 	weatherService *weather.WeatherService,
 	emailService *email.EmailService,
 ) *WeatherScheduler {
-
 	queue := jobs.NewLocalQueue(100)
 	cron := jobs.NewCronEventSource()
 	dispatcher := jobs.NewEmailDispatcher(subService, queue, cron)
