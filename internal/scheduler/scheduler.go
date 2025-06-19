@@ -2,6 +2,8 @@ package scheduler
 
 import (
 	"context"
+	"log"
+	"sync"
 
 	"weatherApi/internal/email"
 	"weatherApi/internal/jobs"
@@ -15,6 +17,7 @@ type WeatherScheduler struct {
 	worker     *jobs.Worker
 	cron       *jobs.CronEventSource
 	cancel     context.CancelFunc
+	wg         sync.WaitGroup
 }
 
 func NewScheduler(
@@ -40,16 +43,29 @@ func (s *WeatherScheduler) Start(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	s.cancel = cancel
 
-	s.cron.Start()
+	log.Println("[Scheduler] Starting scheduler...")
+
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		s.worker.Start(ctx)
+	}()
+
 	s.dispatcher.Start(ctx)
-	go s.worker.Start(ctx)
+	s.cron.Start(ctx)
 }
 
 func (s *WeatherScheduler) Stop() {
-	s.cron.Stop()
-	s.queue.Close()
+	log.Println("[Scheduler] Stopping scheduler...")
 
 	if s.cancel != nil {
 		s.cancel()
 	}
+
+	s.wg.Wait()
+
+	s.cron.Stop()
+	s.queue.Close()
+
+	log.Println("[Scheduler] Scheduler stopped.")
 }
