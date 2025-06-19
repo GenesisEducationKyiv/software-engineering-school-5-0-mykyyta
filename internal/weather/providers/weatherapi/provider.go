@@ -1,4 +1,4 @@
-package weather
+package weatherapi
 
 import (
 	"context"
@@ -8,21 +8,19 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"weatherApi/internal/weather"
 )
 
-type WeatherApiProvider struct {
+type Provider struct {
 	apiKey  string
 	baseURL string
 }
 
-func NewWeatherAPIProvider(apiKey string, baseURL ...string) *WeatherApiProvider {
-	url := "https://api.weatherapi.com/v1"
-	if len(baseURL) > 0 && baseURL[0] != "" {
-		url = baseURL[0]
-	}
-	return &WeatherApiProvider{
+func New(apiKey string, baseURL string) *Provider {
+	return &Provider{
 		apiKey:  apiKey,
-		baseURL: url,
+		baseURL: baseURL,
 	}
 }
 
@@ -42,42 +40,42 @@ type errorAPIResponse struct {
 	} `json:"error"`
 }
 
-func (p *WeatherApiProvider) GetWeather(ctx context.Context, city string) (Weather, error) {
+func (p *Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	body, err := p.makeRequest(ctx, city)
 	if err != nil {
-		return Weather{}, err
+		return weather.Report{}, err
 	}
 
 	if isCityNotFound(body) {
-		return Weather{}, ErrCityNotFound
+		return weather.Report{}, weather.ErrCityNotFound
 	}
 
 	var data weatherAPIResponse
 	if err := json.Unmarshal(body, &data); err != nil {
-		return Weather{}, fmt.Errorf("failed to decode weather response: %w", err)
+		return weather.Report{}, fmt.Errorf("failed to decode weather response: %w", err)
 	}
 
-	return Weather{
+	return weather.Report{
 		Temperature: data.Current.TempC,
 		Humidity:    data.Current.Humidity,
 		Description: data.Current.Condition.Text,
 	}, nil
 }
 
-func (p *WeatherApiProvider) CityIsValid(ctx context.Context, city string) (bool, error) {
+func (p *Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	body, err := p.makeRequest(ctx, city)
 	if err != nil {
 		return false, err
 	}
 
 	if isCityNotFound(body) {
-		return false, ErrCityNotFound
+		return false, weather.ErrCityNotFound
 	}
 
 	return true, nil
 }
 
-func (p *WeatherApiProvider) makeRequest(ctx context.Context, city string) ([]byte, error) {
+func (p *Provider) makeRequest(ctx context.Context, city string) ([]byte, error) {
 	if p.apiKey == "" {
 		return nil, errors.New("missing API key")
 	}

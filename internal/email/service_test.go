@@ -30,14 +30,14 @@ func TestSendWeatherReport_EdgeCases_UkrainianTemplate(t *testing.T) {
 		name     string
 		city     string
 		token    string
-		weather  weather.Weather
+		weather  weather.Report
 		expected map[string]string
 	}{
 		{
 			name:  "Normal case, English city and description",
 			city:  "London",
 			token: "tok123",
-			weather: weather.Weather{
+			weather: weather.Report{
 				Temperature: 21.5,
 				Humidity:    65,
 				Description: "clear sky",
@@ -47,7 +47,7 @@ func TestSendWeatherReport_EdgeCases_UkrainianTemplate(t *testing.T) {
 			name:  "Negative temperature",
 			city:  "Oslo",
 			token: "tok_snow",
-			weather: weather.Weather{
+			weather: weather.Report{
 				Temperature: -15.2,
 				Humidity:    80,
 				Description: "snow",
@@ -57,7 +57,7 @@ func TestSendWeatherReport_EdgeCases_UkrainianTemplate(t *testing.T) {
 			name:  "Empty city, empty token",
 			city:  "",
 			token: "",
-			weather: weather.Weather{
+			weather: weather.Report{
 				Temperature: 5.0,
 				Humidity:    40,
 				Description: "fog",
