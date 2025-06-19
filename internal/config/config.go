@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strings"
 
@@ -9,6 +8,7 @@ import (
 )
 
 type Config struct {
+	GinMode       string
 	Port          string
 	DBType        string
 	DBUrl         string
@@ -19,12 +19,11 @@ type Config struct {
 	BaseURL       string
 }
 
-var C *Config
-
-func LoadConfig() {
+func LoadConfig() *Config {
 	_ = godotenv.Load()
 
-	C = &Config{
+	return &Config{
+		GinMode:       getEnv("GIN_MODE", "debug"),
 		Port:          getEnv("PORT", "8080"),
 		DBType:        getEnv("DB_TYPE", "postgres"),
 		DBUrl:         getEnv("DB_URL", "host=your-host user=your-user password=your-password dbname=your-db port=5432 sslmode=require"),
@@ -36,15 +35,10 @@ func LoadConfig() {
 	}
 }
 
-func Reload() {
-	C = nil
-	LoadConfig()
-}
-
 func mustGet(key string) string {
 	val := os.Getenv(key)
 	if val == "" {
-		log.Fatalf("Missing required environment variable: %s", key)
+		panic("Missing required environment variable: " + key)
 	}
 	return val
 }

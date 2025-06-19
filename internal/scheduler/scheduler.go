@@ -3,84 +3,92 @@ package scheduler
 import (
 	"context"
 	"log"
-	"time"
 
-	"weatherApi/internal/email"
-	"weatherApi/internal/model"
-	"weatherApi/internal/weatherapi"
+	"weatherApi/internal/subscription"
+	"weatherApi/internal/weather"
 
-	"gorm.io/gorm"
+	"github.com/robfig/cron/v3"
 )
 
-// DB is the scheduler's database instance.
-// Must be set via SetDB() before StartWeatherScheduler is called.
-var (
-	DB               *gorm.DB
-	FetchWeather     = weatherapi.FetchWithStatus
-	SendWeatherEmail = email.SendWeatherEmail
-)
-
-// SetDB assigns a GORM database instance to the scheduler.
-// This allows decoupling from the main DB package for testability or modularity.
-func SetDB(db *gorm.DB) {
-	DB = db
+type subService interface {
+	ListConfirmedByFrequency(ctx context.Context, frequency string) ([]subscription.Subscription, error)
 }
 
-// StartWeatherScheduler starts a background task that sends weather updates.
-// It sends "hourly" updates every round hour and "daily" updates at 12:00 UTC.
-func StartWeatherScheduler() {
-	log.Println("[Scheduler] started")
+type weatherService interface {
+	GetWeather(ctx context.Context, city string) (weather.Weather, error)
+}
 
-	// Align to the next full hour (e.g., xx:00:00)
-	now := time.Now()
-	nextHour := now.Truncate(time.Hour).Add(time.Hour)
-	sleep := time.Until(nextHour)
-	log.Printf("[Scheduler] sleeping %v to align to next full hour\n", sleep)
-	time.Sleep(sleep)
+type emailService interface {
+	SendWeatherReport(toEmail string, w weather.Weather, city, token string) error
+}
 
-	ticker := time.NewTicker(1 * time.Hour)
-	for {
-		now := time.Now()
-		log.Println("[Scheduler] running tick", now.Format("15:04:05"))
+type WeatherScheduler struct {
+	subService     subService
+	weatherService weatherService
+	emailService   emailService
+	cron           *cron.Cron
+}
 
-		go sendWeatherUpdates("hourly")
-
-		if now.Hour() == 12 {
-			go sendWeatherUpdates("daily")
-		}
-
-		<-ticker.C
+func NewScheduler(sub subService, weather weatherService, email emailService) *WeatherScheduler {
+	return &WeatherScheduler{
+		subService:     sub,
+		weatherService: weather,
+		emailService:   email,
+		cron:           cron.New(),
 	}
 }
 
-// sendWeatherUpdates fetches all active subscriptions with the given frequency
-// and sends weather updates for each one via email.
-func sendWeatherUpdates(frequency string) {
-	var subs []model.Subscription
+func (s *WeatherScheduler) Start() {
+	_, err := s.cron.AddFunc("0 * * * *", func() {
+		log.Println("[Scheduler] Hourly job triggered on the dot")
+		s.sendUpdates("hourly")
+	})
+	if err != nil {
+		log.Fatalf("Failed to schedule hourly job: %v", err)
+	}
 
-	if err := DB.Where(
-		"is_confirmed = ? AND is_unsubscribed = ? AND frequency = ?",
-		true, false, frequency,
-	).Find(&subs).Error; err != nil {
-		log.Printf("[Scheduler] Failed to query subscriptions: %v", err)
+	_, err = s.cron.AddFunc("0 12 * * *", func() {
+		log.Println("[Scheduler] Daily job triggered")
+		s.sendUpdates("daily")
+	})
+	if err != nil {
+		log.Fatalf("Failed to schedule daily job: %v", err)
+	}
+
+	log.Println("[Scheduler] Started")
+	s.cron.Start()
+}
+
+func (s *WeatherScheduler) Stop() {
+	log.Println("[Scheduler] Stopping...")
+	s.cron.Stop()
+	log.Println("[Scheduler] Stopped")
+}
+
+func (s *WeatherScheduler) sendUpdates(frequency string) {
+	ctx := context.Background()
+
+	subs, err := s.subService.ListConfirmedByFrequency(ctx, frequency)
+	if err != nil {
+		log.Printf("[Scheduler] Failed to fetch subscriptions: %v", err)
 		return
 	}
 
 	for _, sub := range subs {
-		if err := ProcessSubscription(context.Background(), sub); err != nil {
-			log.Printf("[Scheduler] Failed to process %s: %v", sub.Email, err)
-		} else {
-			log.Printf("[Scheduler] Weather sent to %s", sub.Email)
-		}
+		go func(sub subscription.Subscription) {
+			if err := s.processSubscription(ctx, sub); err != nil {
+				log.Printf("[Scheduler] Failed to process %s: %v", sub.Email, err)
+			} else {
+				log.Printf("[Scheduler] Sent weather to %s", sub.Email)
+			}
+		}(sub)
 	}
 }
 
-// ProcessSubscription fetches the weather for a single subscription
-// and sends the email using the stored unsubscribe token.
-func ProcessSubscription(ctx context.Context, sub model.Subscription) error {
-	weather, _, err := FetchWeather(ctx, sub.City)
+func (s *WeatherScheduler) processSubscription(ctx context.Context, sub subscription.Subscription) error {
+	weather, err := s.weatherService.GetWeather(ctx, sub.City)
 	if err != nil {
 		return err
 	}
-	return SendWeatherEmail(sub.Email, weather, sub.City, sub.Token)
+	return s.emailService.SendWeatherReport(sub.Email, weather, sub.City, sub.Token)
 }
