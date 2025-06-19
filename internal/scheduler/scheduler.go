@@ -22,7 +22,7 @@ type WeatherScheduler struct {
 
 func NewScheduler(
 	subService *subscription.SubscriptionService,
-	weatherService *weather.WeatherService,
+	weatherService *weather.Service,
 	emailService *email.EmailService,
 ) *WeatherScheduler {
 	queue := jobs.NewLocalQueue(100)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
 	"weatherApi/internal/auth"
 	"weatherApi/internal/config"
 	"weatherApi/internal/db"
@@ -12,6 +13,7 @@ import (
 	"weatherApi/internal/scheduler"
 	"weatherApi/internal/subscription"
 	"weatherApi/internal/weather"
+	"weatherApi/internal/weather/providers/weatherapi"
 )
 
 type App struct {
@@ -22,7 +24,7 @@ type App struct {
 
 type Services struct {
 	SubService     *subscription.SubscriptionService
-	WeatherService *weather.WeatherService
+	WeatherService *weather.Service
 	EmailService   *email.EmailService
 }
 
@@ -31,13 +33,13 @@ type ServiceBuilder struct {
 	BaseURL         string
 	EmailProvider   email.EmailProvider
 	TokenProvider   auth.TokenProvider
-	WeatherProvider weather.WeatherProvider
+	WeatherProvider weather.Provider
 }
 
 func (b *ServiceBuilder) BuildServices() (*Services, error) {
 	emailService := email.NewEmailService(b.EmailProvider, b.BaseURL)
 	tokenService := auth.NewTokenService(b.TokenProvider)
-	weatherService := weather.NewWeatherService(b.WeatherProvider)
+	weatherService := weather.NewService(b.WeatherProvider)
 
 	subRepo := subscription.NewSubscriptionRepository(b.DB.Gorm)
 	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
@@ -60,7 +62,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		BaseURL:         cfg.BaseURL,
 		EmailProvider:   email.NewSendGridProvider(cfg.SendGridKey, cfg.EmailFrom),
 		TokenProvider:   auth.NewJWTService(cfg.JWTSecret),
-		WeatherProvider: weather.NewWeatherAPIProvider(cfg.WeatherAPIKey),
+		WeatherProvider: weatherapi.New(cfg.WeatherAPIKey, "https://api.weatherapi.com/v1"),
 	}
 
 	services, err := builder.BuildServices()
