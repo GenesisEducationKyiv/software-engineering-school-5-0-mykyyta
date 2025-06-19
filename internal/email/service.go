@@ -31,7 +31,7 @@ func (s *EmailService) SendConfirmationEmail(toEmail, token string) error {
 	return s.provider.Send(toEmail, subject, plain, html)
 }
 
-func (s *EmailService) SendWeatherReport(toEmail string, weather weather.Weather, city, token string) error {
+func (s *EmailService) SendWeatherReport(toEmail string, weather weather.Report, city, token string) error {
 	url := fmt.Sprintf("%s/api/unsubscribe/%s", s.baseURL, token)
 	subject := fmt.Sprintf("Оновлення погоди для %s", city)
 

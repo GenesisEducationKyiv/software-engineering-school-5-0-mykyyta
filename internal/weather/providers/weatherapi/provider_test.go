@@ -1,13 +1,16 @@
-package weather
+package weatherapi
 
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"weatherApi/internal/weather"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetCurrentWeather_Success(t *testing.T) {
@@ -30,7 +33,7 @@ func TestGetCurrentWeather_Success(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := NewWeatherAPIProvider("fake-api-key", mockServer.URL)
+	provider := New("fake-api-key", mockServer.URL)
 	result, err := provider.GetWeather(context.Background(), "Kyiv")
 
 	require.NoError(t, err)
@@ -56,7 +59,7 @@ func TestCityExists_True(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := NewWeatherAPIProvider("fake-api-key", mockServer.URL)
+	provider := New("fake-api-key", mockServer.URL)
 	exists, err := provider.CityIsValid(context.Background(), "Kyiv")
 
 	require.NoError(t, err)
@@ -75,10 +78,10 @@ func TestCityExists_False(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := NewWeatherAPIProvider("fake-api-key", mockServer.URL)
+	provider := New("fake-api-key", mockServer.URL)
 	exists, err := provider.CityIsValid(context.Background(), "UnknownCity")
 
-	require.ErrorIs(t, err, ErrCityNotFound)
+	require.ErrorIs(t, err, weather.ErrCityNotFound)
 	require.False(t, exists)
 }
 
@@ -88,7 +91,7 @@ func TestGetCurrentWeather_Timeout(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := NewWeatherAPIProvider("fake-api-key", mockServer.URL)
+	provider := New("fake-api-key", mockServer.URL)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
