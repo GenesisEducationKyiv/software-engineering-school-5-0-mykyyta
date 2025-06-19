@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"sync"
 )
@@ -35,11 +36,18 @@ func (q *LocalQueue) Enqueue(ctx context.Context, task Task) error {
 	}
 }
 
-func (q *LocalQueue) Channel() <-chan Task {
-	return q.queue
+func (q *LocalQueue) Dequeue(ctx context.Context) (Task, error) {
+	select {
+	case task, ok := <-q.queue:
+		if !ok {
+			return Task{}, io.EOF
+		}
+		return task, nil
+	case <-ctx.Done():
+		return Task{}, ctx.Err()
+	}
 }
 
-// Close closes the task queue channel safely.
 func (q *LocalQueue) Close() {
 	q.once.Do(func() {
 		close(q.queue)
