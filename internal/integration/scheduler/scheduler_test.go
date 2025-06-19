@@ -4,9 +4,10 @@ package scheduler_test
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/stretchr/testify/require"
 
