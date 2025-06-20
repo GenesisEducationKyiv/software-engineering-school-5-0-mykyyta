@@ -8,11 +8,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"weatherApi/internal/subscription"
-
 	"weatherApi/internal/app"
+	"weatherApi/internal/config"
 	"weatherApi/internal/handlers"
 	"weatherApi/internal/integration/testutils"
+	"weatherApi/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -33,16 +33,16 @@ func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T
 	token := "mock-token-test@example.com"
 	email := "test@example.com"
 
-	builder := &app.ServiceBuilder{
-		DB:              pg.DB,
-		BaseURL:         "http://localhost:8080",
-		EmailProvider:   &testutils.FakeEmailProvider{},
-		TokenProvider:   &testutils.FakeTokenProvider{},
-		WeatherProvider: &testutils.FakeWeatherProvider{Valid: true},
-	}
+	emailProvider := &testutils.FakeEmailProvider{}
+	tokenProvider := &testutils.FakeTokenProvider{}
+	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
 
-	services, err := builder.BuildServices()
-	require.NoError(t, err)
+	providers := app.ProviderSet{
+		EmailProvider:   emailProvider,
+		TokenProvider:   tokenProvider,
+		WeatherProvider: weatherProvider,
+	}
+	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, &providers)
 
 	err = subscription.NewSubscriptionRepository(pg.DB.Gorm).Create(ctx, &subscription.Subscription{
 		ID:             uuid.NewString(),
