@@ -19,7 +19,10 @@ func Run() error {
 	gin.SetMode(cfg.GinMode)
 	log.Printf("GIN running in %s mode", gin.Mode())
 
-	app, err := NewApp(cfg)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app, err := NewApp(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to build app: %w", err)
 	}
@@ -32,6 +35,8 @@ func Run() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutdown signal received, cleaning up...")
+
+	cancel()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

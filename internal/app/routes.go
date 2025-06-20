@@ -9,7 +9,6 @@ import (
 )
 
 func SetupRoutes(s *Services) *gin.Engine {
-
 	router := gin.Default()
 
 	subscribeHandler := handlers.NewSubscribeHandler(s.SubService)
