@@ -104,9 +104,6 @@ func (s *SubscriptionService) Unsubscribe(ctx context.Context, token string) err
 	if err != nil {
 		return fmt.Errorf("failed to get subscription: %w", err)
 	}
-	if sub == nil {
-		return ErrSubscriptionNotFound
-	}
 
 	if sub.IsUnsubscribed {
 		return nil
