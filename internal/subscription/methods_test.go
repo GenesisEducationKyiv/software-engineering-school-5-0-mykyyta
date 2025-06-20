@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// --- Моки ---
+// --- MOCKS ---
 
 type mockRepo struct{ mock.Mock }
 
@@ -60,8 +60,6 @@ func (m *mockCityValidator) CityIsValid(ctx context.Context, city string) (bool,
 	return args.Bool(0), args.Error(1)
 }
 
-// --- Фабрика мок-сервісу ---
-
 type testDeps struct {
 	repo      *mockRepo
 	tokens    *mockTokenService
@@ -80,7 +78,147 @@ func createTestService() *testDeps {
 	return &testDeps{repo, tokens, emails, validator, service}
 }
 
-// --- Тести ---
+// --- SUBSCRIBE ---
+
+func TestSubscribe_RenewsUnsubscribedUser(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "user@example.com"
+	city := "Kyiv"
+	frequency := "daily"
+	token := "new-token"
+
+	existing := &subscription.Subscription{Email: email, IsConfirmed: true, IsUnsubscribed: true}
+
+	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(existing, nil)
+	d.tokens.On("Generate", email).Return(token, nil)
+	d.repo.On("Update", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(nil)
+	d.emails.On("SendConfirmationEmail", email, token).Maybe().Return(nil)
+
+	err := d.service.Subscribe(ctx, email, city, frequency)
+
+	assert.NoError(t, err)
+	d.validator.AssertExpectations(t)
+	d.repo.AssertExpectations(t)
+	d.tokens.AssertExpectations(t)
+	d.emails.AssertExpectations(t)
+}
+
+func TestSubscribe_CityValidatorFails_Error(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "user@example.com"
+	city := "InvalidCity"
+
+	d.validator.On("CityIsValid", ctx, city).Return(false, subscription.ErrCityNotFound)
+
+	err := d.service.Subscribe(ctx, email, city, "daily")
+
+	assert.ErrorIs(t, err, subscription.ErrCityNotFound)
+	d.validator.AssertExpectations(t)
+}
+
+func TestSubscribe_AlreadySubscribed_ReturnsErr(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "user@example.com"
+	city := "Kyiv"
+
+	existing := &subscription.Subscription{
+		Email:          email,
+		IsConfirmed:    true,
+		IsUnsubscribed: false,
+	}
+
+	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(existing, nil)
+
+	err := d.service.Subscribe(ctx, email, city, "daily")
+
+	assert.ErrorIs(t, err, subscription.ErrEmailAlreadyExists)
+}
+
+func TestSubscribe_GetByEmailUnexpectedError_ReturnsErr(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "user@example.com"
+	city := "Kyiv"
+
+	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, assert.AnError)
+
+	err := d.service.Subscribe(ctx, email, city, "daily")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to check existing subscription")
+}
+
+func TestSubscribe_TokenGenerationFails_ReturnsErr(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "user@example.com"
+	city := "Kyiv"
+
+	existing := &subscription.Subscription{
+		Email:          email,
+		IsConfirmed:    true,
+		IsUnsubscribed: true,
+	}
+
+	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(existing, nil)
+	d.tokens.On("Generate", email).Return("", assert.AnError)
+
+	err := d.service.Subscribe(ctx, email, city, "daily")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "could not generate token")
+}
+
+func TestSubscribe_UpdateFails_ReturnsErr(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "user@example.com"
+	city := "Kyiv"
+	token := "token123"
+
+	existing := &subscription.Subscription{
+		Email:          email,
+		IsConfirmed:    true,
+		IsUnsubscribed: true,
+	}
+
+	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(existing, nil)
+	d.tokens.On("Generate", email).Return(token, nil)
+	d.repo.On("Update", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(assert.AnError)
+
+	err := d.service.Subscribe(ctx, email, city, "daily")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update subscription")
+}
+
+func TestSubscribe_CreateFails_ReturnsErr(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "new@example.com"
+	city := "Kyiv"
+	token := "token456"
+
+	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
+	d.tokens.On("Generate", email).Return(token, nil)
+	d.repo.On("Create", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(assert.AnError)
+
+	err := d.service.Subscribe(ctx, email, city, "daily")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create subscription")
+}
+
+// --- CONFIRM ---
 
 func TestConfirm_ValidToken_Success(t *testing.T) {
 	d := createTestService()
@@ -94,24 +232,6 @@ func TestConfirm_ValidToken_Success(t *testing.T) {
 	d.repo.On("Update", ctx, sub).Return(nil)
 
 	err := d.service.Confirm(ctx, token)
-
-	assert.NoError(t, err)
-	d.tokens.AssertExpectations(t)
-	d.repo.AssertExpectations(t)
-}
-
-func TestUnsubscribe_ValidToken_Success(t *testing.T) {
-	d := createTestService()
-	ctx := context.Background()
-	email := "user@example.com"
-	token := "valid-token"
-	sub := &subscription.Subscription{Email: email, IsUnsubscribed: false}
-
-	d.tokens.On("Parse", token).Return(email, nil)
-	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
-	d.repo.On("Update", ctx, sub).Return(nil)
-
-	err := d.service.Unsubscribe(ctx, token)
 
 	assert.NoError(t, err)
 	d.tokens.AssertExpectations(t)
@@ -182,23 +302,6 @@ func TestConfirm_AlreadyConfirmed(t *testing.T) {
 	d.repo.AssertExpectations(t)
 }
 
-func TestUnsubscribe_AlreadyUnsubscribed(t *testing.T) {
-	d := createTestService()
-	ctx := context.Background()
-	email := "user@example.com"
-	token := "token"
-	sub := &subscription.Subscription{Email: email, IsUnsubscribed: true}
-
-	d.tokens.On("Parse", token).Return(email, nil)
-	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
-
-	err := d.service.Unsubscribe(ctx, token)
-
-	assert.NoError(t, err)
-	d.tokens.AssertExpectations(t)
-	d.repo.AssertExpectations(t)
-}
-
 func TestConfirm_UpdateFails(t *testing.T) {
 	d := createTestService()
 	ctx := context.Background()
@@ -218,41 +321,126 @@ func TestConfirm_UpdateFails(t *testing.T) {
 	d.repo.AssertExpectations(t)
 }
 
-func TestSubscribe_RenewsUnsubscribedUser(t *testing.T) {
+// --- UNSUBSCRIBE ---
+
+func TestUnsubscribe_ValidToken_Success(t *testing.T) {
 	d := createTestService()
 	ctx := context.Background()
 	email := "user@example.com"
-	city := "Kyiv"
-	frequency := "daily"
-	token := "new-token"
+	token := "valid-token"
+	sub := &subscription.Subscription{Email: email, IsUnsubscribed: false}
 
-	existing := &subscription.Subscription{Email: email, IsConfirmed: true, IsUnsubscribed: true}
+	d.tokens.On("Parse", token).Return(email, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
+	d.repo.On("Update", ctx, sub).Return(nil)
 
-	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
-	d.repo.On("GetByEmail", ctx, email).Return(existing, nil)
-	d.tokens.On("Generate", email).Return(token, nil)
-	d.repo.On("Update", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(nil)
-	d.emails.On("SendConfirmationEmail", email, token).Maybe().Return(nil)
-
-	err := d.service.Subscribe(ctx, email, city, frequency)
+	err := d.service.Unsubscribe(ctx, token)
 
 	assert.NoError(t, err)
-	d.validator.AssertExpectations(t)
-	d.repo.AssertExpectations(t)
 	d.tokens.AssertExpectations(t)
-	d.emails.AssertExpectations(t)
+	d.repo.AssertExpectations(t)
 }
 
-func TestSubscribe_CityValidatorFails_Error(t *testing.T) {
+func TestUnsubscribe_AlreadyUnsubscribed(t *testing.T) {
 	d := createTestService()
 	ctx := context.Background()
 	email := "user@example.com"
-	city := "InvalidCity"
+	token := "token"
+	sub := &subscription.Subscription{Email: email, IsUnsubscribed: true}
 
-	d.validator.On("CityIsValid", ctx, city).Return(false, subscription.ErrCityNotFound)
+	d.tokens.On("Parse", token).Return(email, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
 
-	err := d.service.Subscribe(ctx, email, city, "daily")
+	err := d.service.Unsubscribe(ctx, token)
 
-	assert.ErrorIs(t, err, subscription.ErrCityNotFound)
-	d.validator.AssertExpectations(t)
+	assert.NoError(t, err)
+	d.tokens.AssertExpectations(t)
+	d.repo.AssertExpectations(t)
+}
+
+func TestUnsubscribe_InvalidToken_ReturnsErr(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	token := "bad-token"
+
+	d.tokens.On("Parse", token).Return("", subscription.ErrInvalidToken)
+
+	err := d.service.Unsubscribe(ctx, token)
+
+	assert.ErrorIs(t, err, subscription.ErrInvalidToken)
+	d.tokens.AssertExpectations(t)
+}
+
+func TestUnsubscribe_GetByEmailFails_ReturnsErr(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "user@example.com"
+	token := "valid-token"
+
+	d.tokens.On("Parse", token).Return(email, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, assert.AnError)
+
+	err := d.service.Unsubscribe(ctx, token)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get subscription")
+	d.tokens.AssertExpectations(t)
+	d.repo.AssertExpectations(t)
+}
+
+func TestUnsubscribe_UpdateFails_ReturnsErr(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "user@example.com"
+	token := "valid-token"
+	sub := &subscription.Subscription{Email: email, IsUnsubscribed: false}
+
+	d.tokens.On("Parse", token).Return(email, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
+	d.repo.On("Update", ctx, sub).Return(assert.AnError)
+
+	err := d.service.Unsubscribe(ctx, token)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to unsubscribe")
+	d.tokens.AssertExpectations(t)
+	d.repo.AssertExpectations(t)
+}
+
+// ---GENERATE_WEATHER_REPORT_TASKS ---
+
+func TestGenerateWeatherReportTasks_Success(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	frequency := "daily"
+
+	subs := []subscription.Subscription{
+		{Email: "a@example.com", City: "Kyiv", Token: "token1"},
+		{Email: "b@example.com", City: "Lviv", Token: "token2"},
+	}
+
+	d.repo.On("GetConfirmedByFrequency", ctx, frequency).Return(subs, nil)
+
+	tasks, err := d.service.GenerateWeatherReportTasks(ctx, frequency)
+
+	assert.NoError(t, err)
+	assert.Len(t, tasks, 2)
+	assert.Equal(t, "a@example.com", tasks[0].Email)
+	assert.Equal(t, "Kyiv", tasks[0].City)
+	assert.Equal(t, "token1", tasks[0].Token)
+}
+
+func TestGenerateWeatherReportTasks_ListFails_ReturnsError(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	frequency := "daily"
+
+	d.repo.On("GetConfirmedByFrequency", ctx, frequency).
+		Return([]subscription.Subscription(nil), assert.AnError)
+
+	tasks, err := d.service.GenerateWeatherReportTasks(ctx, frequency)
+
+	assert.Nil(t, tasks)
+	assert.Error(t, err)
+	d.repo.AssertExpectations(t)
 }
