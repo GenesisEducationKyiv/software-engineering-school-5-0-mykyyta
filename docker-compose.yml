@@ -43,3 +43,5 @@ services:
     stop_grace_period: 5s
     env_file:
       - .env
+    volumes:
+      - ./logs:/app/logs
