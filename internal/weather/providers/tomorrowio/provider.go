@@ -4,9 +4,12 @@ package tomorrowio
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+
 	"weatherApi/internal/weather"
 )
 
@@ -15,14 +18,25 @@ type Provider struct {
 	baseURL string
 }
 
-func New(apiKey string, baseURL string) *Provider {
-	if baseURL == "" {
-		baseURL = "https://api.tomorrow.io/v4/weather/realtime"
+func New(apiKey string, baseURL ...string) *Provider {
+	url := "https://api.weatherapi.com/v1"
+	if len(baseURL) > 0 && baseURL[0] != "" {
+		url = baseURL[0]
 	}
 	return &Provider{
 		apiKey:  apiKey,
-		baseURL: baseURL,
+		baseURL: url,
 	}
+}
+
+type apiResponse struct {
+	Data struct {
+		Values struct {
+			Temperature float64 `json:"temperature"`
+			Humidity    int     `json:"humidity"`
+			WeatherCode int     `json:"weatherCode"`
+		} `json:"values"`
+	} `json:"data"`
 }
 
 func (p *Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
@@ -58,27 +72,15 @@ func (p *Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	return true, nil
 }
 
-type apiResponse struct {
-	Data struct {
-		Values struct {
-			Temperature float64 `json:"temperature"`
-			Humidity    int     `json:"humidity"`
-			WeatherCode int     `json:"weatherCode"`
-		} `json:"values"`
-	} `json:"data"`
-}
-
-type errorResponse struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
 func isInvalidLocation(body []byte) bool {
-	var errResp errorResponse
+	var errResp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
 	if err := json.Unmarshal(body, &errResp); err != nil {
 		return false
 	}
-	return errResp.Code == "InvalidLocation"
+	return errResp.Code == 400001
 }
 
 func makeRequest(ctx context.Context, url string) ([]byte, error) {
@@ -89,9 +91,12 @@ func makeRequest(ctx context.Context, url string) ([]byte, error) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return nil, fmt.Errorf("request timed out: %w", err)
+		}
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp)
 
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
@@ -117,5 +122,11 @@ func getDescription(code int) string {
 		return "Snow"
 	default:
 		return fmt.Sprintf("Code %d", code)
+	}
+}
+
+func closeBody(resp *http.Response) {
+	if err := resp.Body.Close(); err != nil {
+		log.Printf("failed to close response body: %v", err)
 	}
 }
