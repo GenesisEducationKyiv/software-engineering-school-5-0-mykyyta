@@ -78,7 +78,7 @@ type FakeWeatherProvider struct {
 	Valid         bool
 	CityExistsErr error
 	Weather       weather.Report
-	WeatherSet    bool // додатковий прапорець, чи явно задана погода
+	WeatherSet    bool
 	WeatherErr    error
 }
 
