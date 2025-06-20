@@ -20,6 +20,7 @@ type App struct {
 	Server    *http.Server
 	DB        *db.DB
 	Scheduler *scheduler.WeatherScheduler
+	Logger    *log.Logger
 }
 
 type Services struct {
@@ -36,7 +37,7 @@ type ServiceBuilder struct {
 	WeatherProvider weather.Provider
 }
 
-func (b *ServiceBuilder) BuildServices() (*Services, error) {
+func (b *ServiceBuilder) BuildServices(logger *log.Logger) (*Services, error) {
 	emailService := email.NewEmailService(b.EmailProvider, b.BaseURL)
 	tokenService := auth.NewTokenService(b.TokenProvider)
 	weatherService := weather.NewService(b.WeatherProvider)
@@ -51,7 +52,7 @@ func (b *ServiceBuilder) BuildServices() (*Services, error) {
 	}, nil
 }
 
-func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, error) {
 	dbInstance, err := db.NewDB(cfg.DBUrl)
 	if err != nil {
 		return nil, fmt.Errorf("DB error: %w", err)
@@ -65,7 +66,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		WeatherProvider: weatherapi.New(cfg.WeatherAPIKey, "https://api.weatherapi.com/v1"),
 	}
 
-	services, err := builder.BuildServices()
+	services, err := builder.BuildServices(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build services: %w", err)
 	}
@@ -84,6 +85,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		Server:    server,
 		DB:        dbInstance,
 		Scheduler: scheduler,
+		Logger:    logger,
 	}, nil
 }
 

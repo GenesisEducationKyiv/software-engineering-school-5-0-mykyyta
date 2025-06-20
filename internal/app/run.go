@@ -17,12 +17,19 @@ import (
 func Run() error {
 	cfg := config.LoadConfig()
 	gin.SetMode(cfg.GinMode)
-	log.Printf("GIN running in %s mode", gin.Mode())
+
+	logFile, err := os.OpenFile("logs/app.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return fmt.Errorf("cannot open log file: %w", err)
+	}
+	logger := log.New(logFile, "", log.LstdFlags)
+
+	logger.Printf("GIN running in %s mode", gin.Mode())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	app, err := NewApp(ctx, cfg)
+	app, err := NewApp(ctx, cfg, logger)
 	if err != nil {
 		return fmt.Errorf("failed to build app: %w", err)
 	}
@@ -34,7 +41,7 @@ func Run() error {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutdown signal received, cleaning up...")
+	logger.Println("Shutdown signal received, cleaning up...")
 
 	cancel()
 
@@ -45,6 +52,10 @@ func Run() error {
 		return fmt.Errorf("App shutdown: %w", err)
 	}
 
-	log.Println("Server exited gracefully")
+	logger.Println("Server exited gracefully")
+
+	if err := logFile.Close(); err != nil {
+		return fmt.Errorf("failed to close log file: %w", err)
+	}
 	return nil
 }
