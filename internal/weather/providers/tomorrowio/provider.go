@@ -1,4 +1,3 @@
-// internal/tomorrowio/provider.go
 package tomorrowio
 
 import (
@@ -19,7 +18,7 @@ type Provider struct {
 }
 
 func New(apiKey string, baseURL ...string) *Provider {
-	url := "https://api.weatherapi.com/v1"
+	url := "https://api.tomorrow.io/v4/weather/realtime"
 	if len(baseURL) > 0 && baseURL[0] != "" {
 		url = baseURL[0]
 	}
@@ -43,6 +42,9 @@ func (p *Provider) GetWeather(ctx context.Context, city string) (weather.Report,
 	url := fmt.Sprintf("%s?location=%s&apikey=%s", p.baseURL, city, p.apiKey)
 	body, err := makeRequest(ctx, url)
 	if err != nil {
+		if isInvalidLocation(body) {
+			return weather.Report{}, weather.ErrCityNotFound
+		}
 		return weather.Report{}, err
 	}
 
@@ -63,11 +65,10 @@ func (p *Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	url := fmt.Sprintf("%s?location=%s&apikey=%s", p.baseURL, city, p.apiKey)
 	body, err := makeRequest(ctx, url)
 	if err != nil {
+		if isInvalidLocation(body) {
+			return false, weather.ErrCityNotFound
+		}
 		return false, err
-	}
-
-	if isInvalidLocation(body) {
-		return false, weather.ErrCityNotFound
 	}
 	return true, nil
 }
@@ -107,22 +108,10 @@ func makeRequest(ctx context.Context, url string) ([]byte, error) {
 }
 
 func getDescription(code int) string {
-	switch code {
-	case 1000:
-		return "Clear"
-	case 1101:
-		return "Partly Cloudy"
-	case 1102:
-		return "Mostly Cloudy"
-	case 4000:
-		return "Drizzle"
-	case 4200:
-		return "Light Rain"
-	case 5000:
-		return "Snow"
-	default:
-		return fmt.Sprintf("Code %d", code)
+	if desc, ok := weatherCodeDescriptions[code]; ok {
+		return desc
 	}
+	return fmt.Sprintf("Unknown (code %d)", code)
 }
 
 func closeBody(resp *http.Response) {
