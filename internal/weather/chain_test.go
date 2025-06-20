@@ -1,11 +1,8 @@
-package chain_test
+package weather
 
 import (
 	"errors"
 	"testing"
-
-	"weatherApi/internal/weather"
-	"weatherApi/internal/weather/chain"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
@@ -13,11 +10,11 @@ import (
 
 type MockProvider struct {
 	Name            string
-	GetWeatherFunc  func(ctx context.Context, city string) (weather.Report, error)
+	GetWeatherFunc  func(ctx context.Context, city string) (Report, error)
 	CityIsValidFunc func(ctx context.Context, city string) (bool, error)
 }
 
-func (m *MockProvider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (m *MockProvider) GetWeather(ctx context.Context, city string) (Report, error) {
 	return m.GetWeatherFunc(ctx, city)
 }
 
@@ -29,11 +26,11 @@ func TestChainWeatherProvider_GetWeatherLogic(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("fallback to second", func(t *testing.T) {
-		provider := chain.NewProvider(
+		provider := NewChain(
 			&MockProvider{
 				Name: "broken",
-				GetWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
-					return weather.Report{}, errors.New("network error")
+				GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
+					return Report{}, errors.New("network error")
 				},
 				CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 					return false, errors.New("network error")
@@ -41,8 +38,8 @@ func TestChainWeatherProvider_GetWeatherLogic(t *testing.T) {
 			},
 			&MockProvider{
 				Name: "valid",
-				GetWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
-					return weather.Report{Temperature: 25, Description: "Sunny"}, nil
+				GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
+					return Report{Temperature: 25, Description: "Sunny"}, nil
 				},
 				CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 					return true, nil
@@ -62,29 +59,29 @@ func TestChainWeatherProvider_GetWeatherLogic(t *testing.T) {
 	t.Run("all not found", func(t *testing.T) {
 		notFound := &MockProvider{
 			Name: "notFound",
-			GetWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
-				return weather.Report{}, weather.ErrCityNotFound
+			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
+				return Report{}, ErrCityNotFound
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
-				return false, weather.ErrCityNotFound
+				return false, ErrCityNotFound
 			},
 		}
-		provider := chain.NewProvider(notFound, notFound)
+		provider := NewChain(notFound, notFound)
 
 		_, err := provider.GetWeather(ctx, "Atlantis")
-		require.ErrorIs(t, err, weather.ErrCityNotFound)
+		require.ErrorIs(t, err, ErrCityNotFound)
 
 		ok, err := provider.CityIsValid(ctx, "Atlantis")
 		require.False(t, ok)
-		require.ErrorIs(t, err, weather.ErrCityNotFound)
+		require.ErrorIs(t, err, ErrCityNotFound)
 	})
 
 	t.Run("mixed errors with not found", func(t *testing.T) {
-		provider := chain.NewProvider(
+		provider := NewChain(
 			&MockProvider{
 				Name: "timeout",
-				GetWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
-					return weather.Report{}, errors.New("timeout")
+				GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
+					return Report{}, errors.New("timeout")
 				},
 				CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 					return false, errors.New("timeout")
@@ -92,29 +89,29 @@ func TestChainWeatherProvider_GetWeatherLogic(t *testing.T) {
 			},
 			&MockProvider{
 				Name: "notFound",
-				GetWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
-					return weather.Report{}, weather.ErrCityNotFound
+				GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
+					return Report{}, ErrCityNotFound
 				},
 				CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
-					return false, weather.ErrCityNotFound
+					return false, ErrCityNotFound
 				},
 			},
 		)
 
 		_, err := provider.GetWeather(ctx, "Unknown")
-		require.ErrorIs(t, err, weather.ErrCityNotFound)
+		require.ErrorIs(t, err, ErrCityNotFound)
 
 		ok, err := provider.CityIsValid(ctx, "Unknown")
 		require.False(t, ok)
-		require.ErrorIs(t, err, weather.ErrCityNotFound)
+		require.ErrorIs(t, err, ErrCityNotFound)
 	})
 
 	t.Run("all fail with non-notfound", func(t *testing.T) {
-		provider := chain.NewProvider(
+		provider := NewChain(
 			&MockProvider{
 				Name: "bad gateway",
-				GetWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
-					return weather.Report{}, errors.New("bad gateway")
+				GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
+					return Report{}, errors.New("bad gateway")
 				},
 				CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 					return false, errors.New("bad gateway")
@@ -122,8 +119,8 @@ func TestChainWeatherProvider_GetWeatherLogic(t *testing.T) {
 			},
 			&MockProvider{
 				Name: "rate limit",
-				GetWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
-					return weather.Report{}, errors.New("rate limit")
+				GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
+					return Report{}, errors.New("rate limit")
 				},
 				CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 					return false, errors.New("rate limit")
@@ -133,10 +130,10 @@ func TestChainWeatherProvider_GetWeatherLogic(t *testing.T) {
 
 		_, err := provider.GetWeather(ctx, "Kyiv")
 		require.Error(t, err)
-		require.NotErrorIs(t, err, weather.ErrCityNotFound)
+		require.NotErrorIs(t, err, ErrCityNotFound)
 
 		ok, err := provider.CityIsValid(ctx, "Kyiv")
 		require.False(t, ok)
-		require.NotErrorIs(t, err, weather.ErrCityNotFound)
+		require.NotErrorIs(t, err, ErrCityNotFound)
 	})
 }

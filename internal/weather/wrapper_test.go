@@ -1,4 +1,4 @@
-package weatherlogger
+package weather
 
 import (
 	"bytes"
@@ -6,17 +6,15 @@ import (
 	"log"
 	"strings"
 	"testing"
-
-	"weatherApi/internal/weather"
 )
 
 type fakeProvider struct{}
 
-func (f *fakeProvider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
-	return weather.Report{
-		Temperature: 20.5,
-		Humidity:    60,
-		Description: "Sunny",
+func (f *fakeProvider) GetWeather(ctx context.Context, city string) (Report, error) {
+	return Report{
+		Temperature: 25.0,
+		Humidity:    55,
+		Description: "Cloudy",
 	}, nil
 }
 
@@ -24,39 +22,51 @@ func (f *fakeProvider) CityIsValid(ctx context.Context, city string) (bool, erro
 	return true, nil
 }
 
+type FakeLogger struct {
+	buf bytes.Buffer
+}
+
+func (f *FakeLogger) Write(p []byte) (n int, err error) {
+	return f.buf.Write(p)
+}
+
+func (f *FakeLogger) String() string {
+	return f.buf.String()
+}
+
 func TestLogger_GetWeather_LogsOutput(t *testing.T) {
-	var buf bytes.Buffer
-	log.SetOutput(&buf) // Перехоплюємо log.Print
+	fakeLog := &FakeLogger{}
+	logger := log.New(fakeLog, "", 0)
+
+	fake := &fakeProvider{}
+	logged := NewWrapper(fake, "FakeWeather", logger)
 
 	ctx := context.Background()
-	fake := &fakeProvider{}
-	logger := New(fake, "fake")
-
-	_, err := logger.GetWeather(ctx, "Kyiv")
+	_, err := logged.GetWeather(ctx, "Kyiv")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	logContent := buf.String()
+	logContent := fakeLog.String()
 	if !strings.Contains(logContent, "GetWeather") || !strings.Contains(logContent, "Kyiv") {
 		t.Errorf("expected log to contain method and city, got: %q", logContent)
 	}
 }
 
 func TestLogger_CityIsValid_LogsOutput(t *testing.T) {
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
+	fakeLog := &FakeLogger{}
+	logger := log.New(fakeLog, "", 0)
+
+	fake := &fakeProvider{}
+	logged := NewWrapper(fake, "FakeWeather", logger)
 
 	ctx := context.Background()
-	fake := &fakeProvider{}
-	logger := New(fake, "fake")
-
-	_, err := logger.CityIsValid(ctx, "London")
+	_, err := logged.CityIsValid(ctx, "London")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	logContent := buf.String()
+	logContent := fakeLog.String()
 	if !strings.Contains(logContent, "CityIsValid") || !strings.Contains(logContent, "London") {
 		t.Errorf("expected log to contain method and city, got: %q", logContent)
 	}

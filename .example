@@ -9,3 +9,4 @@ JWT_SECRET=default_secret
 SENDGRID_API_KEY=your_sendgrid_api_key_here
 EMAIL_FROM=no-reply@example.com
 WEATHER_API_KEY=your_weather_api_key_here
+TOMORROWIO_API_KEY=your_tommorrow_io_api_key_here

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"weatherApi/internal/app"
+	"weatherApi/internal/config"
 	"weatherApi/internal/handlers"
 	"weatherApi/internal/integration/testutils"
 	"weatherApi/internal/subscription"
@@ -33,16 +34,12 @@ func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T
 	tokenProvider := &testutils.FakeTokenProvider{}
 	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
 
-	builder := &app.ServiceBuilder{
-		DB:              pg.DB,
-		BaseURL:         "http://localhost:8080",
+	providers := app.ProviderSet{
 		EmailProvider:   emailProvider,
 		TokenProvider:   tokenProvider,
 		WeatherProvider: weatherProvider,
 	}
-
-	services, err := builder.BuildServices()
-	require.NoError(t, err)
+	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, &providers)
 
 	err = subscription.NewSubscriptionRepository(pg.DB.Gorm).Create(ctx, &subscription.Subscription{
 		ID:             uuid.NewString(),

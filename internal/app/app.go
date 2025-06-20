@@ -6,14 +6,9 @@ import (
 	"log"
 	"net/http"
 
-	"weatherApi/internal/auth"
 	"weatherApi/internal/config"
 	"weatherApi/internal/db"
-	"weatherApi/internal/email"
 	"weatherApi/internal/scheduler"
-	"weatherApi/internal/subscription"
-	"weatherApi/internal/weather"
-	"weatherApi/internal/weather/providers/weatherapi"
 )
 
 type App struct {
@@ -23,58 +18,19 @@ type App struct {
 	Logger    *log.Logger
 }
 
-type Services struct {
-	SubService     *subscription.SubscriptionService
-	WeatherService *weather.Service
-	EmailService   *email.EmailService
-}
-
-type ServiceBuilder struct {
-	DB              *db.DB
-	BaseURL         string
-	EmailProvider   email.EmailProvider
-	TokenProvider   auth.TokenProvider
-	WeatherProvider weather.Provider
-}
-
-func (b *ServiceBuilder) BuildServices(logger *log.Logger) (*Services, error) {
-	emailService := email.NewEmailService(b.EmailProvider, b.BaseURL)
-	tokenService := auth.NewTokenService(b.TokenProvider)
-	weatherService := weather.NewService(b.WeatherProvider)
-
-	subRepo := subscription.NewSubscriptionRepository(b.DB.Gorm)
-	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
-
-	return &Services{
-		SubService:     subService,
-		WeatherService: weatherService,
-		EmailService:   emailService,
-	}, nil
-}
-
 func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, error) {
-	dbInstance, err := db.NewDB(cfg.DBUrl)
+	db, err := db.NewDB(cfg.DBUrl)
 	if err != nil {
 		return nil, fmt.Errorf("DB error: %w", err)
 	}
 
-	builder := &ServiceBuilder{
-		DB:              dbInstance,
-		BaseURL:         cfg.BaseURL,
-		EmailProvider:   email.NewSendGridProvider(cfg.SendGridKey, cfg.EmailFrom),
-		TokenProvider:   auth.NewJWTService(cfg.JWTSecret),
-		WeatherProvider: weatherapi.New(cfg.WeatherAPIKey, "https://api.weatherapi.com/v1"),
-	}
+	providerSet := BuildProviders(cfg, logger)
+	serviceSet := BuildServices(db, cfg, providerSet)
 
-	services, err := builder.BuildServices(logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build services: %w", err)
-	}
-
-	scheduler := scheduler.NewScheduler(services.SubService, services.WeatherService, services.EmailService)
+	scheduler := scheduler.NewScheduler(serviceSet.SubService, serviceSet.WeatherService, serviceSet.EmailService)
 	go scheduler.Start(ctx)
 
-	router := SetupRoutes(services)
+	router := SetupRoutes(serviceSet)
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
@@ -83,7 +39,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 
 	return &App{
 		Server:    server,
-		DB:        dbInstance,
+		DB:        db,
 		Scheduler: scheduler,
 		Logger:    logger,
 	}, nil
