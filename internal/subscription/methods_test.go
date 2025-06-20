@@ -2,6 +2,7 @@ package subscription_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"weatherApi/internal/subscription"
@@ -80,6 +81,49 @@ func createTestService() *testDeps {
 
 // --- SUBSCRIBE ---
 
+func TestSubscribe_SendsConfirmationEmail_Success(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "test@example.com"
+	city := "Kyiv"
+	frequency := "daily"
+	token := "abc-token"
+
+	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
+	d.tokens.On("Generate", email).Return(token, nil)
+	d.repo.On("Create", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(nil)
+
+	d.emails.On("SendConfirmationEmail", email, token).Return(nil).Once()
+
+	err := d.service.Subscribe(ctx, email, city, frequency)
+
+	assert.NoError(t, err)
+	d.emails.AssertCalled(t, "SendConfirmationEmail", email, token)
+	d.emails.AssertExpectations(t)
+}
+
+func TestSubscribe_EmailSendFails_ButSubscribeStillSuccess(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "fail@example.com"
+	city := "Lviv"
+	frequency := "weekly"
+	token := "fail-token"
+
+	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
+	d.tokens.On("Generate", email).Return(token, nil)
+	d.repo.On("Create", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(nil)
+
+	d.emails.On("SendConfirmationEmail", email, token).Return(errors.New("smtp timeout")).Once()
+
+	err := d.service.Subscribe(ctx, email, city, frequency)
+
+	assert.NoError(t, err) // ми не ламаємо логіку підписки
+	d.emails.AssertCalled(t, "SendConfirmationEmail", email, token)
+}
+
 func TestSubscribe_RenewsUnsubscribedUser(t *testing.T) {
 	d := createTestService()
 	ctx := context.Background()
@@ -116,6 +160,24 @@ func TestSubscribe_CityValidatorFails_Error(t *testing.T) {
 	err := d.service.Subscribe(ctx, email, city, "daily")
 
 	assert.ErrorIs(t, err, subscription.ErrCityNotFound)
+	d.validator.AssertExpectations(t)
+}
+
+func TestSubscribe_CityValidatorUnexpectedError(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	email := "user@example.com"
+	city := "ValidCity"
+
+	validatorErr := errors.New("validator service down")
+	d.validator.On("CityIsValid", ctx, city).Return(false, validatorErr)
+
+	err := d.service.Subscribe(ctx, email, city, "daily")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to validate city")
+	assert.ErrorIs(t, err, validatorErr)
+
 	d.validator.AssertExpectations(t)
 }
 
@@ -268,6 +330,26 @@ func TestConfirm_SubscriptionNotFound(t *testing.T) {
 	err := d.service.Confirm(ctx, token)
 
 	assert.ErrorIs(t, err, subscription.ErrSubscriptionNotFound)
+	d.tokens.AssertExpectations(t)
+	d.repo.AssertExpectations(t)
+}
+
+func TestConfirm_UnexpectedGetByEmailError(t *testing.T) {
+	d := createTestService()
+	ctx := context.Background()
+	token := "token123"
+	email := "user@example.com"
+	fakeErr := errors.New("db timeout")
+
+	d.tokens.On("Parse", token).Return(email, nil)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, fakeErr)
+
+	err := d.service.Confirm(ctx, token)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get subscription")
+	assert.ErrorIs(t, err, fakeErr)
+
 	d.tokens.AssertExpectations(t)
 	d.repo.AssertExpectations(t)
 }
