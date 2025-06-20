@@ -17,10 +17,14 @@ type Provider struct {
 	baseURL string
 }
 
-func New(apiKey string, baseURL string) *Provider {
+func New(apiKey string, baseURL ...string) *Provider {
+	url := "https://api.weatherapi.com/v1"
+	if len(baseURL) > 0 && baseURL[0] != "" {
+		url = baseURL[0]
+	}
 	return &Provider{
 		apiKey:  apiKey,
-		baseURL: baseURL,
+		baseURL: url,
 	}
 }
 
@@ -36,6 +40,7 @@ type weatherAPIResponse struct {
 
 type errorAPIResponse struct {
 	Error struct {
+		Code    int    `json:"code"`
 		Message string `json:"message"`
 	} `json:"error"`
 }
@@ -111,7 +116,7 @@ func isCityNotFound(body []byte) bool {
 	if err := json.Unmarshal(body, &errResp); err != nil {
 		return false
 	}
-	return errResp.Error.Message == "No matching location found."
+	return errResp.Error.Code == 1006
 }
 
 func closeBody(resp *http.Response) {
