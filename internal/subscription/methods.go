@@ -60,11 +60,9 @@ func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, freque
 		}
 	}
 
-	go func() {
-		if err := s.emailService.SendConfirmationEmail(email, token); err != nil {
-			fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
-		}
-	}()
+	if err := s.emailService.SendConfirmationEmail(email, token); err != nil {
+		fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
+	}
 
 	return nil
 }
