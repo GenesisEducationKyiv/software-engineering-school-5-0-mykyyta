@@ -71,6 +71,7 @@ func TestCityExists_False(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, err := fmt.Fprint(w, `{
 			"error": {
+				"code": 1006,
 				"message": "No matching location found."
 			}
 		}`)
