@@ -3,8 +3,6 @@ package testutils
 import (
 	"context"
 
-	"weatherApi/internal/auth"
-	"weatherApi/internal/email"
 	"weatherApi/internal/weather"
 )
 
@@ -39,9 +37,6 @@ func (f *FakeTokenProvider) Parse(token string) (string, error) {
 	return "test@example.com", nil
 }
 
-// Ensure it implements auth.TokenProvider.
-var _ auth.TokenProvider = (*FakeTokenProvider)(nil)
-
 // -------------------------------
 // FakeEmailProvider
 // -------------------------------
@@ -66,9 +61,6 @@ func (f *FakeEmailProvider) Send(to, subject, plain, html string) error {
 	f.Sent = true
 	return nil
 }
-
-// Ensure it implements email.EmailProvider.
-var _ email.EmailProvider = (*FakeEmailProvider)(nil)
 
 // -------------------------------
 // FakeWeatherProvider
@@ -102,6 +94,3 @@ func (f *FakeWeatherProvider) GetWeather(ctx context.Context, city string) (weat
 		Description: "Sunny",
 	}, nil
 }
-
-// Ensure it implements weather.WeatherProvider.
-var _ weather.Provider = (*FakeWeatherProvider)(nil)

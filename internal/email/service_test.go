@@ -68,7 +68,7 @@ func TestSendWeatherReport_EdgeCases_UkrainianTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := &mockProvider{}
-			service := email.NewEmailService(mock, "https://example.com")
+			service := email.NewService(mock, "https://example.com")
 
 			err := service.SendWeatherReport("test@example.com", tt.weather, tt.city, tt.token)
 			assert.NoError(t, err)

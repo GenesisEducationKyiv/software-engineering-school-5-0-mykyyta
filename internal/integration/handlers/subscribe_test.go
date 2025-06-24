@@ -38,9 +38,9 @@ func TestSubscribeHandler_ValidRequest_CreatesSubAndSendsEmail(t *testing.T) {
 	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
 
 	providers := app.ProviderSet{
-		EmailProvider:   emailProvider,
-		TokenProvider:   tokenProvider,
-		WeatherProvider: weatherProvider,
+		EmailProvider:        emailProvider,
+		TokenProvider:        tokenProvider,
+		WeatherChainProvider: weatherProvider,
 	}
 	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, &providers)
 
@@ -66,7 +66,7 @@ func TestSubscribeHandler_ValidRequest_CreatesSubAndSendsEmail(t *testing.T) {
 	require.Equal(t, 200, w.Code)
 	require.Contains(t, w.Body.String(), "Confirmation email sent.")
 
-	repo := subscription.NewSubscriptionRepository(pg.DB.Gorm)
+	repo := subscription.NewRepo(pg.DB.Gorm)
 	sub, err := repo.GetByEmail(ctx, "test@example.com")
 	require.NoError(t, err)
 	require.NotNil(t, sub)
