@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"weatherApi/internal/auth"
 	"weatherApi/internal/subscription"
+	"weatherApi/internal/token"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +40,7 @@ func setupRouterWithMock(t *testing.T, mock *mockConfirmService) *gin.Engine {
 }
 
 func TestConfirmHandler(t *testing.T) {
-	jwt := auth.NewJWTService("test-secret")
+	jwt := token.NewJWT("test-secret")
 
 	t.Run("Success", func(t *testing.T) {
 		token, err := jwt.Generate("confirmtest@example.com")

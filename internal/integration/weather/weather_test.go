@@ -97,12 +97,22 @@ func TestIntegration_ChainErrors(t *testing.T) {
 	ctx := context.Background()
 
 	fp1 := &failProvider{}
-	fp2 := &failProvider{}
+	fp2 := &failProvider{} // другий, і його помилка буде останньою
 	chain := weather.NewChain(fp1, fp2)
 
 	_, err := chain.GetWeather(ctx, "Nowhere")
-	if err == nil || !strings.Contains(err.Error(), "all providers failed") {
-		t.Errorf("expected aggregated error, got: %v", err)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	expectedPrefix := "all Providers failed: "
+	if !strings.HasPrefix(err.Error(), expectedPrefix) {
+		t.Errorf("expected error to start with %q, got: %v", expectedPrefix, err)
+	}
+
+	expectedSuffix := context.DeadlineExceeded.Error()
+	if !strings.HasSuffix(err.Error(), expectedSuffix) {
+		t.Errorf("expected last error to be %q, got: %v", expectedSuffix, err)
 	}
 }
 

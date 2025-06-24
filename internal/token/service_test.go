@@ -1,4 +1,4 @@
-package auth
+package token
 
 import (
 	"testing"
@@ -28,7 +28,7 @@ func (m *mockProvider) Parse(token string) (string, error) {
 
 func TestTokenService_Generate(t *testing.T) {
 	mock := &mockProvider{returnToken: "mocktoken"}
-	svc := NewTokenService(mock)
+	svc := NewService(mock)
 
 	token, err := svc.Generate("test@example.com")
 	require.NoError(t, err)
@@ -39,7 +39,7 @@ func TestTokenService_Generate(t *testing.T) {
 
 func TestTokenService_Parse(t *testing.T) {
 	mock := &mockProvider{returnEmail: "parsed@example.com"}
-	svc := NewTokenService(mock)
+	svc := NewService(mock)
 
 	email, err := svc.Parse("sometoken")
 	require.NoError(t, err)

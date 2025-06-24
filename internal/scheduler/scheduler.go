@@ -20,7 +20,7 @@ type WeatherScheduler struct {
 	wg         sync.WaitGroup
 }
 
-func NewScheduler(
+func New(
 	subService *subscription.SubscriptionService,
 	weatherService *weather.Service,
 	emailService *email.EmailService,

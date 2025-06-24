@@ -38,13 +38,13 @@ func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T
 	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
 
 	providers := app.ProviderSet{
-		EmailProvider:   emailProvider,
-		TokenProvider:   tokenProvider,
-		WeatherProvider: weatherProvider,
+		EmailProvider:        emailProvider,
+		TokenProvider:        tokenProvider,
+		WeatherChainProvider: weatherProvider,
 	}
 	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, &providers)
 
-	err = subscription.NewSubscriptionRepository(pg.DB.Gorm).Create(ctx, &subscription.Subscription{
+	err = subscription.NewRepo(pg.DB.Gorm).Create(ctx, &subscription.Subscription{
 		ID:             uuid.NewString(),
 		Email:          email,
 		City:           "Kyiv",
@@ -68,7 +68,7 @@ func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T
 	require.Equal(t, 200, w.Code)
 	require.Contains(t, w.Body.String(), "Unsubscribed successfully")
 
-	sub, err := subscription.NewSubscriptionRepository(pg.DB.Gorm).GetByEmail(ctx, email)
+	sub, err := subscription.NewRepo(pg.DB.Gorm).GetByEmail(ctx, email)
 	require.NoError(t, err)
 	require.True(t, sub.IsUnsubscribed)
 }

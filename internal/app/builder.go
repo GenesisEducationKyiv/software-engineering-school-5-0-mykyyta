@@ -3,20 +3,20 @@ package app
 import (
 	"log"
 
-	"weatherApi/internal/auth"
 	"weatherApi/internal/config"
 	"weatherApi/internal/db"
 	"weatherApi/internal/email"
 	"weatherApi/internal/subscription"
+	"weatherApi/internal/token"
 	"weatherApi/internal/weather"
 	"weatherApi/internal/weather/providers/tomorrowio"
 	"weatherApi/internal/weather/providers/weatherapi"
 )
 
 type ProviderSet struct {
-	EmailProvider   email.EmailProvider
-	TokenProvider   auth.TokenProvider
-	WeatherProvider weather.Provider
+	EmailProvider        email.Provider
+	TokenProvider        token.Provider
+	WeatherChainProvider weather.Provider
 }
 type ServiceSet struct {
 	SubService     *subscription.SubscriptionService
@@ -25,27 +25,27 @@ type ServiceSet struct {
 }
 
 func BuildProviders(cfg *config.Config, logger *log.Logger) *ProviderSet {
-	emailProvider := email.NewSendGridProvider(cfg.SendGridKey, cfg.EmailFrom)
-	tokenProvider := auth.NewJWTService(cfg.JWTSecret)
+	emailProvider := email.NewSendgrid(cfg.SendGridKey, cfg.EmailFrom)
+	tokenProvider := token.NewJWT(cfg.JWTSecret)
 
-	weatherP1 := weather.NewWrapper(weatherapi.New(cfg.WeatherAPIKey), "WeatherAPI", logger)
-	weatherP2 := weather.NewWrapper(tomorrowio.New(cfg.TomorrowioAPIKey), "TomorrowIO", logger)
-	weatherProvider := weather.NewChain(weatherP1, weatherP2)
+	weatherProvider1 := weather.NewWrapper(weatherapi.New(cfg.WeatherAPIKey), "WeatherAPI", logger)
+	weatherProvider2 := weather.NewWrapper(tomorrowio.New(cfg.TomorrowioAPIKey), "TomorrowIO", logger)
+	weatherChainProvider := weather.NewChain(weatherProvider1, weatherProvider2)
 
 	return &ProviderSet{
-		EmailProvider:   emailProvider,
-		TokenProvider:   tokenProvider,
-		WeatherProvider: weatherProvider,
+		EmailProvider:        emailProvider,
+		TokenProvider:        tokenProvider,
+		WeatherChainProvider: weatherChainProvider,
 	}
 }
 
 func BuildServices(db *db.DB, cfg *config.Config, p *ProviderSet) *ServiceSet {
-	emailService := email.NewEmailService(p.EmailProvider, cfg.BaseURL)
-	tokenService := auth.NewTokenService(p.TokenProvider)
-	weatherService := weather.NewService(p.WeatherProvider)
+	emailService := email.NewService(p.EmailProvider, cfg.BaseURL)
+	tokenService := token.NewService(p.TokenProvider)
+	weatherService := weather.NewService(p.WeatherChainProvider)
 
-	subRepo := subscription.NewSubscriptionRepository(db.Gorm)
-	subService := subscription.NewSubscriptionService(subRepo, emailService, weatherService, tokenService)
+	repo := subscription.NewRepo(db.Gorm)
+	subService := subscription.NewService(repo, emailService, weatherService, tokenService)
 
 	return &ServiceSet{
 		SubService:     subService,

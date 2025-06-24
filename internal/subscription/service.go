@@ -39,7 +39,7 @@ type SubscriptionService struct {
 	tokenService  tokenService
 }
 
-func NewSubscriptionService(
+func NewService(
 	repo subscriptionRepository,
 	emailService emailService,
 	cityValidator cityValidator,
