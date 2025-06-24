@@ -10,19 +10,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type unsubscribeService interface {
+type unsubscribe interface {
 	Unsubscribe(ctx context.Context, token string) error
 }
 
-type UnsubscribeHandler struct {
-	service unsubscribeService
+type Unsubscribe struct {
+	service unsubscribe
 }
 
-func NewUnsubscribeHandler(service unsubscribeService) *UnsubscribeHandler {
-	return &UnsubscribeHandler{service: service}
+func NewUnsubscribe(service unsubscribe) Unsubscribe {
+	return Unsubscribe{service: service}
 }
 
-func (h UnsubscribeHandler) Handle(c *gin.Context) {
+func (h Unsubscribe) Handle(c *gin.Context) {
 	token := c.Param("token")
 
 	if err := h.service.Unsubscribe(c.Request.Context(), token); err != nil {

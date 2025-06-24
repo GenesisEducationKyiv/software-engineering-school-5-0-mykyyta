@@ -55,7 +55,7 @@ func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewUnsubscribeHandler(services.SubService)
+	handler := handlers.NewUnsubscribe(services.SubService)
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.GET("/api/unsubscribe/:token", handler.Handle)
