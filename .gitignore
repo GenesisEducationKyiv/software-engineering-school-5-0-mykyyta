@@ -44,4 +44,4 @@ coverage.*
 
 # System files
 .DS_Store
-Thumbs.db
+Thumbs.dblogs/

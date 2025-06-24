@@ -1,0 +1,68 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    name: Run E2E tests with Rod
+    runs-on: ubuntu-latest
+
+    services:
+      chrome:
+        image: browserless/chrome:latest
+        ports:
+          - 3000:3000
+        options: >-
+          --shm-size=2gb
+          --health-cmd="curl -f http://localhost:3000/json/version || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Wait for Chrome to be ready
+        run: |
+          for i in {1..20}; do
+            curl -sf http://localhost:3000/json/version && break
+            echo "Waiting for Chrome to be ready..."
+            sleep 3
+          done
+
+      - name: Create .env file from .example
+        run: |
+          cp .example .env
+          echo "ROD_REMOTE_DEBUG_URL=http://localhost:3000" >> .env
+
+      - name: Build & start docker-compose
+        run: docker compose up -d --build
+
+      - name: Wait for app to respond
+        run: |
+          for i in {1..20}; do
+            curl -sf http://localhost:8080/health || curl -sf http://localhost:8080 || true
+            if [ $? -eq 0 ]; then
+              echo "App is ready"
+              break
+            fi
+            echo "Waiting for app..."
+            sleep 3
+          done
+
+      - name: Run E2E tests
+        run: go test -tags=e2e ./test/e2e -v
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v

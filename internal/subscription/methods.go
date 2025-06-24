@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"weatherApi/internal/jobs"
+
 	"github.com/google/uuid"
 	"golang.org/x/net/context"
 )
@@ -58,11 +60,9 @@ func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, freque
 		}
 	}
 
-	go func() {
-		if err := s.emailService.SendConfirmationEmail(email, token); err != nil {
-			fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
-		}
-	}()
+	if err := s.emailService.SendConfirmationEmail(email, token); err != nil {
+		fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
+	}
 
 	return nil
 }
@@ -102,9 +102,6 @@ func (s *SubscriptionService) Unsubscribe(ctx context.Context, token string) err
 	if err != nil {
 		return fmt.Errorf("failed to get subscription: %w", err)
 	}
-	if sub == nil {
-		return ErrSubscriptionNotFound
-	}
 
 	if sub.IsUnsubscribed {
 		return nil
@@ -116,6 +113,23 @@ func (s *SubscriptionService) Unsubscribe(ctx context.Context, token string) err
 	}
 
 	return nil
+}
+
+func (s *SubscriptionService) GenerateWeatherReportTasks(ctx context.Context, frequency string) ([]jobs.Task, error) {
+	subs, err := s.ListConfirmedByFrequency(ctx, frequency)
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := make([]jobs.Task, 0, len(subs))
+	for _, sub := range subs {
+		tasks = append(tasks, jobs.Task{
+			Email: sub.Email,
+			City:  sub.City,
+			Token: sub.Token,
+		})
+	}
+	return tasks, nil
 }
 
 func (s *SubscriptionService) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]Subscription, error) {
