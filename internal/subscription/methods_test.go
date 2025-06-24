@@ -66,7 +66,7 @@ type testDeps struct {
 	tokens    *mockTokenService
 	emails    *mockEmailService
 	validator *mockCityValidator
-	service   *subscription.SubscriptionService
+	service   subscription.Service
 }
 
 func createTestService() *testDeps {

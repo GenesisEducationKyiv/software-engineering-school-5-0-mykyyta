@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(s *ServiceSet) *gin.Engine {
+func SetupRoutes(s ServiceSet) *gin.Engine {
 	router := gin.Default()
 
 	subscribeHandler := handlers.NewSubscribe(s.SubService)

@@ -17,12 +17,12 @@ type Provider struct {
 	baseURL string
 }
 
-func New(apiKey string, baseURL ...string) *Provider {
+func New(apiKey string, baseURL ...string) Provider {
 	url := "https://api.openweathermap.org/data/2.5/weather"
 	if len(baseURL) > 0 && baseURL[0] != "" {
 		url = baseURL[0]
 	}
-	return &Provider{
+	return Provider{
 		apiKey:  apiKey,
 		baseURL: url,
 	}
@@ -39,7 +39,7 @@ type apiResponse struct {
 	Cod int `json:"cod"` // Used to detect 404 errors
 }
 
-func (p *Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (p Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	url := fmt.Sprintf("%s?q=%s&appid=%s&units=metric", p.baseURL, city, p.apiKey)
 	body, err := makeRequest(ctx, url)
 	if err != nil {
@@ -65,7 +65,7 @@ func (p *Provider) GetWeather(ctx context.Context, city string) (weather.Report,
 	}, nil
 }
 
-func (p *Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
+func (p Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	url := fmt.Sprintf("%s?q=%s&appid=%s", p.baseURL, city, p.apiKey)
 	body, err := makeRequest(ctx, url)
 	if err != nil {

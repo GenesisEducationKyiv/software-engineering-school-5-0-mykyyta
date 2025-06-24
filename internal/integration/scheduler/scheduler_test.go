@@ -47,7 +47,7 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *test
 		WeatherChainProvider: &testutils.FakeWeatherProvider{Valid: true},
 	}
 
-	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, &providers)
+	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
 	err = pg.DB.Gorm.Exec("DELETE FROM subscriptions").Error
 	require.NoError(t, err)
@@ -104,7 +104,7 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 		TokenProvider:        &testutils.FakeTokenProvider{},
 		WeatherChainProvider: &testutils.FakeWeatherProvider{Valid: true},
 	}
-	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, &providers)
+	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
 	err = pg.DB.Gorm.Exec("DELETE FROM subscriptions").Error
 	require.NoError(t, err)

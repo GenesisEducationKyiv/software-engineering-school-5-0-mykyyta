@@ -17,12 +17,12 @@ type Provider struct {
 	baseURL string
 }
 
-func New(apiKey string, baseURL ...string) *Provider {
+func New(apiKey string, baseURL ...string) Provider {
 	url := "https://api.weatherapi.com/v1"
 	if len(baseURL) > 0 && baseURL[0] != "" {
 		url = baseURL[0]
 	}
-	return &Provider{
+	return Provider{
 		apiKey:  apiKey,
 		baseURL: url,
 	}
@@ -45,7 +45,7 @@ type errorAPIResponse struct {
 	} `json:"error"`
 }
 
-func (p *Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (p Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	body, err := p.makeRequest(ctx, city)
 	if err != nil {
 		return weather.Report{}, err
@@ -67,7 +67,7 @@ func (p *Provider) GetWeather(ctx context.Context, city string) (weather.Report,
 	}, nil
 }
 
-func (p *Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
+func (p Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	body, err := p.makeRequest(ctx, city)
 	if err != nil {
 		return false, err
@@ -80,7 +80,7 @@ func (p *Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	return true, nil
 }
 
-func (p *Provider) makeRequest(ctx context.Context, city string) ([]byte, error) {
+func (p Provider) makeRequest(ctx context.Context, city string) ([]byte, error) {
 	if p.apiKey == "" {
 		return nil, errors.New("missing API key")
 	}
