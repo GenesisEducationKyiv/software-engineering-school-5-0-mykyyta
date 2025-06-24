@@ -10,21 +10,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type confirmService interface {
+type confirm interface {
 	Confirm(ctx context.Context, token string) error
 }
 
-type ConfirmHandler struct {
-	service confirmService
+type Confirm struct {
+	service confirm
 }
 
-func NewConfirmHandler(service confirmService) *ConfirmHandler {
-	return &ConfirmHandler{
+func NewConfirm(service confirm) Confirm {
+	return Confirm{
 		service: service,
 	}
 }
 
-func (h ConfirmHandler) Handle(c *gin.Context) {
+func (h Confirm) Handle(c *gin.Context) {
 	token := c.Param("token")
 
 	if err := h.service.Confirm(c.Request.Context(), token); err != nil {

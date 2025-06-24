@@ -52,7 +52,7 @@ func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewConfirmHandler(services.SubService)
+	handler := handlers.NewConfirm(services.SubService)
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.GET("/api/confirm/:token", handler.Handle)

@@ -11,10 +11,10 @@ import (
 func SetupRoutes(s *ServiceSet) *gin.Engine {
 	router := gin.Default()
 
-	subscribeHandler := handlers.NewSubscribeHandler(s.SubService)
-	confirmHandler := handlers.NewConfirmHandler(s.SubService)
-	unsubscribeHandler := handlers.NewUnsubscribeHandler(s.SubService)
-	weatherHandler := handlers.NewWeatherHandler(s.WeatherService)
+	subscribeHandler := handlers.NewSubscribe(s.SubService)
+	confirmHandler := handlers.NewConfirm(s.SubService)
+	unsubscribeHandler := handlers.NewUnsubscribe(s.SubService)
+	weatherHandler := handlers.NewWeatherCurrent(s.WeatherService)
 
 	api := router.Group("/api")
 	{

@@ -25,8 +25,8 @@ func (m *mockWeatherService) GetWeather(ctx context.Context, city string) (weath
 
 // --- setup router ---
 
-func setupWeatherRouter(service weatherService) *gin.Engine {
-	handler := NewWeatherHandler(service)
+func setupWeatherRouter(service weatherCurrent) *gin.Engine {
+	handler := NewWeatherCurrent(service)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	r.GET("/api/weather", handler.Handle)

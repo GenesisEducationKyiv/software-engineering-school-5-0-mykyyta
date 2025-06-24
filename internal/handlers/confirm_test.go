@@ -33,7 +33,7 @@ func setupRouterWithMock(t *testing.T, mock *mockConfirmService) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
-	handler := NewConfirmHandler(mock)
+	handler := NewConfirm(mock)
 	r := gin.Default()
 	r.GET("/api/confirm/:token", handler.Handle)
 	return r

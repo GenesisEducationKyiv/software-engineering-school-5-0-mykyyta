@@ -1,4 +1,4 @@
-// weather/integration_test.go
+//go:build integration
 
 package weather_test
 

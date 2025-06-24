@@ -44,7 +44,7 @@ func TestSubscribeHandler_ValidRequest_CreatesSubAndSendsEmail(t *testing.T) {
 	}
 	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, &providers)
 
-	handler := handlers.NewSubscribeHandler(services.SubService)
+	handler := handlers.NewSubscribe(services.SubService)
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.POST("/api/subscribe", handler.Handle)
