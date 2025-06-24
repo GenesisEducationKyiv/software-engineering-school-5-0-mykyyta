@@ -21,9 +21,9 @@ type WeatherScheduler struct {
 }
 
 func New(
-	subService *subscription.SubscriptionService,
-	weatherService *weather.Service,
-	emailService *email.EmailService,
+	subService subscription.Service,
+	weatherService weather.Service,
+	emailService email.Service,
 ) *WeatherScheduler {
 	queue := jobs.NewLocalQueue(100)
 	cron := jobs.NewCronEventSource()

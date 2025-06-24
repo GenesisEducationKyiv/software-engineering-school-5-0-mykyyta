@@ -17,12 +17,12 @@ type Provider struct {
 	baseURL string
 }
 
-func New(apiKey string, baseURL ...string) *Provider {
+func New(apiKey string, baseURL ...string) Provider {
 	url := "https://api.tomorrow.io/v4/weather/realtime"
 	if len(baseURL) > 0 && baseURL[0] != "" {
 		url = baseURL[0]
 	}
-	return &Provider{
+	return Provider{
 		apiKey:  apiKey,
 		baseURL: url,
 	}
@@ -38,7 +38,7 @@ type apiResponse struct {
 	} `json:"data"`
 }
 
-func (p *Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (p Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	url := fmt.Sprintf("%s?location=%s&apikey=%s", p.baseURL, city, p.apiKey)
 	body, err := makeRequest(ctx, url)
 	if err != nil {
@@ -61,7 +61,7 @@ func (p *Provider) GetWeather(ctx context.Context, city string) (weather.Report,
 	}, nil
 }
 
-func (p *Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
+func (p Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	url := fmt.Sprintf("%s?location=%s&apikey=%s", p.baseURL, city, p.apiKey)
 	body, err := makeRequest(ctx, url)
 	if err != nil {

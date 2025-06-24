@@ -10,11 +10,11 @@ type Chain struct {
 	Providers []Provider
 }
 
-func NewChain(providers ...Provider) *Chain {
-	return &Chain{Providers: providers}
+func NewChain(providers ...Provider) Chain {
+	return Chain{Providers: providers}
 }
 
-func (c *Chain) GetWeather(ctx context.Context, city string) (Report, error) {
+func (c Chain) GetWeather(ctx context.Context, city string) (Report, error) {
 	var lastErr error
 
 	for _, p := range c.Providers {
@@ -28,7 +28,7 @@ func (c *Chain) GetWeather(ctx context.Context, city string) (Report, error) {
 	return Report{}, fmt.Errorf("all Providers failed: %w", lastErr)
 }
 
-func (c *Chain) CityIsValid(ctx context.Context, city string) (bool, error) {
+func (c Chain) CityIsValid(ctx context.Context, city string) (bool, error) {
 	var lastErr error
 	var cityNotFoundSeen bool
 

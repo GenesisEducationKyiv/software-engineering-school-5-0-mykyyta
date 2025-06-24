@@ -42,7 +42,7 @@ func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T
 		TokenProvider:        tokenProvider,
 		WeatherChainProvider: weatherProvider,
 	}
-	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, &providers)
+	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
 	err = subscription.NewRepo(pg.DB.Gorm).Create(ctx, &subscription.Subscription{
 		ID:             uuid.NewString(),

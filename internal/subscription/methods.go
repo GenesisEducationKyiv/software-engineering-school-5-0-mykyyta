@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, frequency string) error {
+func (s Service) Subscribe(ctx context.Context, email, city, frequency string) error {
 	_, err := s.cityValidator.CityIsValid(ctx, city)
 	if err != nil {
 		if errors.Is(err, ErrCityNotFound) {
@@ -67,7 +67,7 @@ func (s *SubscriptionService) Subscribe(ctx context.Context, email, city, freque
 	return nil
 }
 
-func (s *SubscriptionService) Confirm(ctx context.Context, token string) error {
+func (s Service) Confirm(ctx context.Context, token string) error {
 	email, err := s.tokenService.Parse(token)
 	if err != nil {
 		return ErrInvalidToken
@@ -92,7 +92,7 @@ func (s *SubscriptionService) Confirm(ctx context.Context, token string) error {
 	return nil
 }
 
-func (s *SubscriptionService) Unsubscribe(ctx context.Context, token string) error {
+func (s Service) Unsubscribe(ctx context.Context, token string) error {
 	email, err := s.tokenService.Parse(token)
 	if err != nil {
 		return ErrInvalidToken
@@ -115,7 +115,7 @@ func (s *SubscriptionService) Unsubscribe(ctx context.Context, token string) err
 	return nil
 }
 
-func (s *SubscriptionService) GenerateWeatherReportTasks(ctx context.Context, frequency string) ([]jobs.Task, error) {
+func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency string) ([]jobs.Task, error) {
 	subs, err := s.ListConfirmedByFrequency(ctx, frequency)
 	if err != nil {
 		return nil, err
@@ -132,6 +132,6 @@ func (s *SubscriptionService) GenerateWeatherReportTasks(ctx context.Context, fr
 	return tasks, nil
 }
 
-func (s *SubscriptionService) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]Subscription, error) {
+func (s Service) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]Subscription, error) {
 	return s.repo.GetConfirmedByFrequency(ctx, frequency)
 }
