@@ -37,7 +37,7 @@ type apiResponse struct {
 		Temp     float64 `json:"temp"`
 		Humidity int     `json:"humidity"`
 	} `json:"main"`
-	Cod int `json:"cod"` // Used to detect 404 errors
+	Cod int `json:"cod"`
 }
 
 func (p Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
