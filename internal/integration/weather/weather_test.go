@@ -75,8 +75,8 @@ func TestIntegration_ChainAndLogging(t *testing.T) {
 
 	fp := &failProvider{}
 	sp := &successProvider{}
-	wrappedFail := weather.NewWrapper(fp, "FailProvider", logger)
-	wrappedSuccess := weather.NewWrapper(sp, "SuccessProvider", logger)
+	wrappedFail := weather.NewLogWrapper(fp, "FailProvider", logger)
+	wrappedSuccess := weather.NewLogWrapper(sp, "SuccessProvider", logger)
 
 	handler := chainWith(
 		weather.NewChainNode(wrappedFail),

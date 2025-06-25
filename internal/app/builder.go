@@ -28,15 +28,15 @@ func BuildProviders(cfg *config.Config, logger *log.Logger) ProviderSet {
 	emailProvider := email.NewSendgrid(cfg.SendGridKey, cfg.EmailFrom)
 	tokenProvider := token.NewJWT(cfg.JWTSecret)
 
-	wrappedWeatherAPI := weather.NewWrapper(weatherapi.New(cfg.WeatherAPIKey), "WeatherAPI", logger)
-	wrappedTomorrowIO := weather.NewWrapper(tomorrowio.New(cfg.TomorrowioAPIKey), "TomorrowIO", logger)
+	wrappedWeatherAPI := weather.NewLogWrapper(weatherapi.New(cfg.WeatherAPIKey), "WeatherAPI", logger)
+	wrappedTomorrowIO := weather.NewLogWrapper(tomorrowio.New(cfg.TomorrowioAPIKey), "TomorrowIO", logger)
 
-	baseWeatherAPI := weather.NewChainNode(wrappedWeatherAPI)
-	baseTomorrowIO := weather.NewChainNode(wrappedTomorrowIO)
+	nodeWeatherAPI := weather.NewChainNode(wrappedWeatherAPI)
+	nodeTomorrowIO := weather.NewChainNode(wrappedTomorrowIO)
 
-	baseWeatherAPI.SetNext(baseTomorrowIO)
+	nodeWeatherAPI.SetNext(nodeTomorrowIO)
 
-	weatherChainProvider := baseWeatherAPI
+	weatherChainProvider := nodeWeatherAPI
 
 	return ProviderSet{
 		EmailProvider:        emailProvider,
