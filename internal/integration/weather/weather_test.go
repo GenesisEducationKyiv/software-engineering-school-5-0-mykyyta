@@ -48,7 +48,7 @@ func (c *cityNotFoundProvider) CityIsValid(ctx context.Context, city string) (bo
 
 // --- Test Utils ---
 
-func chainWith(handlers ...weather.BaseProvider) weather.BaseProvider {
+func chainWith(handlers ...weather.ChainableHandler) weather.ChainableHandler {
 	if len(handlers) == 0 {
 		return nil
 	}
@@ -79,8 +79,8 @@ func TestIntegration_ChainAndLogging(t *testing.T) {
 	wrappedSuccess := weather.NewWrapper(sp, "SuccessProvider", logger)
 
 	handler := chainWith(
-		weather.NewBase(wrappedFail),
-		weather.NewBase(wrappedSuccess),
+		weather.NewChainNode(wrappedFail),
+		weather.NewChainNode(wrappedSuccess),
 	)
 
 	ctx := context.Background()
@@ -100,9 +100,9 @@ func TestIntegration_ChainAndLogging(t *testing.T) {
 
 func TestIntegration_CityNotFoundError(t *testing.T) {
 	handler := chainWith(
-		weather.NewBase(&failProvider{}),
-		weather.NewBase(&cityNotFoundProvider{}),
-		weather.NewBase(&failProvider{}),
+		weather.NewChainNode(&failProvider{}),
+		weather.NewChainNode(&cityNotFoundProvider{}),
+		weather.NewChainNode(&failProvider{}),
 	)
 
 	ctx := context.Background()
@@ -113,8 +113,8 @@ func TestIntegration_CityNotFoundError(t *testing.T) {
 
 func TestIntegration_ChainErrors(t *testing.T) {
 	handler := chainWith(
-		weather.NewBase(&failProvider{}),
-		weather.NewBase(&failProvider{}),
+		weather.NewChainNode(&failProvider{}),
+		weather.NewChainNode(&failProvider{}),
 	)
 
 	ctx := context.Background()
@@ -126,9 +126,9 @@ func TestIntegration_ChainErrors(t *testing.T) {
 
 func TestIntegration_CityIsValid_PrioritizeNotFound(t *testing.T) {
 	handler := chainWith(
-		weather.NewBase(&failProvider{}),
-		weather.NewBase(&cityNotFoundProvider{}),
-		weather.NewBase(&failProvider{}),
+		weather.NewChainNode(&failProvider{}),
+		weather.NewChainNode(&cityNotFoundProvider{}),
+		weather.NewChainNode(&failProvider{}),
 	)
 
 	ctx := context.Background()
@@ -140,9 +140,9 @@ func TestIntegration_CityIsValid_PrioritizeNotFound(t *testing.T) {
 
 func TestIntegration_CityIsValid_SkipsCityNotFoundIfLaterSucceeds(t *testing.T) {
 	handler := chainWith(
-		weather.NewBase(&failProvider{}),
-		weather.NewBase(&cityNotFoundProvider{}),
-		weather.NewBase(&successProvider{}),
+		weather.NewChainNode(&failProvider{}),
+		weather.NewChainNode(&cityNotFoundProvider{}),
+		weather.NewChainNode(&successProvider{}),
 	)
 
 	ctx := context.Background()
