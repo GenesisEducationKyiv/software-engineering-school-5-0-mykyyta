@@ -25,7 +25,7 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("fallback to second", func(t *testing.T) {
-		first := NewBase(&MockProvider{
+		first := NewChainNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
 				return Report{}, errors.New("network error")
 			},
@@ -34,7 +34,7 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 			},
 		})
 
-		second := NewBase(&MockProvider{
+		second := NewChainNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
 				return Report{Temperature: 25, Description: "Sunny"}, nil
 			},
@@ -55,7 +55,7 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 	})
 
 	t.Run("all not found", func(t *testing.T) {
-		first := NewBase(&MockProvider{
+		first := NewChainNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
 				return Report{}, ErrCityNotFound
 			},
@@ -63,7 +63,7 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 				return false, ErrCityNotFound
 			},
 		})
-		second := NewBase(&MockProvider{
+		second := NewChainNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
 				return Report{}, ErrCityNotFound
 			},
@@ -82,7 +82,7 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 	})
 
 	t.Run("mixed errors with not found", func(t *testing.T) {
-		first := NewBase(&MockProvider{
+		first := NewChainNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
 				return Report{}, errors.New("timeout")
 			},
@@ -90,7 +90,7 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 				return false, errors.New("timeout")
 			},
 		})
-		second := NewBase(&MockProvider{
+		second := NewChainNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
 				return Report{}, ErrCityNotFound
 			},
@@ -109,7 +109,7 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 	})
 
 	t.Run("all fail with non-notfound", func(t *testing.T) {
-		first := NewBase(&MockProvider{
+		first := NewChainNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
 				return Report{}, errors.New("bad gateway")
 			},
@@ -117,7 +117,7 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 				return false, errors.New("bad gateway")
 			},
 		})
-		second := NewBase(&MockProvider{
+		second := NewChainNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
 				return Report{}, errors.New("rate limit")
 			},
