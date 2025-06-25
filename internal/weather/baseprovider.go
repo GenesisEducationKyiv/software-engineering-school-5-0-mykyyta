@@ -43,15 +43,30 @@ func (h *BaseProvider) GetWeather(ctx context.Context, city string) (Report, err
 }
 
 func (h *BaseProvider) CityIsValid(ctx context.Context, city string) (bool, error) {
-	ok, err := h.provider.CityIsValid(ctx, city)
-	if err == nil {
-		return ok, nil
+	var lastErr error
+	var cityNotFoundSeen bool
+
+	current := h
+	for current != nil {
+		ok, err := current.provider.CityIsValid(ctx, city)
+		if err == nil {
+			return ok, nil
+		}
+		if errors.Is(err, ErrCityNotFound) {
+			cityNotFoundSeen = true
+		} else {
+			lastErr = err
+		}
+
+		if next, ok := current.next.(*BaseProvider); ok {
+			current = next
+		} else {
+			current = nil
+		}
 	}
-	if errors.Is(err, ErrCityNotFound) {
+
+	if cityNotFoundSeen {
 		return false, ErrCityNotFound
 	}
-	if h.next != nil {
-		return h.next.CityIsValid(ctx, city)
-	}
-	return false, fmt.Errorf("all providers failed: %w", err)
+	return false, fmt.Errorf("all providers failed: %w", lastErr)
 }

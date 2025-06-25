@@ -123,3 +123,31 @@ func TestIntegration_ChainErrors(t *testing.T) {
 	require.Contains(t, err.Error(), "all providers failed")
 	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
+
+func TestIntegration_CityIsValid_PrioritizeNotFound(t *testing.T) {
+	handler := chainWith(
+		weather.NewBaseProvider(&failProvider{}),
+		weather.NewBaseProvider(&cityNotFoundProvider{}),
+		weather.NewBaseProvider(&failProvider{}),
+	)
+
+	ctx := context.Background()
+	ok, err := handler.CityIsValid(ctx, "UnknownCity")
+
+	require.False(t, ok)
+	require.ErrorIs(t, err, weather.ErrCityNotFound)
+}
+
+func TestIntegration_CityIsValid_SkipsCityNotFoundIfLaterSucceeds(t *testing.T) {
+	handler := chainWith(
+		weather.NewBaseProvider(&failProvider{}),
+		weather.NewBaseProvider(&cityNotFoundProvider{}),
+		weather.NewBaseProvider(&successProvider{}),
+	)
+
+	ctx := context.Background()
+	ok, err := handler.CityIsValid(ctx, "Kyiv")
+
+	require.True(t, ok)
+	require.NoError(t, err)
+}
