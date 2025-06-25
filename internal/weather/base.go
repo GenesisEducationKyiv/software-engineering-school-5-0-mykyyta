@@ -11,27 +11,27 @@ type provider interface {
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
-type Handler interface {
-	SetNext(handler Handler) Handler
+type BaseProvider interface {
+	SetNext(handler BaseProvider) BaseProvider
 	GetWeather(ctx context.Context, city string) (Report, error)
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
-type BaseProvider struct {
-	next     Handler
+type Base struct {
+	next     BaseProvider
 	provider provider
 }
 
-func NewBaseProvider(p provider) *BaseProvider {
-	return &BaseProvider{provider: p}
+func NewBase(p provider) *Base {
+	return &Base{provider: p}
 }
 
-func (h *BaseProvider) SetNext(next Handler) Handler {
+func (h *Base) SetNext(next BaseProvider) BaseProvider {
 	h.next = next
 	return next
 }
 
-func (h *BaseProvider) GetWeather(ctx context.Context, city string) (Report, error) {
+func (h *Base) GetWeather(ctx context.Context, city string) (Report, error) {
 	data, err := h.provider.GetWeather(ctx, city)
 	if err == nil {
 		return data, nil
@@ -42,7 +42,7 @@ func (h *BaseProvider) GetWeather(ctx context.Context, city string) (Report, err
 	return Report{}, fmt.Errorf("all providers failed: %w", err)
 }
 
-func (h *BaseProvider) CityIsValid(ctx context.Context, city string) (bool, error) {
+func (h *Base) CityIsValid(ctx context.Context, city string) (bool, error) {
 	var lastErr error
 	var cityNotFoundSeen bool
 
@@ -58,7 +58,7 @@ func (h *BaseProvider) CityIsValid(ctx context.Context, city string) (bool, erro
 			lastErr = err
 		}
 
-		if next, ok := current.next.(*BaseProvider); ok {
+		if next, ok := current.next.(*Base); ok {
 			current = next
 		} else {
 			current = nil

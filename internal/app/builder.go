@@ -31,8 +31,8 @@ func BuildProviders(cfg *config.Config, logger *log.Logger) ProviderSet {
 	wrappedWeatherAPI := weather.NewWrapper(weatherapi.New(cfg.WeatherAPIKey), "WeatherAPI", logger)
 	wrappedTomorrowIO := weather.NewWrapper(tomorrowio.New(cfg.TomorrowioAPIKey), "TomorrowIO", logger)
 
-	baseWeatherAPI := weather.NewBaseProvider(wrappedWeatherAPI)
-	baseTomorrowIO := weather.NewBaseProvider(wrappedTomorrowIO)
+	baseWeatherAPI := weather.NewBase(wrappedWeatherAPI)
+	baseTomorrowIO := weather.NewBase(wrappedTomorrowIO)
 
 	baseWeatherAPI.SetNext(baseTomorrowIO)
 
