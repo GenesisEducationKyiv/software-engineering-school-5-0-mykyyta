@@ -10,21 +10,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
 	"weatherApi/internal/config"
 )
 
-func Run() error {
+func Run(logger *log.Logger) error {
 	cfg := config.LoadConfig()
 	gin.SetMode(cfg.GinMode)
-
-	logFile, err := os.OpenFile("logs/app.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
-	if err != nil {
-		return fmt.Errorf("cannot open log file: %w", err)
-	}
-	logger := log.New(logFile, "", log.LstdFlags)
-
-	logger.Printf("GIN running in %s mode", gin.Mode())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -52,9 +43,5 @@ func Run() error {
 	}
 
 	logger.Println("Server exited gracefully")
-
-	if err := logFile.Close(); err != nil {
-		return fmt.Errorf("failed to close log file: %w", err)
-	}
 	return nil
 }
