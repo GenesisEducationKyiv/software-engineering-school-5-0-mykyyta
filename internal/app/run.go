@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
 	"weatherApi/internal/config"
 )
 
