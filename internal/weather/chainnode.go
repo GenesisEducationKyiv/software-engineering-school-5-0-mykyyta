@@ -12,9 +12,8 @@ type provider interface {
 }
 
 type ChainableHandler interface {
+	provider
 	SetNext(handler ChainableHandler) ChainableHandler
-	GetWeather(ctx context.Context, city string) (Report, error)
-	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
 type ChainNode struct {
