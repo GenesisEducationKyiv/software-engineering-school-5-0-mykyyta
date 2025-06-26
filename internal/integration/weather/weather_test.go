@@ -48,7 +48,7 @@ func (c *cityNotFoundProvider) CityIsValid(ctx context.Context, city string) (bo
 
 // --- Test Utils ---
 
-func chainWith(handlers ...weather.ChainableHandler) weather.ChainableHandler {
+func chainWith(handlers ...weather.ChainableProvider) weather.ChainableProvider {
 	if len(handlers) == 0 {
 		return nil
 	}

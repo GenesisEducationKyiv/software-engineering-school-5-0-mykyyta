@@ -11,13 +11,13 @@ type provider interface {
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
-type ChainableHandler interface {
+type ChainableProvider interface {
 	provider
-	SetNext(handler ChainableHandler) ChainableHandler
+	SetNext(handler ChainableProvider) ChainableProvider
 }
 
 type ChainNode struct {
-	next     ChainableHandler
+	next     ChainableProvider
 	provider provider
 }
 
@@ -25,7 +25,7 @@ func NewChainNode(p provider) *ChainNode {
 	return &ChainNode{provider: p}
 }
 
-func (c *ChainNode) SetNext(next ChainableHandler) ChainableHandler {
+func (c *ChainNode) SetNext(next ChainableProvider) ChainableProvider {
 	c.next = next
 	return next
 }
@@ -47,19 +47,15 @@ func (c *ChainNode) CityIsValid(ctx context.Context, city string) (bool, error) 
 		return valid, nil
 	}
 
-	if c.next == nil {
-		return false, err
+	errAgg := err
+
+	if c.next != nil {
+		nextValid, errNext := c.next.CityIsValid(ctx, city)
+		if errNext == nil {
+			return nextValid, nil
+		}
+		errAgg = errors.Join(errAgg, errNext)
 	}
 
-	nextValid, nextErr := c.next.CityIsValid(ctx, city)
-	if nextErr == nil {
-		return nextValid, nil
-	}
-
-	// Priority: return ErrCityNotFound if any provider reports city not found
-	if errors.Is(err, ErrCityNotFound) || errors.Is(nextErr, ErrCityNotFound) {
-		return false, ErrCityNotFound
-	}
-
-	return false, err
+	return false, errAgg
 }
