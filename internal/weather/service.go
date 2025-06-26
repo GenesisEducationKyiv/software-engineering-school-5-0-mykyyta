@@ -3,6 +3,7 @@ package weather
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 var ErrCityNotFound = errors.New("city not found")
@@ -25,5 +26,14 @@ func (s Service) GetWeather(ctx context.Context, city string) (Report, error) {
 }
 
 func (s Service) CityIsValid(ctx context.Context, city string) (bool, error) {
-	return s.provider.CityIsValid(ctx, city)
+	valid, aggErr := s.provider.CityIsValid(ctx, city)
+	if aggErr == nil {
+		return valid, nil
+	}
+
+	if errors.Is(aggErr, ErrCityNotFound) {
+		return false, ErrCityNotFound
+	}
+
+	return false, fmt.Errorf("validation failed for city %q: %w", city, aggErr)
 }

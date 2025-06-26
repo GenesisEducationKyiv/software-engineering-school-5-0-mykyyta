@@ -21,6 +21,22 @@ func (m *MockProvider) CityIsValid(ctx context.Context, city string) (bool, erro
 	return m.CityIsValidFunc(ctx, city)
 }
 
+func ExtractJoinedErrors(err error) []error {
+	type multiUnwrapper interface {
+		Unwrap() []error
+	}
+
+	if err == nil {
+		return nil
+	}
+
+	if uw, ok := err.(multiUnwrapper); ok {
+		return uw.Unwrap()
+	}
+
+	return []error{err}
+}
+
 func TestBaseProvider_ChainLogic(t *testing.T) {
 	ctx := context.Background()
 
@@ -74,11 +90,13 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 		first.SetNext(second)
 
 		_, err := first.GetWeather(ctx, "Atlantis")
-		require.ErrorIs(t, err, ErrCityNotFound)
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrCityNotFound))
 
 		ok, err := first.CityIsValid(ctx, "Atlantis")
 		require.False(t, ok)
-		require.ErrorIs(t, err, ErrCityNotFound)
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrCityNotFound))
 	})
 
 	t.Run("mixed errors with not found", func(t *testing.T) {
@@ -101,11 +119,13 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 		first.SetNext(second)
 
 		_, err := first.GetWeather(ctx, "Unknown")
-		require.ErrorIs(t, err, ErrCityNotFound)
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrCityNotFound))
 
 		ok, err := first.CityIsValid(ctx, "Unknown")
 		require.False(t, ok)
-		require.ErrorIs(t, err, ErrCityNotFound)
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrCityNotFound))
 	})
 
 	t.Run("all fail with non-notfound", func(t *testing.T) {
@@ -129,10 +149,16 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 
 		_, err := first.GetWeather(ctx, "Kyiv")
 		require.Error(t, err)
-		require.NotErrorIs(t, err, ErrCityNotFound)
+		require.False(t, errors.Is(err, ErrCityNotFound))
 
 		ok, err := first.CityIsValid(ctx, "Kyiv")
 		require.False(t, ok)
-		require.NotErrorIs(t, err, ErrCityNotFound)
+		require.Error(t, err)
+		require.False(t, errors.Is(err, ErrCityNotFound))
+
+		errs := ExtractJoinedErrors(err)
+		require.Len(t, errs, 2)
+		require.Contains(t, errs[0].Error(), "bad gateway")
+		require.Contains(t, errs[1].Error(), "rate limit")
 	})
 }
