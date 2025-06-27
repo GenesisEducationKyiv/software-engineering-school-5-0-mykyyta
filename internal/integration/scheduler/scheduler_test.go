@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"weatherApi/internal/config"
+
 	"github.com/google/uuid"
 
 	"github.com/stretchr/testify/require"
@@ -38,23 +40,19 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *test
 	}()
 
 	emailProvider := &testutils.FakeEmailProvider{}
-	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
-	tokenProvider := &testutils.FakeTokenProvider{}
 
-	builder := &app.ServiceBuilder{
-		DB:              pg.DB,
-		BaseURL:         "http://localhost:8080",
-		EmailProvider:   emailProvider,
-		TokenProvider:   tokenProvider,
-		WeatherProvider: weatherProvider,
+	providers := app.ProviderSet{
+		EmailProvider:        emailProvider,
+		TokenProvider:        &testutils.FakeTokenProvider{},
+		WeatherChainProvider: &testutils.FakeWeatherProvider{Valid: true},
 	}
-	services, err := builder.BuildServices()
-	require.NoError(t, err)
+
+	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
 	err = pg.DB.Gorm.Exec("DELETE FROM subscriptions").Error
 	require.NoError(t, err)
 
-	repo := subscription.NewSubscriptionRepository(pg.DB.Gorm)
+	repo := subscription.NewRepo(pg.DB.Gorm)
 	sub := &subscription.Subscription{
 		Email:          "test@example.com",
 		City:           "Kyiv",
@@ -100,23 +98,18 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 	}()
 
 	emailProvider := &testutils.FakeEmailProvider{}
-	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
-	tokenProvider := &testutils.FakeTokenProvider{}
 
-	builder := &app.ServiceBuilder{
-		DB:              pg.DB,
-		BaseURL:         "http://localhost:8080",
-		EmailProvider:   emailProvider,
-		TokenProvider:   tokenProvider,
-		WeatherProvider: weatherProvider,
+	providers := app.ProviderSet{
+		EmailProvider:        emailProvider,
+		TokenProvider:        &testutils.FakeTokenProvider{},
+		WeatherChainProvider: &testutils.FakeWeatherProvider{Valid: true},
 	}
-	services, err := builder.BuildServices()
-	require.NoError(t, err)
+	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
 	err = pg.DB.Gorm.Exec("DELETE FROM subscriptions").Error
 	require.NoError(t, err)
 
-	repo := subscription.NewSubscriptionRepository(pg.DB.Gorm)
+	repo := subscription.NewRepo(pg.DB.Gorm)
 	subs := []*subscription.Subscription{
 		{
 			ID:             uuid.NewString(),

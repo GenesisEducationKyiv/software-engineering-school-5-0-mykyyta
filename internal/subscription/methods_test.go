@@ -66,7 +66,7 @@ type testDeps struct {
 	tokens    *mockTokenService
 	emails    *mockEmailService
 	validator *mockCityValidator
-	service   *subscription.SubscriptionService
+	service   subscription.Service
 }
 
 func createTestService() *testDeps {
@@ -74,7 +74,7 @@ func createTestService() *testDeps {
 	tokens := new(mockTokenService)
 	emails := new(mockEmailService)
 	validator := new(mockCityValidator)
-	service := subscription.NewSubscriptionService(repo, emails, validator, tokens)
+	service := subscription.NewService(repo, emails, validator, tokens)
 
 	return &testDeps{repo, tokens, emails, validator, service}
 }

@@ -10,16 +10,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type subscribeService interface {
+type subscribe interface {
 	Subscribe(ctx context.Context, email, city, frequency string) error
 }
 
-type SubscribeHandler struct {
-	service subscribeService
+type Subscribe struct {
+	service subscribe
 }
 
-func NewSubscribeHandler(service subscribeService) *SubscribeHandler {
-	return &SubscribeHandler{service: service}
+func NewSubscribe(service subscribe) Subscribe {
+	return Subscribe{service: service}
 }
 
 type SubscribeRequest struct {
@@ -28,7 +28,7 @@ type SubscribeRequest struct {
 	Frequency string `form:"frequency" binding:"required,oneof=daily hourly"`
 }
 
-func (h SubscribeHandler) Handle(c *gin.Context) {
+func (h Subscribe) Handle(c *gin.Context) {
 	var req SubscribeRequest
 	if err := c.ShouldBind(&req); err != nil {
 		SendError(c, http.StatusBadRequest, "Invalid input")

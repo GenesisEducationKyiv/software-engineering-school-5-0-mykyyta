@@ -3,27 +3,37 @@ package weather
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 var ErrCityNotFound = errors.New("city not found")
 
-type WeatherProvider interface {
-	GetWeather(ctx context.Context, city string) (Weather, error)
+type Provider interface {
+	GetWeather(ctx context.Context, city string) (Report, error)
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
-type WeatherService struct {
-	provider WeatherProvider
+type Service struct {
+	provider Provider
 }
 
-func NewWeatherService(p WeatherProvider) *WeatherService {
-	return &WeatherService{provider: p}
+func NewService(p Provider) Service {
+	return Service{provider: p}
 }
 
-func (s *WeatherService) GetWeather(ctx context.Context, city string) (Weather, error) {
+func (s Service) GetWeather(ctx context.Context, city string) (Report, error) {
 	return s.provider.GetWeather(ctx, city)
 }
 
-func (s *WeatherService) CityIsValid(ctx context.Context, city string) (bool, error) {
-	return s.provider.CityIsValid(ctx, city)
+func (s Service) CityIsValid(ctx context.Context, city string) (bool, error) {
+	valid, aggErr := s.provider.CityIsValid(ctx, city)
+	if aggErr == nil {
+		return valid, nil
+	}
+
+	if errors.Is(aggErr, ErrCityNotFound) {
+		return false, ErrCityNotFound
+	}
+
+	return false, fmt.Errorf("validation failed for city %q: %w", city, aggErr)
 }

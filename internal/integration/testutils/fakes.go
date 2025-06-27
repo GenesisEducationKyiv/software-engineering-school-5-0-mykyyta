@@ -3,8 +3,6 @@ package testutils
 import (
 	"context"
 
-	"weatherApi/internal/auth"
-	"weatherApi/internal/email"
 	"weatherApi/internal/weather"
 )
 
@@ -39,9 +37,6 @@ func (f *FakeTokenProvider) Parse(token string) (string, error) {
 	return "test@example.com", nil
 }
 
-// Ensure it implements auth.TokenProvider.
-var _ auth.TokenProvider = (*FakeTokenProvider)(nil)
-
 // -------------------------------
 // FakeEmailProvider
 // -------------------------------
@@ -67,9 +62,6 @@ func (f *FakeEmailProvider) Send(to, subject, plain, html string) error {
 	return nil
 }
 
-// Ensure it implements email.EmailProvider.
-var _ email.EmailProvider = (*FakeEmailProvider)(nil)
-
 // -------------------------------
 // FakeWeatherProvider
 // -------------------------------
@@ -77,8 +69,8 @@ var _ email.EmailProvider = (*FakeEmailProvider)(nil)
 type FakeWeatherProvider struct {
 	Valid         bool
 	CityExistsErr error
-	Weather       weather.Weather
-	WeatherSet    bool // додатковий прапорець, чи явно задана погода
+	Weather       weather.Report
+	WeatherSet    bool
 	WeatherErr    error
 }
 
@@ -89,19 +81,16 @@ func (f *FakeWeatherProvider) CityIsValid(ctx context.Context, city string) (boo
 	return f.Valid, nil
 }
 
-func (f *FakeWeatherProvider) GetWeather(ctx context.Context, city string) (weather.Weather, error) {
+func (f *FakeWeatherProvider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	if f.WeatherErr != nil {
-		return weather.Weather{}, f.WeatherErr
+		return weather.Report{}, f.WeatherErr
 	}
 	if f.WeatherSet {
 		return f.Weather, nil
 	}
-	return weather.Weather{
+	return weather.Report{
 		Temperature: 22.5,
 		Humidity:    55,
 		Description: "Sunny",
 	}, nil
 }
-
-// Ensure it implements weather.WeatherProvider.
-var _ weather.WeatherProvider = (*FakeWeatherProvider)(nil)

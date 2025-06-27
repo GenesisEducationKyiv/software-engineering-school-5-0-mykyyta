@@ -16,17 +16,17 @@ import (
 
 type mockWeatherService struct {
 	getWeatherFunc func(ctx context.Context, city string) (
-		weather.Weather, error)
+		weather.Report, error)
 }
 
-func (m *mockWeatherService) GetWeather(ctx context.Context, city string) (weather.Weather, error) {
+func (m *mockWeatherService) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	return m.getWeatherFunc(ctx, city)
 }
 
 // --- setup router ---
 
-func setupWeatherRouter(service weatherService) *gin.Engine {
-	handler := NewWeatherHandler(service)
+func setupWeatherRouter(service weatherCurrent) *gin.Engine {
+	handler := NewWeatherCurrent(service)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	r.GET("/api/weather", handler.Handle)
@@ -38,8 +38,8 @@ func setupWeatherRouter(service weatherService) *gin.Engine {
 func TestWeatherHandler(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		service := &mockWeatherService{
-			getWeatherFunc: func(ctx context.Context, city string) (weather.Weather, error) {
-				return weather.Weather{
+			getWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
+				return weather.Report{
 					Temperature: 21.5,
 					Humidity:    60,
 					Description: "Sunny",
@@ -74,8 +74,8 @@ func TestWeatherHandler(t *testing.T) {
 
 	t.Run("CityNotFound", func(t *testing.T) {
 		service := &mockWeatherService{
-			getWeatherFunc: func(ctx context.Context, city string) (weather.Weather, error) {
-				return weather.Weather{}, weather.ErrCityNotFound
+			getWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
+				return weather.Report{}, weather.ErrCityNotFound
 			},
 		}
 

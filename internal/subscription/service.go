@@ -12,7 +12,7 @@ var (
 	ErrSubscriptionNotFound = errors.New("subscription not found")
 )
 
-type subscriptionRepository interface {
+type repo interface {
 	GetByEmail(ctx context.Context, email string) (*Subscription, error)
 	Create(ctx context.Context, sub *Subscription) error
 	Update(ctx context.Context, sub *Subscription) error
@@ -32,20 +32,20 @@ type tokenService interface {
 	Parse(tokenStr string) (string, error)
 }
 
-type SubscriptionService struct {
-	repo          subscriptionRepository
+type Service struct {
+	repo          repo
 	emailService  emailService
 	cityValidator cityValidator
 	tokenService  tokenService
 }
 
-func NewSubscriptionService(
-	repo subscriptionRepository,
+func NewService(
+	repo repo,
 	emailService emailService,
 	cityValidator cityValidator,
 	tokenService tokenService,
-) *SubscriptionService {
-	return &SubscriptionService{
+) Service {
+	return Service{
 		repo:          repo,
 		emailService:  emailService,
 		cityValidator: cityValidator,

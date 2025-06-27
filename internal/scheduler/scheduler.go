@@ -20,10 +20,10 @@ type WeatherScheduler struct {
 	wg         sync.WaitGroup
 }
 
-func NewScheduler(
-	subService *subscription.SubscriptionService,
-	weatherService *weather.WeatherService,
-	emailService *email.EmailService,
+func New(
+	subService subscription.Service,
+	weatherService weather.Service,
+	emailService email.Service,
 ) *WeatherScheduler {
 	queue := jobs.NewLocalQueue(100)
 	cron := jobs.NewCronEventSource()

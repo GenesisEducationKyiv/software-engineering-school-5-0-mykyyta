@@ -23,8 +23,8 @@ func (m *mockUnsubscribeService) Unsubscribe(ctx context.Context, token string) 
 }
 
 // --- Setup router ---.
-func setupUnsubscribeRouter(s unsubscribeService) *gin.Engine {
-	handler := NewUnsubscribeHandler(s)
+func setupUnsubscribeRouter(s unsubscribe) *gin.Engine {
+	handler := NewUnsubscribe(s)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	r.GET("/api/unsubscribe/:token", handler.Handle)

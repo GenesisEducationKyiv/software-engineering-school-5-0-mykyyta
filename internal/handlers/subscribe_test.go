@@ -27,7 +27,7 @@ func (m *mockSubscribeService) Subscribe(ctx context.Context, email, city, frequ
 
 // --- Test Cases ---
 
-func setupTestRouter(handler *SubscribeHandler) *gin.Engine {
+func setupTestRouter(handler Subscribe) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	r.POST("/api/subscribe", handler.Handle)
@@ -41,7 +41,7 @@ func TestSubscribeHandler(t *testing.T) {
 				return nil
 			},
 		}
-		handler := NewSubscribeHandler(service)
+		handler := NewSubscribe(service)
 		router := setupTestRouter(handler)
 
 		form := url.Values{}
@@ -61,7 +61,7 @@ func TestSubscribeHandler(t *testing.T) {
 
 	t.Run("MissingEmail", func(t *testing.T) {
 		service := &mockSubscribeService{}
-		handler := NewSubscribeHandler(service)
+		handler := NewSubscribe(service)
 		router := setupTestRouter(handler)
 
 		form := url.Values{}
@@ -80,7 +80,7 @@ func TestSubscribeHandler(t *testing.T) {
 
 	t.Run("InvalidFrequency", func(t *testing.T) {
 		service := &mockSubscribeService{}
-		handler := NewSubscribeHandler(service)
+		handler := NewSubscribe(service)
 		router := setupTestRouter(handler)
 
 		form := url.Values{}
@@ -104,7 +104,7 @@ func TestSubscribeHandler(t *testing.T) {
 				return subscription.ErrEmailAlreadyExists
 			},
 		}
-		handler := NewSubscribeHandler(service)
+		handler := NewSubscribe(service)
 		router := setupTestRouter(handler)
 
 		form := url.Values{}
@@ -128,7 +128,7 @@ func TestSubscribeHandler(t *testing.T) {
 				return subscription.ErrCityNotFound
 			},
 		}
-		handler := NewSubscribeHandler(service)
+		handler := NewSubscribe(service)
 		router := setupTestRouter(handler)
 
 		form := url.Values{}
@@ -152,7 +152,7 @@ func TestSubscribeHandler(t *testing.T) {
 				return errors.New("unexpected error")
 			},
 		}
-		handler := NewSubscribeHandler(service)
+		handler := NewSubscribe(service)
 		router := setupTestRouter(handler)
 
 		form := url.Values{}

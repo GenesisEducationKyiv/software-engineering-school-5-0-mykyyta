@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"weatherApi/internal/app"
+	"weatherApi/internal/config"
 	"weatherApi/internal/handlers"
 	"weatherApi/internal/integration/testutils"
 	"weatherApi/internal/subscription"
@@ -33,18 +34,14 @@ func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T
 	tokenProvider := &testutils.FakeTokenProvider{}
 	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
 
-	builder := &app.ServiceBuilder{
-		DB:              pg.DB,
-		BaseURL:         "http://localhost:8080",
-		EmailProvider:   emailProvider,
-		TokenProvider:   tokenProvider,
-		WeatherProvider: weatherProvider,
+	providers := app.ProviderSet{
+		EmailProvider:        emailProvider,
+		TokenProvider:        tokenProvider,
+		WeatherChainProvider: weatherProvider,
 	}
+	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
-	services, err := builder.BuildServices()
-	require.NoError(t, err)
-
-	err = subscription.NewSubscriptionRepository(pg.DB.Gorm).Create(ctx, &subscription.Subscription{
+	err = subscription.NewRepo(pg.DB.Gorm).Create(ctx, &subscription.Subscription{
 		ID:             uuid.NewString(),
 		Email:          "test@example.com",
 		City:           "Kyiv",
@@ -55,7 +52,7 @@ func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewConfirmHandler(services.SubService)
+	handler := handlers.NewConfirm(services.SubService)
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.GET("/api/confirm/:token", handler.Handle)
@@ -68,7 +65,7 @@ func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T
 	require.Equal(t, 200, w.Code)
 	require.Contains(t, w.Body.String(), "Subscription confirmed successfully")
 
-	sub, err := subscription.NewSubscriptionRepository(pg.DB.Gorm).GetByEmail(ctx, "test@example.com")
+	sub, err := subscription.NewRepo(pg.DB.Gorm).GetByEmail(ctx, "test@example.com")
 	require.NoError(t, err)
 	require.True(t, sub.IsConfirmed)
 }

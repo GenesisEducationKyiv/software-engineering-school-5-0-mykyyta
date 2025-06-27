@@ -1,4 +1,4 @@
-package weather_test
+package weatherapi
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func TestGetCurrentWeather_Success(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := weather.NewWeatherAPIProvider("fake-api-key", mockServer.URL)
+	provider := New("fake-api-key", mockServer.URL)
 	result, err := provider.GetWeather(context.Background(), "Kyiv")
 
 	require.NoError(t, err)
@@ -59,7 +59,7 @@ func TestCityExists_True(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := weather.NewWeatherAPIProvider("fake-api-key", mockServer.URL)
+	provider := New("fake-api-key", mockServer.URL)
 	exists, err := provider.CityIsValid(context.Background(), "Kyiv")
 
 	require.NoError(t, err)
@@ -71,6 +71,7 @@ func TestCityExists_False(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, err := fmt.Fprint(w, `{
 			"error": {
+				"code": 1006,
 				"message": "No matching location found."
 			}
 		}`)
@@ -78,7 +79,7 @@ func TestCityExists_False(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := weather.NewWeatherAPIProvider("fake-api-key", mockServer.URL)
+	provider := New("fake-api-key", mockServer.URL)
 	exists, err := provider.CityIsValid(context.Background(), "UnknownCity")
 
 	require.ErrorIs(t, err, weather.ErrCityNotFound)
@@ -91,7 +92,7 @@ func TestGetCurrentWeather_Timeout(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := weather.NewWeatherAPIProvider("fake-api-key", mockServer.URL)
+	provider := New("fake-api-key", mockServer.URL)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
