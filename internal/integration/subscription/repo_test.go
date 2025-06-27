@@ -26,7 +26,7 @@ func TestSubscriptionRepository_CRUD(t *testing.T) {
 		}
 	}()
 
-	repo := subscription.NewSubscriptionRepository(pg.DB.Gorm)
+	repo := subscription.NewRepo(pg.DB.Gorm)
 
 	sub := &subscription.Subscription{
 		ID:             uuid.NewString(),
@@ -68,7 +68,7 @@ func TestSubscriptionRepository_NotFound(t *testing.T) {
 		}
 	}()
 
-	repo := subscription.NewSubscriptionRepository(pg.DB.Gorm)
+	repo := subscription.NewRepo(pg.DB.Gorm)
 
 	sub, err := repo.GetByEmail(ctx, "nonexistent@example.com")
 	require.ErrorIs(t, err, subscription.ErrSubscriptionNotFound)

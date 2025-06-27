@@ -10,19 +10,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type weatherService interface {
-	GetWeather(ctx context.Context, city string) (weather.Weather, error)
+type weatherCurrent interface {
+	GetWeather(ctx context.Context, city string) (weather.Report, error)
 }
 
-type WeatherHandler struct {
-	service weatherService
+type WeatherCurrent struct {
+	service weatherCurrent
 }
 
-func NewWeatherHandler(service weatherService) *WeatherHandler {
-	return &WeatherHandler{service: service}
+func NewWeatherCurrent(service weatherCurrent) *WeatherCurrent {
+	return &WeatherCurrent{service: service}
 }
 
-func (h WeatherHandler) Handle(c *gin.Context) {
+func (h WeatherCurrent) Handle(c *gin.Context) {
 	city := c.Query("city")
 	if city == "" {
 		SendError(c, http.StatusBadRequest, "City is required")

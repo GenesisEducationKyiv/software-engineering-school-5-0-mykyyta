@@ -21,11 +21,11 @@ type taskSource interface {
 }
 
 type emailSender interface {
-	SendWeatherReport(toEmail string, w weather.Weather, city, token string) error
+	SendWeatherReport(toEmail string, w weather.Report, city, token string) error
 }
 
 type weatherProvider interface {
-	GetWeather(ctx context.Context, city string) (weather.Weather, error)
+	GetWeather(ctx context.Context, city string) (weather.Report, error)
 }
 
 type Worker struct {

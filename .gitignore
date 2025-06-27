@@ -27,6 +27,13 @@ vendor/
 
 # Logs
 *.log
+logs/
+*.png
+*.jpg
+*.jpeg
+*.ogg
+*.mp4
+*.mov
 
 # Coverage and test reports
 coverage.*

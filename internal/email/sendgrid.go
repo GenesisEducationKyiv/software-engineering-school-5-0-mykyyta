@@ -7,19 +7,19 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-type SendGridProvider struct {
+type SendGrid struct {
 	apiKey string
 	from   string
 }
 
-func NewSendGridProvider(apiKey, from string) *SendGridProvider {
-	return &SendGridProvider{
+func NewSendgrid(apiKey, from string) *SendGrid {
+	return &SendGrid{
 		apiKey: apiKey,
 		from:   from,
 	}
 }
 
-func (s *SendGridProvider) Send(toEmail, subject, plainTextContent, htmlContent string) error {
+func (s *SendGrid) Send(toEmail, subject, plainTextContent, htmlContent string) error {
 	from := mail.NewEmail("weatherApp", s.from)
 	to := mail.NewEmail("User", toEmail)
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)

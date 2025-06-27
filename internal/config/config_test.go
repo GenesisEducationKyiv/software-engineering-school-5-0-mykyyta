@@ -59,7 +59,7 @@ func TestLoadConfig_DefaultsAndTrimming(t *testing.T) {
 	_ = os.Setenv("SENDGRID_API_KEY", "sendgrid-key")
 	_ = os.Setenv("EMAIL_FROM", "me@example.com")
 	_ = os.Setenv("WEATHER_API_KEY", "weather-key")
-
+	_ = os.Setenv("TOMORROWIO_API_KEY", "tomorrowio-key")
 	_ = os.Setenv("BASE_URL", "http://localhost:8080/") // note trailing slash
 
 	cfg := LoadConfig()
