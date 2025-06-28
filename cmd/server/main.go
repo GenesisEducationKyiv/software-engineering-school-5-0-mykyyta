@@ -3,14 +3,13 @@ package main
 import (
 	"log"
 	"os"
-
-	"weatherApi/internal/weather/metrics"
+	"weatherApi/internal/weather/cache"
 
 	"weatherApi/internal/app"
 )
 
 func main() {
-	metrics.Register()
+	cache.Register()
 
 	logFile, err := os.OpenFile("logs/app.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
