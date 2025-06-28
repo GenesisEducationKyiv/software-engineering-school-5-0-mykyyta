@@ -6,25 +6,33 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/redis/go-redis/v9"
+
 	"weatherApi/internal/config"
-	"weatherApi/internal/db"
 	"weatherApi/internal/scheduler"
 )
 
 type App struct {
 	Server    *http.Server
-	DB        *db.DB
+	DB        *DB
+	Redis     *redis.Client
 	Scheduler *scheduler.WeatherScheduler
 	Logger    *log.Logger
 }
 
 func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, error) {
-	db, err := db.NewDB(cfg.DBUrl)
+	db, err := NewDB(cfg.DBUrl)
 	if err != nil {
 		return nil, fmt.Errorf("DB error: %w", err)
 	}
 
-	providerSet := BuildProviders(cfg, logger)
+	redisClient, err := NewRedisClient(ctx, cfg)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("redis error: %w", err)
+	}
+
+	providerSet := BuildProviders(cfg, logger, redisClient)
 	serviceSet := BuildServices(db, cfg, providerSet)
 
 	scheduler := scheduler.New(serviceSet.SubService, serviceSet.WeatherService, serviceSet.EmailService)
@@ -58,6 +66,13 @@ func (a *App) Shutdown(ctx context.Context) error {
 	log.Println("Shutting down application...")
 
 	a.Scheduler.Stop()
+
+	if a.Redis != nil {
+		if err := a.Redis.Close(); err != nil {
+			a.Logger.Printf("Redis close error: %v", err)
+		}
+	}
+
 	a.DB.Close()
 
 	if err := a.Server.Shutdown(ctx); err != nil {
