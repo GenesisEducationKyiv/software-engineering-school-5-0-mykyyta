@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"weatherApi/internal/weather/metrics"
+
 	"weatherApi/internal/weather"
 )
 
@@ -22,15 +24,20 @@ func NewReader(provider weather.Provider, cache reader, providerNames []string) 
 }
 
 func (c *Reader) GetWeather(ctx context.Context, city string) (weather.Report, error) {
-	for _, name := range c.ProviderNames {
-		report, err := c.Cache.Get(ctx, city, name)
+	for _, providerName := range c.ProviderNames {
+		report, err := c.Cache.Get(ctx, city, providerName)
 		if err == nil {
+			metrics.CacheHits.WithLabelValues(providerName).Inc()
+			metrics.CacheResult.WithLabelValues("hit").Inc()
 			return report, nil
 		}
-		if !errors.Is(err, ErrCacheMiss) {
-			break
+		if errors.Is(err, ErrCacheMiss) {
+			metrics.CacheMisses.WithLabelValues(providerName).Inc()
+			continue
 		}
+		break
 	}
+	metrics.CacheResult.WithLabelValues("miss").Inc()
 	return c.Provider.GetWeather(ctx, city)
 }
 
