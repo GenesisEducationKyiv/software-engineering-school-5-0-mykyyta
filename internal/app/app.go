@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"weatherApi/internal/weather/cache"
+
 	"github.com/redis/go-redis/v9"
 
 	"weatherApi/internal/config"
@@ -32,7 +34,10 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 		return nil, fmt.Errorf("redis error: %w", err)
 	}
 
-	providerSet := BuildProviders(cfg, logger, redisClient)
+	metrics := cache.NewMetrics()
+	metrics.Register()
+
+	providerSet := BuildProviders(cfg, logger, redisClient, metrics)
 	serviceSet := BuildServices(db, cfg, providerSet)
 
 	scheduler := scheduler.New(serviceSet.SubService, serviceSet.WeatherService, serviceSet.EmailService)
