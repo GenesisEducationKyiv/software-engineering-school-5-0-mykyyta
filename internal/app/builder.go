@@ -27,11 +27,11 @@ type ServiceSet struct {
 	EmailService   email.Service
 }
 
-func BuildProviders(cfg *config.Config, logger *log.Logger, redisClient *redis.Client) ProviderSet {
+func BuildProviders(cfg *config.Config, logger *log.Logger, redisClient *redis.Client, metrics *cache.Metrics) ProviderSet {
 	emailProvider := email.NewSendgrid(cfg.SendGridKey, cfg.EmailFrom)
 	tokenProvider := token.NewJWT(cfg.JWTSecret)
 
-	weatherChainProvider := buildWeatherProvider(cfg, logger, redisClient)
+	weatherChainProvider := buildWeatherProvider(cfg, logger, redisClient, metrics)
 
 	return ProviderSet{
 		EmailProvider:        emailProvider,
@@ -40,7 +40,7 @@ func BuildProviders(cfg *config.Config, logger *log.Logger, redisClient *redis.C
 	}
 }
 
-func buildWeatherProvider(cfg *config.Config, logger *log.Logger, redisClient *redis.Client) weather.Provider {
+func buildWeatherProvider(cfg *config.Config, logger *log.Logger, redisClient *redis.Client, metrics *cache.Metrics) weather.Provider {
 	baseWeatherAPI := weatherapi.New(cfg.WeatherAPIKey)
 	baseTomorrowIO := tomorrowio.New(cfg.TomorrowioAPIKey)
 
@@ -76,6 +76,7 @@ func buildWeatherProvider(cfg *config.Config, logger *log.Logger, redisClient *r
 		return cache.NewReader(
 			nodeWeatherAPI,
 			redisCache,
+			metrics,
 			[]string{"WeatherAPI", "TomorrowIO"},
 		)
 	}

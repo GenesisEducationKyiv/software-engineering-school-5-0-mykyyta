@@ -12,8 +12,10 @@ type reader interface {
 }
 
 type metrics interface {
-	RecordProvider(provider, status string)
-	RecordTotal(status string)
+	RecordProviderHit(provider string)
+	RecordProviderMiss(provider string)
+	RecordTotalHit()
+	RecordTotalMiss()
 }
 
 type Reader struct {
@@ -31,18 +33,18 @@ func (c *Reader) GetWeather(ctx context.Context, city string) (weather.Report, e
 	for _, name := range c.ProviderNames {
 		report, err := c.Cache.Get(ctx, city, name)
 		if err == nil {
-			c.Metrics.RecordProvider(name, "hit")
-			c.Metrics.RecordTotal("hit")
+			c.Metrics.RecordProviderHit(name)
+			c.Metrics.RecordTotalHit()
 			return report, nil
 		}
 		if errors.Is(err, ErrCacheMiss) {
-			c.Metrics.RecordProvider(name, "miss")
+			c.Metrics.RecordProviderMiss(name)
 			continue
 		}
 		break
 	}
 
-	c.Metrics.RecordTotal("miss")
+	c.Metrics.RecordTotalMiss()
 	return c.Provider.GetWeather(ctx, city)
 }
 
