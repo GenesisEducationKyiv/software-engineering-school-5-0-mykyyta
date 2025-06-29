@@ -40,8 +40,8 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	providerSet := BuildProviders(cfg, logger, redisClient, metrics)
 	serviceSet := BuildServices(db, cfg, providerSet)
 
-	scheduler := scheduler.New(serviceSet.SubService, serviceSet.WeatherService, serviceSet.EmailService)
-	go scheduler.Start(ctx)
+	sr := scheduler.New(serviceSet.SubService, serviceSet.WeatherService, serviceSet.EmailService)
+	go sr.Start(ctx)
 
 	router := SetupRoutes(serviceSet)
 
@@ -53,7 +53,8 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	return &App{
 		Server:    server,
 		DB:        db,
-		Scheduler: scheduler,
+		Redis:     redisClient,
+		Scheduler: sr,
 		Logger:    logger,
 	}, nil
 }
