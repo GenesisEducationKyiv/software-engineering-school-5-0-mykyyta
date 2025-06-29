@@ -275,3 +275,47 @@ func TestIntegration_CacheWriter_WritesToRedis(t *testing.T) {
 	err = mock.ExpectationsWereMet()
 	require.NoError(t, err)
 }
+
+func TestIntegration_Cache_FullCycle(t *testing.T) {
+	ctx := context.Background()
+	city := "  KYIV  "
+
+	db, mock := redismock.NewClientMock()
+	defer db.Close()
+
+	normalizedCity := "kyiv"
+	cacheKey := "weather:" + normalizedCity + ":WeatherAPI"
+
+	expected := weather.Report{
+		Temperature: 20.5,
+		Humidity:    60,
+		Description: "Sunny",
+	}
+
+	data, err := json.Marshal(expected)
+	require.NoError(t, err)
+
+	ttl := 5 * time.Minute
+
+	mock.ExpectSet(cacheKey, data, ttl).SetVal("OK")
+	mock.ExpectGet(cacheKey).SetVal(string(data))
+
+	redisCache := cache.NewRedisCache(db)
+
+	writer := cache.NewWriter(&successProvider{}, redisCache, "WeatherAPI", ttl)
+
+	report1, err := writer.GetWeather(ctx, city)
+	require.NoError(t, err)
+	require.Equal(t, expected, report1)
+
+	reader := cache.NewReader(&failProvider{}, redisCache, &nopMetrics{}, []string{"WeatherAPI"})
+
+	report2, err := reader.GetWeather(ctx, city)
+	require.NoError(t, err)
+	require.Equal(t, expected, report2)
+
+	require.Equal(t, report1, report2)
+
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
+}

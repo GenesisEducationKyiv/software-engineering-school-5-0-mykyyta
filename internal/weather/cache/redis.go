@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"weatherApi/internal/weather"
@@ -24,7 +25,12 @@ func NewRedisCache(client *redis.Client) *RedisCache {
 	return &RedisCache{client: client}
 }
 
+func normalizeCity(city string) string {
+	return strings.ToLower(strings.TrimSpace(city))
+}
+
 func (r *RedisCache) key(city, provider string) string {
+	city = normalizeCity(city)
 	return fmt.Sprintf("%s:%s:%s", cachePrefix, city, provider)
 }
 
