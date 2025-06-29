@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"errors"
+	"log"
 
 	"weatherApi/internal/weather"
 )
@@ -41,6 +42,7 @@ func (c *Reader) GetWeather(ctx context.Context, city string) (weather.Report, e
 			c.Metrics.RecordProviderMiss(name)
 			continue
 		}
+		log.Printf("Cache error for %s/%s: %v", city, name, err)
 		break
 	}
 
