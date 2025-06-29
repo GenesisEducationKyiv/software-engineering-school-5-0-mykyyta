@@ -3,6 +3,8 @@ package app
 import (
 	"net/http"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"weatherApi/internal/handlers"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +29,8 @@ func SetupRoutes(s ServiceSet) *gin.Engine {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	if gin.Mode() != gin.TestMode {
 		router.LoadHTMLGlob("templates/*.html")

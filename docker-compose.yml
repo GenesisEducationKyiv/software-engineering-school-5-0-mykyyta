@@ -14,6 +14,22 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+    command: >
+      redis-server
+      --save ""
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+
 
   migrate:
     image: migrate/migrate:v4.16.2
@@ -32,6 +48,7 @@ services:
     ]
     restart: on-failure
 
+
   app:
     build: .
     restart: on-failure
@@ -40,8 +57,31 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     stop_grace_period: 5s
     env_file:
       - .env
     volumes:
       - ./logs:/app/logs
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards

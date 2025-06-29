@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"weatherApi/internal/app"
+
 	"github.com/docker/go-connections/nat"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -18,12 +20,10 @@ import (
 
 	gormpostgres "gorm.io/driver/postgres"
 	"gorm.io/gorm"
-
-	"weatherApi/internal/db"
 )
 
 type TestPostgres struct {
-	DB        *db.DB
+	DB        *app.DB
 	Container testcontainers.Container
 	DSN       string
 }
@@ -73,7 +73,7 @@ func StartPostgres(ctx context.Context) (*TestPostgres, error) {
 	}
 
 	return &TestPostgres{
-		DB:        &db.DB{Gorm: gormDB},
+		DB:        &app.DB{Gorm: gormDB},
 		Container: container,
 		DSN:       dsn,
 	}, nil

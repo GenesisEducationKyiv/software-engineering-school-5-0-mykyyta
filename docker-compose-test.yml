@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: weatherdb
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+
+  migrate:
+    image: migrate/migrate:v4.16.2
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./migrations:/migrations
+    entrypoint: [
+      "migrate",
+      "-path", "/migrations",
+      "-database", "${DB_URL}",
+      "up"
+    ]
+    restart: on-failure
+
+  app:
+    build: .
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    stop_grace_period: 5s
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
