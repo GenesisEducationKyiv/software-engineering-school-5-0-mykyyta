@@ -4,13 +4,17 @@ package weather_test
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"weatherApi/internal/weather"
+	"weatherApi/internal/weather/cache"
 
+	redismock "github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/require"
 )
 
@@ -149,5 +153,125 @@ func TestIntegration_CityIsValid_SkipsCityNotFoundIfLaterSucceeds(t *testing.T) 
 	ok, err := handler.CityIsValid(ctx, "Kyiv")
 
 	require.True(t, ok)
+	require.NoError(t, err)
+}
+
+// --- CACHE TESTS ---
+type nopMetrics struct{}
+
+func (n *nopMetrics) RecordProviderHit(provider string)  {}
+func (n *nopMetrics) RecordProviderMiss(provider string) {}
+func (n *nopMetrics) RecordTotalHit()                    {}
+func (n *nopMetrics) RecordTotalMiss()                   {}
+
+func TestIntegration_CacheReader_Hit(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	defer db.Close()
+
+	ctx := context.Background()
+	city := "Kyiv"
+	cacheKey := "weather:Kyiv:WeatherAPI"
+
+	expected := weather.Report{
+		Temperature: 20.5,
+		Humidity:    60,
+		Description: "Sunny",
+	}
+
+	payload := `{"temperature":20.5,"humidity":60,"description":"Sunny"}`
+
+	mock.ExpectGet(cacheKey).SetVal(payload)
+
+	provider := &failProvider{}
+	redisCache := cache.NewRedisCache(db)
+
+	metrics := &nopMetrics{}
+
+	reader := cache.NewReader(provider, redisCache, metrics, []string{"WeatherAPI"})
+
+	report, err := reader.GetWeather(ctx, city)
+	require.NoError(t, err)
+	require.Equal(t, expected.Description, report.Description)
+	require.Equal(t, expected.Humidity, report.Humidity)
+	require.Equal(t, expected.Temperature, report.Temperature)
+
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
+}
+
+func TestIntegration_CacheReader_Miss(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	defer db.Close()
+
+	ctx := context.Background()
+	city := "Kyiv"
+	cacheKey := "weather:Kyiv:WeatherAPI"
+
+	mock.ExpectGet(cacheKey).RedisNil() // імітуємо промах
+
+	provider := &successProvider{}
+	redisCache := cache.NewRedisCache(db)
+	metrics := &nopMetrics{}
+
+	reader := cache.NewReader(provider, redisCache, metrics, []string{"WeatherAPI"})
+
+	report, err := reader.GetWeather(ctx, city)
+	require.NoError(t, err)
+	require.Equal(t, "Sunny", report.Description)
+
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
+}
+
+type mockWriter struct {
+	calledWith struct {
+		city     string
+		provider string
+		report   weather.Report
+		ttl      time.Duration
+	}
+	called bool
+}
+
+func (m *mockWriter) Set(ctx context.Context, city string, provider string, report weather.Report, ttl time.Duration) error {
+	m.calledWith.city = city
+	m.calledWith.provider = provider
+	m.calledWith.report = report
+	m.calledWith.ttl = ttl
+	m.called = true
+	return nil
+}
+
+func TestIntegration_CacheWriter_WritesToRedis(t *testing.T) {
+	db, mock := redismock.NewClientMock()
+	defer db.Close()
+
+	ctx := context.Background()
+	city := "Kyiv"
+	cacheKey := "weather:Kyiv:WeatherAPI"
+
+	expected := weather.Report{
+		Temperature: 20.5,
+		Humidity:    60,
+		Description: "Sunny",
+	}
+
+	data, err := json.Marshal(expected)
+	require.NoError(t, err)
+
+	ttl := 300 * time.Second
+
+	mock.ExpectSet(cacheKey, data, ttl).SetVal("OK")
+
+	provider := &successProvider{}
+	redisCache := cache.NewRedisCache(db)
+
+	writer := cache.NewWriter(provider, redisCache, "WeatherAPI", ttl)
+
+	report, err := writer.GetWeather(ctx, city)
+	require.NoError(t, err)
+	require.Equal(t, expected.Description, report.Description)
+
+	err = mock.ExpectationsWereMet()
 	require.NoError(t, err)
 }
