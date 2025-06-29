@@ -54,10 +54,10 @@ func loadCacheConfig() CacheConfig {
 	return CacheConfig{
 		Enabled:        getBoolEnv("CACHE_ENABLED", true),
 		RedisURL:       getEnv("REDIS_URL", "redis://redis:6379/0"),
-		DefaultTTL:     getDurationEnv("CACHE_TTL", 5*time.Minute),
-		OpenWeatherTTL: getDurationEnv("CACHE_TTL_OPENWEATHER", 5*time.Minute),
-		WeatherApiTTL:  getDurationEnv("CACHE_TTL_WEATHERAPI", 10*time.Minute),
-		TomorrowIoTTL:  getDurationEnv("CACHE_TTL_TOMORROWIO", 15*time.Minute),
+		DefaultTTL:     getDurationEnv("CACHE_TTL", 2*time.Minute),
+		WeatherApiTTL:  getDurationEnv("CACHE_TTL_WEATHERAPI", 15*time.Minute),
+		TomorrowIoTTL:  getDurationEnv("CACHE_TTL_TOMORROWIO", 2*time.Minute),
+		OpenWeatherTTL: getDurationEnv("CACHE_TTL_OPENWEATHER", 10*time.Minute),
 	}
 }
 
@@ -96,9 +96,10 @@ func getDurationEnv(key string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 
-	if seconds, err := strconv.Atoi(val); err == nil {
-		return time.Duration(seconds) * time.Second
+	dur, err := time.ParseDuration(val)
+	if err != nil {
+		return fallback
 	}
 
-	return fallback
+	return dur
 }

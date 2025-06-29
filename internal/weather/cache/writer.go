@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"weatherApi/internal/weather"
@@ -27,7 +28,9 @@ func (c *Writer) GetWeather(ctx context.Context, city string) (weather.Report, e
 	if err != nil {
 		return rep, err
 	}
-	_ = c.Cache.Set(ctx, city, c.ProviderName, rep, c.TTL)
+	if err := c.Cache.Set(ctx, city, c.ProviderName, rep, c.TTL); err != nil {
+		log.Printf("Failed to cache weather data for %s/%s: %v", city, c.ProviderName, err)
+	}
 	return rep, nil
 }
 
