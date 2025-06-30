@@ -2,6 +2,7 @@ package app
 
 import (
 	"log"
+	"net/http"
 
 	"weatherApi/internal/weather/cache"
 
@@ -27,11 +28,11 @@ type ServiceSet struct {
 	EmailService   email.Service
 }
 
-func BuildProviders(cfg *config.Config, logger *log.Logger, redisClient *redis.Client, metrics *cache.Metrics) ProviderSet {
+func BuildProviders(cfg *config.Config, logger *log.Logger, redisClient *redis.Client, httpClient *http.Client, metrics *cache.Metrics) ProviderSet {
 	emailProvider := email.NewSendgrid(cfg.SendGridKey, cfg.EmailFrom)
 	tokenProvider := token.NewJWT(cfg.JWTSecret)
 
-	weatherChainProvider := buildWeatherProvider(cfg, logger, redisClient, metrics)
+	weatherChainProvider := buildWeatherProvider(cfg, logger, redisClient, httpClient, metrics)
 
 	return ProviderSet{
 		EmailProvider:        emailProvider,
@@ -40,9 +41,9 @@ func BuildProviders(cfg *config.Config, logger *log.Logger, redisClient *redis.C
 	}
 }
 
-func buildWeatherProvider(cfg *config.Config, logger *log.Logger, redisClient *redis.Client, metrics *cache.Metrics) weather.Provider {
-	baseWeatherAPI := weatherapi.New(cfg.WeatherAPIKey)
-	baseTomorrowIO := tomorrowio.New(cfg.TomorrowioAPIKey)
+func buildWeatherProvider(cfg *config.Config, logger *log.Logger, redisClient *redis.Client, httpClient *http.Client, metrics *cache.Metrics) weather.Provider {
+	baseWeatherAPI := weatherapi.New(cfg.WeatherAPIKey, httpClient)
+	baseTomorrowIO := tomorrowio.New(cfg.TomorrowioAPIKey, httpClient)
 
 	var wrappedWeatherAPI, wrappedTomorrowIO weather.Provider = baseWeatherAPI, baseTomorrowIO
 	var redisCache cache.RedisCache
