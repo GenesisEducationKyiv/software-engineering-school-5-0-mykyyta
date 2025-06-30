@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"weatherApi/internal/weather/cache"
 
@@ -37,7 +38,15 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	metrics := cache.NewMetrics()
 	metrics.Register()
 
-	providerSet := BuildProviders(cfg, logger, redisClient, metrics)
+	httpClient := &http.Client{
+		Timeout: 5 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:    100,
+			IdleConnTimeout: 90 * time.Second,
+		},
+	}
+
+	providerSet := BuildProviders(cfg, logger, redisClient, httpClient, metrics)
 	serviceSet := BuildServices(db, cfg, providerSet)
 
 	sr := scheduler.New(serviceSet.SubService, serviceSet.WeatherService, serviceSet.EmailService)

@@ -15,23 +15,28 @@ import (
 
 type Provider struct {
 	apiKey  string
+	client  *http.Client
 	baseURL string
 }
 
-func New(apiKey string, baseURL ...string) Provider {
+func New(apiKey string, client *http.Client, baseURL ...string) Provider {
 	url := "https://api.weatherapi.com/v1"
 	if len(baseURL) > 0 && baseURL[0] != "" {
 		url = baseURL[0]
 	}
+	if client == nil {
+		client = &http.Client{Timeout: 5 * time.Second}
+	}
 	return Provider{
 		apiKey:  apiKey,
+		client:  client,
 		baseURL: url,
 	}
 }
 
 type weatherAPIResponse struct {
 	Current struct {
-		TempC     float64 `json:"temp_с"` //nolint:tagliatelle
+		TempC     float64 `json:"temp_c"` //nolint:tagliatelle
 		Humidity  int     `json:"humidity"`
 		Condition struct {
 			Text string `json:"text"`
@@ -86,19 +91,16 @@ func (p Provider) makeRequest(ctx context.Context, city string) ([]byte, error) 
 		return nil, errors.New("missing API key")
 	}
 	url := fmt.Sprintf("%s/current.json?key=%s&q=%s", p.baseURL, p.apiKey, city)
-	return doRequestBody(ctx, url)
+	return p.doRequestBody(ctx, url)
 }
 
-func doRequestBody(ctx context.Context, url string) ([]byte, error) {
+func (p Provider) doRequestBody(ctx context.Context, url string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
-	resp, err := client.Do(req)
+	resp, err := p.client.Do(req)
 	if err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return nil, fmt.Errorf("request timed out: %w", err)
