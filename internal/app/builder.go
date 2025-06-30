@@ -45,7 +45,7 @@ func buildWeatherProvider(cfg *config.Config, logger *log.Logger, redisClient *r
 	baseTomorrowIO := tomorrowio.New(cfg.TomorrowioAPIKey)
 
 	var wrappedWeatherAPI, wrappedTomorrowIO weather.Provider = baseWeatherAPI, baseTomorrowIO
-	var redisCache *cache.RedisCache
+	var redisCache cache.RedisCache
 
 	if redisClient != nil && cfg.Cache.Enabled {
 		redisCache = cache.NewRedisCache(redisClient)
