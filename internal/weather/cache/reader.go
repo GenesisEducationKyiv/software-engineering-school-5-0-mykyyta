@@ -26,11 +26,11 @@ type Reader struct {
 	ProviderNames []string
 }
 
-func NewReader(provider weather.Provider, cache reader, metrics metrics, providerNames []string) *Reader {
-	return &Reader{Provider: provider, Cache: cache, Metrics: metrics, ProviderNames: providerNames}
+func NewReader(provider weather.Provider, cache reader, metrics metrics, providerNames []string) Reader {
+	return Reader{Provider: provider, Cache: cache, Metrics: metrics, ProviderNames: providerNames}
 }
 
-func (c *Reader) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (c Reader) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	for _, name := range c.ProviderNames {
 		report, err := c.Cache.Get(ctx, city, name)
 		if err == nil {
@@ -50,6 +50,6 @@ func (c *Reader) GetWeather(ctx context.Context, city string) (weather.Report, e
 	return c.Provider.GetWeather(ctx, city)
 }
 
-func (c *Reader) CityIsValid(ctx context.Context, city string) (bool, error) {
+func (c Reader) CityIsValid(ctx context.Context, city string) (bool, error) {
 	return c.Provider.CityIsValid(ctx, city)
 }

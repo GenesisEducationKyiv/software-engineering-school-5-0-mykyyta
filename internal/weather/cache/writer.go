@@ -19,11 +19,11 @@ type Writer struct {
 	TTL          time.Duration
 }
 
-func NewWriter(provider weather.Provider, cache writer, providerName string, ttl time.Duration) *Writer {
-	return &Writer{Provider: provider, Cache: cache, ProviderName: providerName, TTL: ttl}
+func NewWriter(provider weather.Provider, cache writer, providerName string, ttl time.Duration) Writer {
+	return Writer{Provider: provider, Cache: cache, ProviderName: providerName, TTL: ttl}
 }
 
-func (c *Writer) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (c Writer) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	rep, err := c.Provider.GetWeather(ctx, city)
 	if err != nil {
 		return rep, err
@@ -34,6 +34,6 @@ func (c *Writer) GetWeather(ctx context.Context, city string) (weather.Report, e
 	return rep, nil
 }
 
-func (c *Writer) CityIsValid(ctx context.Context, city string) (bool, error) {
+func (c Writer) CityIsValid(ctx context.Context, city string) (bool, error) {
 	return c.Provider.CityIsValid(ctx, city)
 }
