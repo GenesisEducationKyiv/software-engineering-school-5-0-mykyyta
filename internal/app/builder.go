@@ -28,11 +28,19 @@ type ServiceSet struct {
 	EmailService   email.Service
 }
 
-func BuildProviders(cfg *config.Config, logger *log.Logger, redisClient *redis.Client, httpClient *http.Client, metrics *cache.Metrics) ProviderSet {
-	emailProvider := email.NewSendgrid(cfg.SendGridKey, cfg.EmailFrom)
-	tokenProvider := token.NewJWT(cfg.JWTSecret)
+type ProviderDeps struct {
+	cfg         *config.Config
+	logger      *log.Logger
+	redisClient *redis.Client
+	httpClient  *http.Client
+	metrics     *cache.Metrics
+}
 
-	weatherChainProvider := buildWeatherProvider(cfg, logger, redisClient, httpClient, metrics)
+func BuildProviders(deps ProviderDeps) ProviderSet {
+	emailProvider := email.NewSendgrid(deps.cfg.SendGridKey, deps.cfg.EmailFrom)
+	tokenProvider := token.NewJWT(deps.cfg.JWTSecret)
+
+	weatherChainProvider := buildWeatherProvider(deps)
 
 	return ProviderSet{
 		EmailProvider:        emailProvider,
@@ -41,43 +49,43 @@ func BuildProviders(cfg *config.Config, logger *log.Logger, redisClient *redis.C
 	}
 }
 
-func buildWeatherProvider(cfg *config.Config, logger *log.Logger, redisClient *redis.Client, httpClient *http.Client, metrics *cache.Metrics) weather.Provider {
-	baseWeatherAPI := weatherapi.New(cfg.WeatherAPIKey, httpClient)
-	baseTomorrowIO := tomorrowio.New(cfg.TomorrowioAPIKey, httpClient)
+func buildWeatherProvider(deps ProviderDeps) weather.Provider {
+	baseWeatherAPI := weatherapi.New(deps.cfg.WeatherAPIKey, deps.httpClient)
+	baseTomorrowIO := tomorrowio.New(deps.cfg.TomorrowioAPIKey, deps.httpClient)
 
 	var wrappedWeatherAPI, wrappedTomorrowIO weather.Provider = baseWeatherAPI, baseTomorrowIO
 	var redisCache cache.RedisCache
 
-	if redisClient != nil && cfg.Cache.Enabled {
-		redisCache = cache.NewRedisCache(redisClient)
+	if deps.redisClient != nil && deps.cfg.Cache.Enabled {
+		redisCache = cache.NewRedisCache(deps.redisClient)
 
 		wrappedWeatherAPI = cache.NewWriter(
 			baseWeatherAPI,
 			redisCache,
 			"WeatherAPI",
-			cfg.Cache.WeatherApiTTL,
+			deps.cfg.Cache.WeatherApiTTL,
 		)
 
 		wrappedTomorrowIO = cache.NewWriter(
 			baseTomorrowIO,
 			redisCache,
 			"TomorrowIO",
-			cfg.Cache.TomorrowIoTTL,
+			deps.cfg.Cache.TomorrowIoTTL,
 		)
 	}
 
-	loggedWeatherAPI := weather.NewLogWrapper(wrappedWeatherAPI, "WeatherAPI", logger)
-	loggedTomorrowIO := weather.NewLogWrapper(wrappedTomorrowIO, "TomorrowIO", logger)
+	loggedWeatherAPI := weather.NewLogWrapper(wrappedWeatherAPI, "WeatherAPI", deps.logger)
+	loggedTomorrowIO := weather.NewLogWrapper(wrappedTomorrowIO, "TomorrowIO", deps.logger)
 
 	nodeWeatherAPI := weather.NewChainNode(loggedWeatherAPI)
 	nodeTomorrowIO := weather.NewChainNode(loggedTomorrowIO)
 	nodeWeatherAPI.SetNext(nodeTomorrowIO)
 
-	if redisClient != nil && cfg.Cache.Enabled {
+	if deps.redisClient != nil && deps.cfg.Cache.Enabled {
 		return cache.NewReader(
 			nodeWeatherAPI,
 			redisCache,
-			metrics,
+			deps.metrics,
 			[]string{"WeatherAPI", "TomorrowIO"},
 		)
 	}
