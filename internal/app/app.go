@@ -46,7 +46,15 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 		},
 	}
 
-	providerSet := BuildProviders(cfg, logger, redisClient, httpClient, metrics)
+	providerDeps := ProviderDeps{
+		cfg:         cfg,
+		logger:      logger,
+		redisClient: redisClient,
+		httpClient:  httpClient,
+		metrics:     metrics,
+	}
+
+	providerSet := BuildProviders(providerDeps)
 	serviceSet := BuildServices(db, cfg, providerSet)
 
 	sr := scheduler.New(serviceSet.SubService, serviceSet.WeatherService, serviceSet.EmailService)
