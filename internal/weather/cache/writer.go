@@ -39,6 +39,14 @@ func NewWriter(
 	}
 }
 
+// GetWeather retrieves the weather report for the given city.
+// Before querying the provider, it checks the "city not found" cache.
+// If the city is known to be invalid (e.g. a previous request failed),
+// it immediately returns ErrCityNotFound.
+//
+// This is important because some weather providers do not support
+// small or less-known cities. Caching negative results avoids repeated
+// unnecessary calls to the provider and improves performance.
 func (c Writer) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	if notFound, err := c.Cache.GetCityNotFound(ctx, city, c.ProviderName); err == nil && notFound {
 		return weather.Report{}, weather.ErrCityNotFound
