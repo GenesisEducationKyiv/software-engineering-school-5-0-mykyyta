@@ -30,6 +30,11 @@ func NewReader(provider weather.Provider, cache reader, metrics metrics, provide
 	return Reader{Provider: provider, Cache: cache, Metrics: metrics, ProviderNames: providerNames}
 }
 
+// GetWeather retrieves the weather report by querying multiple cache sources in order.
+//
+// Cache reads are handled at the Reader level (not inside providers) to enable
+// accurate metrics collection. In particular, total cache misses can only be
+// detected reliably here, after all sources have been checked.
 func (c Reader) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	for _, name := range c.ProviderNames {
 		report, err := c.Cache.Get(ctx, city, name)
