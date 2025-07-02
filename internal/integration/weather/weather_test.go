@@ -174,7 +174,7 @@ func TestIntegration_CacheReader_Hit(t *testing.T) {
 	city := "Kyiv"
 	provider := "WeatherAPI"
 	normalizedCity := "kyiv"
-	cacheKey := "weather:" + normalizedCity + ":" + provider
+	cacheKey := "weather:report:" + normalizedCity + ":" + provider
 
 	expected := weather.Report{
 		Temperature: 20.5,
@@ -205,7 +205,7 @@ func TestIntegration_CacheReader_Miss(t *testing.T) {
 	city := "Kyiv"
 	provider := "WeatherAPI"
 	normalizedCity := "kyiv"
-	cacheKey := "weather:" + normalizedCity + ":" + provider
+	cacheKey := "weather:report:" + normalizedCity + ":" + provider
 
 	mock.ExpectGet(cacheKey).RedisNil()
 
@@ -227,8 +227,10 @@ func TestIntegration_CacheWriter_WritesToRedis_And_ReaderReadsIt(t *testing.T) {
 	city := "Kyiv"
 	provider := "WeatherAPI"
 	normalizedCity := "kyiv"
-	cacheKey := "weather:" + normalizedCity + ":" + provider
+	reportKey := "weather:report:" + normalizedCity + ":" + provider
+	notFoundKey := "weather:notfound:" + normalizedCity + ":" + provider
 	ttl := 5 * time.Minute
+	notFoundTTL := 12 * time.Hour
 
 	expected := weather.Report{
 		Temperature: 20.5,
@@ -239,11 +241,12 @@ func TestIntegration_CacheWriter_WritesToRedis_And_ReaderReadsIt(t *testing.T) {
 	data, err := json.Marshal(expected)
 	require.NoError(t, err)
 
-	mock.ExpectSet(cacheKey, data, ttl).SetVal("OK")
-	mock.ExpectGet(cacheKey).SetVal(string(data))
+	mock.ExpectGet(notFoundKey).RedisNil()
+	mock.ExpectSet(reportKey, data, ttl).SetVal("OK")
+	mock.ExpectGet(reportKey).SetVal(string(data))
 
 	redisCache := cache.NewRedisCache(db)
-	writer := cache.NewWriter(&successProvider{}, redisCache, provider, ttl)
+	writer := cache.NewWriter(&successProvider{}, redisCache, provider, ttl, notFoundTTL)
 
 	_, err = writer.GetWeather(ctx, city)
 	require.NoError(t, err)

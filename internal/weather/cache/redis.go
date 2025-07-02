@@ -29,9 +29,16 @@ func normalizeCity(city string) string {
 	return strings.ToLower(strings.TrimSpace(city))
 }
 
+func makeKey(prefix, keyType, city, provider string) string {
+	return fmt.Sprintf("%s:%s:%s:%s", prefix, keyType, normalizeCity(city), provider)
+}
+
 func (r RedisCache) key(city, provider string) string {
-	city = normalizeCity(city)
-	return fmt.Sprintf("%s:%s:%s", cachePrefix, city, provider)
+	return makeKey(cachePrefix, "report", city, provider)
+}
+
+func (r RedisCache) notFoundKey(city, provider string) string {
+	return makeKey(cachePrefix, "notfound", city, provider)
 }
 
 func (r RedisCache) Set(ctx context.Context, city, provider string, report weather.Report, ttl time.Duration) error {
@@ -64,4 +71,21 @@ func (r RedisCache) Get(ctx context.Context, city, provider string) (weather.Rep
 		return weather.Report{}, fmt.Errorf("failed to unmarshal report: %w", err)
 	}
 	return rep, nil
+}
+
+func (r RedisCache) SetCityNotFound(ctx context.Context, city, provider string, ttl time.Duration) error {
+	key := r.notFoundKey(city, provider)
+	return r.client.Set(ctx, key, "1", ttl).Err()
+}
+
+func (r RedisCache) GetCityNotFound(ctx context.Context, city, provider string) (bool, error) {
+	key := r.notFoundKey(city, provider)
+	val, err := r.client.Get(ctx, key).Result()
+	if errors.Is(err, redis.Nil) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return val == "1", nil
 }
