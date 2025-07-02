@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 
 type writer interface {
 	Set(ctx context.Context, city string, provider string, report weather.Report, ttl time.Duration) error
+	SetCityNotFound(ctx context.Context, city, provider string, ttl time.Duration) error
+	GetCityNotFound(ctx context.Context, city, provider string) (bool, error)
 }
 
 type Writer struct {
@@ -17,21 +20,53 @@ type Writer struct {
 	Cache        writer
 	ProviderName string
 	TTL          time.Duration
+	NotFoundTTL  time.Duration
 }
 
-func NewWriter(provider weather.Provider, cache writer, providerName string, ttl time.Duration) Writer {
-	return Writer{Provider: provider, Cache: cache, ProviderName: providerName, TTL: ttl}
+func NewWriter(
+	provider weather.Provider,
+	cache writer,
+	providerName string,
+	ttl time.Duration,
+	notFoundTTL time.Duration,
+) Writer {
+	return Writer{
+		Provider:     provider,
+		Cache:        cache,
+		ProviderName: providerName,
+		TTL:          ttl,
+		NotFoundTTL:  notFoundTTL,
+	}
 }
 
 func (c Writer) GetWeather(ctx context.Context, city string) (weather.Report, error) {
-	rep, err := c.Provider.GetWeather(ctx, city)
+	if notFound, err := c.Cache.GetCityNotFound(ctx, city, c.ProviderName); err == nil && notFound {
+		return weather.Report{}, weather.ErrCityNotFound
+	} else if err != nil {
+		log.Printf("Error checking CityNotFound cache for %q/%s: %v", city, c.ProviderName, err)
+	}
+	return c.getReportAndCache(ctx, city)
+}
+
+func (c Writer) getReportAndCache(ctx context.Context, city string) (weather.Report, error) {
+	report, err := c.Provider.GetWeather(ctx, city)
 	if err != nil {
-		return rep, err
+		c.cacheCityNotFound(ctx, city, err)
+		return report, err
 	}
-	if err := c.Cache.Set(ctx, city, c.ProviderName, rep, c.TTL); err != nil {
-		log.Printf("Failed to cache weather data for %s/%s: %v", city, c.ProviderName, err)
+	if cacheErr := c.Cache.Set(ctx, city, c.ProviderName, report, c.TTL); cacheErr != nil {
+		log.Printf("Caching weather data for %q/%s: %v", city, c.ProviderName, cacheErr)
 	}
-	return rep, nil
+	return report, nil
+}
+
+func (c Writer) cacheCityNotFound(ctx context.Context, city string, err error) {
+	if !errors.Is(err, weather.ErrCityNotFound) {
+		return
+	}
+	if cacheErr := c.Cache.SetCityNotFound(ctx, city, c.ProviderName, c.NotFoundTTL); cacheErr != nil {
+		log.Printf("Caching CityNotFound for %q/%s: %v", city, c.ProviderName, cacheErr)
+	}
 }
 
 func (c Writer) CityIsValid(ctx context.Context, city string) (bool, error) {

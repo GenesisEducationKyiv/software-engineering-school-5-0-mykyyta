@@ -64,6 +64,7 @@ func buildWeatherProvider(deps ProviderDeps) weather.Provider {
 			redisCache,
 			"WeatherAPI",
 			deps.cfg.Cache.WeatherApiTTL,
+			deps.cfg.Cache.NotFoundTTL,
 		)
 
 		wrappedTomorrowIO = cache.NewWriter(
@@ -71,6 +72,7 @@ func buildWeatherProvider(deps ProviderDeps) weather.Provider {
 			redisCache,
 			"TomorrowIO",
 			deps.cfg.Cache.TomorrowIoTTL,
+			deps.cfg.Cache.NotFoundTTL,
 		)
 	}
 

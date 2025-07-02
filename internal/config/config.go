@@ -27,6 +27,7 @@ type CacheConfig struct {
 	Enabled        bool
 	RedisURL       string
 	DefaultTTL     time.Duration
+	NotFoundTTL    time.Duration
 	OpenWeatherTTL time.Duration
 	WeatherApiTTL  time.Duration
 	TomorrowIoTTL  time.Duration
@@ -55,6 +56,7 @@ func loadCacheConfig() CacheConfig {
 		Enabled:        getBoolEnv("CACHE_ENABLED", true),
 		RedisURL:       getEnv("REDIS_URL", "redis://redis:6379/0"),
 		DefaultTTL:     getDurationEnv("CACHE_TTL", 2*time.Minute),
+		NotFoundTTL:    getDurationEnv("CACHE_TTL_NOTFOUND", 1*time.Minute),
 		WeatherApiTTL:  getDurationEnv("CACHE_TTL_WEATHERAPI", 15*time.Minute),
 		TomorrowIoTTL:  getDurationEnv("CACHE_TTL_TOMORROWIO", 2*time.Minute),
 		OpenWeatherTTL: getDurationEnv("CACHE_TTL_OPENWEATHER", 10*time.Minute),
