@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"weatherApi/internal/integration/testutils"
-	"weatherApi/internal/jobs"
+	"weatherApi/internal/job"
 	"weatherApi/internal/subscription"
 )
 
@@ -67,9 +67,9 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *test
 	eventChan := make(chan string, 1)
 	fakeEventSource := &fakeEventSource{ch: eventChan}
 
-	queue := jobs.NewLocalQueue(10)
-	dispatcher := jobs.NewEmailDispatcher(services.SubService, queue, fakeEventSource)
-	worker := jobs.NewWorker(queue, services.SubService)
+	queue := job.NewLocalQueue(10)
+	dispatcher := job.NewEmailDispatcher(services.SubService, queue, fakeEventSource)
+	worker := job.NewWorker(queue, services.SubService)
 
 	go worker.Start(ctx)
 	dispatcher.Start(ctx)
@@ -138,9 +138,9 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 	eventChan := make(chan string, 2)
 	fakeSource := &fakeEventSource{ch: eventChan}
 
-	queue := jobs.NewLocalQueue(10)
-	dispatcher := jobs.NewEmailDispatcher(services.SubService, queue, fakeSource)
-	worker := jobs.NewWorker(queue, services.SubService)
+	queue := job.NewLocalQueue(10)
+	dispatcher := job.NewEmailDispatcher(services.SubService, queue, fakeSource)
+	worker := job.NewWorker(queue, services.SubService)
 
 	go dispatcher.Start(ctx)
 	go worker.Start(ctx)

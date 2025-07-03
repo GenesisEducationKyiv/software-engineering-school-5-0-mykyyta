@@ -1,12 +1,11 @@
-package app
+package delivery
 
 import (
 	"net/http"
 	"weatherApi/internal/app/di"
+	handlers2 "weatherApi/internal/delivery/handlers"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"weatherApi/internal/handlers"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,10 +13,10 @@ import (
 func SetupRoutes(s di.Services) *gin.Engine {
 	router := gin.Default()
 
-	subscribeHandler := handlers.NewSubscribe(s.SubService)
-	confirmHandler := handlers.NewConfirm(s.SubService)
-	unsubscribeHandler := handlers.NewUnsubscribe(s.SubService)
-	weatherHandler := handlers.NewWeatherCurrent(s.WeatherService)
+	subscribeHandler := handlers2.NewSubscribe(s.SubService)
+	confirmHandler := handlers2.NewConfirm(s.SubService)
+	unsubscribeHandler := handlers2.NewUnsubscribe(s.SubService)
+	weatherHandler := handlers2.NewWeatherCurrent(s.WeatherService)
 
 	api := router.Group("/api")
 	{

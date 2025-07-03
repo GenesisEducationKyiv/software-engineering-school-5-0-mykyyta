@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 	"weatherApi/internal/app/di"
+	"weatherApi/internal/delivery"
 	infra2 "weatherApi/internal/infra"
 
 	"weatherApi/internal/weather/cache"
@@ -98,7 +99,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	sr := di.NewScheduler(serviceSet.SubService)
 	go sr.Start(ctx)
 
-	router := SetupRoutes(serviceSet)
+	router := delivery.SetupRoutes(serviceSet)
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,

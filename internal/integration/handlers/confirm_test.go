@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 	"weatherApi/internal/app/di"
+	"weatherApi/internal/delivery/handlers"
 
 	"weatherApi/internal/config"
-	"weatherApi/internal/handlers"
 	"weatherApi/internal/integration/testutils"
 	"weatherApi/internal/subscription"
 
