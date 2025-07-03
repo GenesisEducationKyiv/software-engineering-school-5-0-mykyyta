@@ -1,12 +1,24 @@
 PORT=8080
 DB_TYPE=postgres
 DB_URL=postgresql://postgres:postgres@db:5432/weatherdb?sslmode=disable
-BASE_URL="http://localhost:8080"
+BASE_URL=http://localhost:8080
 GIN_MODE=debug
 JWT_SECRET=default_secret
+
+# Cache Configuration
+CACHE_ENABLED=true
+REDIS_URL=redis://redis:6379/0
+
+# Cache TTL (в секундах)
+CACHE_TTL=2m
+CACHE_TTL_NOTFOUND=12h
+CACHE_TTL_WEATHERAPI=15m
+CACHE_TTL_TOMORROWIO=2m
+CACHE_TTL_OPENWEATHER=10m
 
 # REQUIRED
 SENDGRID_API_KEY=your_sendgrid_api_key_here
 EMAIL_FROM=no-reply@example.com
 WEATHER_API_KEY=your_weather_api_key_here
 TOMORROWIO_API_KEY=your_tommorrow_io_api_key_here
+
