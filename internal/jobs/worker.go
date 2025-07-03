@@ -6,8 +6,6 @@ import (
 	"io"
 	"log"
 	"time"
-
-	"weatherApi/internal/weather"
 )
 
 type Task struct {
@@ -20,25 +18,19 @@ type taskSource interface {
 	Dequeue(ctx context.Context) (Task, error)
 }
 
-type emailSender interface {
-	SendWeatherReport(toEmail string, w weather.Report, city, token string) error
-}
-
-type weatherProvider interface {
-	GetWeather(ctx context.Context, city string) (weather.Report, error)
+type taskService interface {
+	ProcessWeatherReportTask(ctx context.Context, task Task) error
 }
 
 type Worker struct {
-	queue          taskSource
-	weatherService weatherProvider
-	emailService   emailSender
+	queue      taskSource
+	subService taskService
 }
 
-func NewWorker(queue taskSource, weather weatherProvider, email emailSender) *Worker {
+func NewWorker(queue taskSource, subservice taskService) *Worker {
 	return &Worker{
-		queue:          queue,
-		weatherService: weather,
-		emailService:   email,
+		queue:      queue,
+		subService: subservice,
 	}
 }
 
@@ -76,24 +68,12 @@ func (w *Worker) Start(ctx context.Context) {
 				}
 			}()
 
-			w.handleTask(taskCtx, t)
+			err := w.subService.ProcessWeatherReportTask(taskCtx, t)
+			if err != nil {
+				log.Printf("[Worker] failed to process task for %s: %v", t.Email, err)
+			} else {
+				log.Printf("[Worker] successfully processed task for %s", t.Email)
+			}
 		}(task)
-	}
-}
-
-func (w *Worker) handleTask(ctx context.Context, t Task) {
-	log.Printf("[Worker] Processing task for %s", t.Email)
-
-	weather, err := w.weatherService.GetWeather(ctx, t.City)
-	if err != nil {
-		log.Printf("[Worker] Failed to get weather for %s: %v", t.City, err)
-		return
-	}
-
-	err = w.emailService.SendWeatherReport(t.Email, weather, t.City, t.Token)
-	if err != nil {
-		log.Printf("[Worker] Failed to send email to %s: %v", t.Email, err)
-	} else {
-		log.Printf("[Worker] Email sent to %s", t.Email)
 	}
 }

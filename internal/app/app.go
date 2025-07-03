@@ -57,7 +57,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	providerSet := BuildProviders(providerDeps)
 	serviceSet := BuildServices(db, cfg, providerSet)
 
-	sr := scheduler.New(serviceSet.SubService, serviceSet.WeatherService, serviceSet.EmailService)
+	sr := scheduler.New(serviceSet.SubService)
 	go sr.Start(ctx)
 
 	router := SetupRoutes(serviceSet)

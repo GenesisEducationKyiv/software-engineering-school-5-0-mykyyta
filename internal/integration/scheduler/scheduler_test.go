@@ -69,7 +69,7 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *test
 
 	queue := jobs.NewLocalQueue(10)
 	dispatcher := jobs.NewEmailDispatcher(services.SubService, queue, fakeEventSource)
-	worker := jobs.NewWorker(queue, services.WeatherService, services.EmailService)
+	worker := jobs.NewWorker(queue, services.SubService)
 
 	go worker.Start(ctx)
 	dispatcher.Start(ctx)
@@ -140,7 +140,7 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 
 	queue := jobs.NewLocalQueue(10)
 	dispatcher := jobs.NewEmailDispatcher(services.SubService, queue, fakeSource)
-	worker := jobs.NewWorker(queue, services.WeatherService, services.EmailService)
+	worker := jobs.NewWorker(queue, services.SubService)
 
 	go dispatcher.Start(ctx)
 	go worker.Start(ctx)

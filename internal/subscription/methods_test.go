@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	"weatherApi/internal/weather"
+
 	"weatherApi/internal/subscription"
 
 	"github.com/stretchr/testify/assert"
@@ -54,7 +56,16 @@ func (m *mockEmailService) SendConfirmationEmail(email, token string) error {
 	return m.Called(email, token).Error(0)
 }
 
+func (m *mockEmailService) SendWeatherReport(email string, weatherReport weather.Report, city, token string) error {
+	return m.Called(email, weatherReport, city, token).Error(0)
+}
+
 type mockCityValidator struct{ mock.Mock }
+
+func (m *mockCityValidator) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+	args := m.Called(ctx, city)
+	return args.Get(0).(weather.Report), args.Error(1)
+}
 
 func (m *mockCityValidator) CityIsValid(ctx context.Context, city string) (bool, error) {
 	args := m.Called(ctx, city)

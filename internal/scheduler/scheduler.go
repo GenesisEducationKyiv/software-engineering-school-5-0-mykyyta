@@ -5,10 +5,8 @@ import (
 	"log"
 	"sync"
 
-	"weatherApi/internal/email"
 	"weatherApi/internal/jobs"
 	"weatherApi/internal/subscription"
-	"weatherApi/internal/weather"
 )
 
 type WeatherScheduler struct {
@@ -22,13 +20,11 @@ type WeatherScheduler struct {
 
 func New(
 	subService subscription.Service,
-	weatherService weather.Service,
-	emailService email.Service,
 ) *WeatherScheduler {
 	queue := jobs.NewLocalQueue(100)
 	cron := jobs.NewCronEventSource()
 	dispatcher := jobs.NewEmailDispatcher(subService, queue, cron)
-	worker := jobs.NewWorker(queue, weatherService, emailService)
+	worker := jobs.NewWorker(queue, subService)
 
 	return &WeatherScheduler{
 		queue:      queue,

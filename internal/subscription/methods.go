@@ -12,7 +12,7 @@ import (
 )
 
 func (s Service) Subscribe(ctx context.Context, email, city, frequency string) error {
-	_, err := s.cityValidator.CityIsValid(ctx, city)
+	_, err := s.weatherService.CityIsValid(ctx, city)
 	if err != nil {
 		if errors.Is(err, ErrCityNotFound) {
 			return ErrCityNotFound
@@ -134,4 +134,17 @@ func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency strin
 
 func (s Service) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]Subscription, error) {
 	return s.repo.GetConfirmedByFrequency(ctx, frequency)
+}
+
+func (s Service) ProcessWeatherReportTask(ctx context.Context, task jobs.Task) error {
+	report, err := s.weatherService.GetWeather(ctx, task.City)
+	if err != nil {
+		return fmt.Errorf("get weather for %s: %w", task.City, err)
+	}
+
+	if err := s.emailService.SendWeatherReport(task.Email, report, task.City, task.Token); err != nil {
+		return fmt.Errorf("send email to %s: %w", task.Email, err)
+	}
+
+	return nil
 }
