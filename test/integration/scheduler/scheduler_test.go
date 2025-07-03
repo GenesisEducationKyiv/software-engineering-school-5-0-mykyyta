@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 	"weatherApi/internal/app/di"
+	"weatherApi/internal/domain"
 	testutils2 "weatherApi/test/integration/testutils"
 
 	"weatherApi/internal/config"
@@ -53,7 +54,7 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *test
 	require.NoError(t, err)
 
 	repo := subscription.NewRepo(pg.DB.Gorm)
-	sub := &subscription.Subscription{
+	sub := &domain.Subscription{
 		Email:          "test@example.com",
 		City:           "Kyiv",
 		Token:          "some-token",
@@ -110,7 +111,7 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 	require.NoError(t, err)
 
 	repo := subscription.NewRepo(pg.DB.Gorm)
-	subs := []*subscription.Subscription{
+	subs := []*domain.Subscription{
 		{
 			ID:             uuid.NewString(),
 			Email:          "daily@example.com",

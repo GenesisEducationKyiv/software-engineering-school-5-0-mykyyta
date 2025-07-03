@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 	"time"
+	"weatherApi/internal/domain"
 	"weatherApi/test/integration/testutils"
 
 	"weatherApi/internal/subscription"
@@ -27,11 +28,11 @@ func TestSubscriptionRepository_CRUD(t *testing.T) {
 
 	repo := subscription.NewRepo(pg.DB.Gorm)
 
-	sub := &subscription.Subscription{
+	sub := &domain.Subscription{
 		ID:             uuid.NewString(),
 		Email:          "test@example.com",
 		City:           "Kyiv",
-		Frequency:      subscription.FreqDaily,
+		Frequency:      domain.FreqDaily,
 		IsConfirmed:    false,
 		IsUnsubscribed: false,
 		Token:          "mock-token",

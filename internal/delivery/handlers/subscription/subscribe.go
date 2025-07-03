@@ -1,9 +1,10 @@
-package handlers
+package subscription
 
 import (
 	"context"
 	"errors"
 	"net/http"
+	"weatherApi/internal/domain"
 
 	"weatherApi/internal/subscription"
 
@@ -11,7 +12,7 @@ import (
 )
 
 type subscribe interface {
-	Subscribe(ctx context.Context, email, city string, frequency subscription.Frequency) error
+	Subscribe(ctx context.Context, email, city string, frequency domain.Frequency) error
 }
 
 type Subscribe struct {
@@ -35,7 +36,7 @@ func (h Subscribe) Handle(c *gin.Context) {
 		return
 	}
 
-	freq := subscription.Frequency(req.Frequency)
+	freq := domain.Frequency(req.Frequency)
 	if !freq.Valid() {
 		SendError(c, http.StatusBadRequest, "Invalid frequency value")
 		return

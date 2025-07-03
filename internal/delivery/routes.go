@@ -3,7 +3,8 @@ package delivery
 import (
 	"net/http"
 	"weatherApi/internal/app/di"
-	handlers2 "weatherApi/internal/delivery/handlers"
+	"weatherApi/internal/delivery/handlers/subscription"
+	handlers2 "weatherApi/internal/delivery/handlers/weather"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -13,9 +14,9 @@ import (
 func SetupRoutes(s di.Services) *gin.Engine {
 	router := gin.Default()
 
-	subscribeHandler := handlers2.NewSubscribe(s.SubService)
-	confirmHandler := handlers2.NewConfirm(s.SubService)
-	unsubscribeHandler := handlers2.NewUnsubscribe(s.SubService)
+	subscribeHandler := subscription.NewSubscribe(s.SubService)
+	confirmHandler := subscription.NewConfirm(s.SubService)
+	unsubscribeHandler := subscription.NewUnsubscribe(s.SubService)
 	weatherHandler := handlers2.NewWeatherCurrent(s.WeatherService)
 
 	api := router.Group("/api")

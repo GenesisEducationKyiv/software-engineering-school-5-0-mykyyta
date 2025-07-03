@@ -1,4 +1,4 @@
-package handlers
+package subscription
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"weatherApi/internal/domain"
 
 	"weatherApi/internal/subscription"
 
@@ -18,10 +19,10 @@ import (
 // --- Mock Service Implementation ---
 
 type mockSubscribeService struct {
-	subscribeFunc func(ctx context.Context, email, city string, frequency subscription.Frequency) error
+	subscribeFunc func(ctx context.Context, email, city string, frequency domain.Frequency) error
 }
 
-func (m *mockSubscribeService) Subscribe(ctx context.Context, email, city string, frequency subscription.Frequency) error {
+func (m *mockSubscribeService) Subscribe(ctx context.Context, email, city string, frequency domain.Frequency) error {
 	return m.subscribeFunc(ctx, email, city, frequency)
 }
 
@@ -39,8 +40,8 @@ func setupTestRouter(handler Subscribe) *gin.Engine {
 func TestSubscribeHandler(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		service := &mockSubscribeService{
-			subscribeFunc: func(ctx context.Context, email, city string, frequency subscription.Frequency) error {
-				assert.Equal(t, subscription.FreqDaily, frequency)
+			subscribeFunc: func(ctx context.Context, email, city string, frequency domain.Frequency) error {
+				assert.Equal(t, domain.FreqDaily, frequency)
 				return nil
 			},
 		}
@@ -103,7 +104,7 @@ func TestSubscribeHandler(t *testing.T) {
 
 	t.Run("DuplicateEmail", func(t *testing.T) {
 		service := &mockSubscribeService{
-			subscribeFunc: func(ctx context.Context, email, city string, frequency subscription.Frequency) error {
+			subscribeFunc: func(ctx context.Context, email, city string, frequency domain.Frequency) error {
 				return subscription.ErrEmailAlreadyExists
 			},
 		}
@@ -127,7 +128,7 @@ func TestSubscribeHandler(t *testing.T) {
 
 	t.Run("CityNotFound", func(t *testing.T) {
 		service := &mockSubscribeService{
-			subscribeFunc: func(ctx context.Context, email, city string, frequency subscription.Frequency) error {
+			subscribeFunc: func(ctx context.Context, email, city string, frequency domain.Frequency) error {
 				return subscription.ErrCityNotFound
 			},
 		}
@@ -151,7 +152,7 @@ func TestSubscribeHandler(t *testing.T) {
 
 	t.Run("InternalError", func(t *testing.T) {
 		service := &mockSubscribeService{
-			subscribeFunc: func(ctx context.Context, email, city string, frequency subscription.Frequency) error {
+			subscribeFunc: func(ctx context.Context, email, city string, frequency domain.Frequency) error {
 				return errors.New("unexpected error")
 			},
 		}

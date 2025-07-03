@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"weatherApi/internal/domain"
 )
 
 var ErrCityNotFound = errors.New("city not found")
 
 type Provider interface {
-	GetWeather(ctx context.Context, city string) (Report, error)
+	GetWeather(ctx context.Context, city string) (domain.Report, error)
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
@@ -21,7 +22,7 @@ func NewService(p Provider) Service {
 	return Service{provider: p}
 }
 
-func (s Service) GetWeather(ctx context.Context, city string) (Report, error) {
+func (s Service) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	return s.provider.GetWeather(ctx, city)
 }
 

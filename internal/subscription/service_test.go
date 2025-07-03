@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
-
-	"weatherApi/internal/weather"
+	"weatherApi/internal/domain"
 
 	"weatherApi/internal/subscription"
 
@@ -17,25 +16,25 @@ import (
 
 type mockRepo struct{ mock.Mock }
 
-func (m *mockRepo) GetByEmail(ctx context.Context, email string) (*subscription.Subscription, error) {
+func (m *mockRepo) GetByEmail(ctx context.Context, email string) (*domain.Subscription, error) {
 	args := m.Called(ctx, email)
 	if s := args.Get(0); s != nil {
-		return s.(*subscription.Subscription), args.Error(1)
+		return s.(*domain.Subscription), args.Error(1)
 	}
 	return nil, args.Error(1)
 }
 
-func (m *mockRepo) Create(ctx context.Context, sub *subscription.Subscription) error {
+func (m *mockRepo) Create(ctx context.Context, sub *domain.Subscription) error {
 	return m.Called(ctx, sub).Error(0)
 }
 
-func (m *mockRepo) Update(ctx context.Context, sub *subscription.Subscription) error {
+func (m *mockRepo) Update(ctx context.Context, sub *domain.Subscription) error {
 	return m.Called(ctx, sub).Error(0)
 }
 
-func (m *mockRepo) GetConfirmedByFrequency(ctx context.Context, frequency string) ([]subscription.Subscription, error) {
+func (m *mockRepo) GetConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error) {
 	args := m.Called(ctx, frequency)
-	return args.Get(0).([]subscription.Subscription), args.Error(1)
+	return args.Get(0).([]domain.Subscription), args.Error(1)
 }
 
 type mockTokenService struct{ mock.Mock }
@@ -56,15 +55,15 @@ func (m *mockEmailService) SendConfirmationEmail(email, token string) error {
 	return m.Called(email, token).Error(0)
 }
 
-func (m *mockEmailService) SendWeatherReport(email string, weatherReport weather.Report, city, token string) error {
+func (m *mockEmailService) SendWeatherReport(email string, weatherReport domain.Report, city, token string) error {
 	return m.Called(email, weatherReport, city, token).Error(0)
 }
 
 type mockCityValidator struct{ mock.Mock }
 
-func (m *mockCityValidator) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (m *mockCityValidator) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	args := m.Called(ctx, city)
-	return args.Get(0).(weather.Report), args.Error(1)
+	return args.Get(0).(domain.Report), args.Error(1)
 }
 
 func (m *mockCityValidator) CityIsValid(ctx context.Context, city string) (bool, error) {
@@ -97,13 +96,13 @@ func TestSubscribe_SendsConfirmationEmail_Success(t *testing.T) {
 	ctx := context.Background()
 	email := "test@example.com"
 	city := "Kyiv"
-	frequency := subscription.FreqDaily
+	frequency := domain.FreqDaily
 	token := "abc-token"
 
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
 	d.tokens.On("Generate", email).Return(token, nil)
-	d.repo.On("Create", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(nil)
+	d.repo.On("Create", ctx, mock.AnythingOfType("*domain.Subscription")).Return(nil)
 
 	d.emails.On("SendConfirmationEmail", email, token).Return(nil).Once()
 
@@ -119,13 +118,13 @@ func TestSubscribe_EmailSendFails_ButSubscribeStillSuccess(t *testing.T) {
 	ctx := context.Background()
 	email := "fail@example.com"
 	city := "Lviv"
-	frequency := subscription.FreqDaily
+	frequency := domain.FreqDaily
 	token := "fail-token"
 
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
 	d.tokens.On("Generate", email).Return(token, nil)
-	d.repo.On("Create", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(nil)
+	d.repo.On("Create", ctx, mock.AnythingOfType("*domain.Subscription")).Return(nil)
 
 	d.emails.On("SendConfirmationEmail", email, token).Return(errors.New("smtp timeout")).Once()
 
@@ -140,15 +139,15 @@ func TestSubscribe_RenewsUnsubscribedUser(t *testing.T) {
 	ctx := context.Background()
 	email := "user@example.com"
 	city := "Kyiv"
-	frequency := subscription.FreqDaily
+	frequency := domain.FreqDaily
 	token := "new-token"
 
-	existing := &subscription.Subscription{Email: email, IsConfirmed: true, IsUnsubscribed: true}
+	existing := &domain.Subscription{Email: email, IsConfirmed: true, IsUnsubscribed: true}
 
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(existing, nil)
 	d.tokens.On("Generate", email).Return(token, nil)
-	d.repo.On("Update", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(nil)
+	d.repo.On("Update", ctx, mock.AnythingOfType("*domain.Subscription")).Return(nil)
 	d.emails.On("SendConfirmationEmail", email, token).Maybe().Return(nil)
 
 	err := d.service.Subscribe(ctx, email, city, frequency)
@@ -198,7 +197,7 @@ func TestSubscribe_AlreadySubscribed_ReturnsErr(t *testing.T) {
 	email := "user@example.com"
 	city := "Kyiv"
 
-	existing := &subscription.Subscription{
+	existing := &domain.Subscription{
 		Email:          email,
 		IsConfirmed:    true,
 		IsUnsubscribed: false,
@@ -233,7 +232,7 @@ func TestSubscribe_TokenGenerationFails_ReturnsErr(t *testing.T) {
 	email := "user@example.com"
 	city := "Kyiv"
 
-	existing := &subscription.Subscription{
+	existing := &domain.Subscription{
 		Email:          email,
 		IsConfirmed:    true,
 		IsUnsubscribed: true,
@@ -256,7 +255,7 @@ func TestSubscribe_UpdateFails_ReturnsErr(t *testing.T) {
 	city := "Kyiv"
 	token := "token123"
 
-	existing := &subscription.Subscription{
+	existing := &domain.Subscription{
 		Email:          email,
 		IsConfirmed:    true,
 		IsUnsubscribed: true,
@@ -265,7 +264,7 @@ func TestSubscribe_UpdateFails_ReturnsErr(t *testing.T) {
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(existing, nil)
 	d.tokens.On("Generate", email).Return(token, nil)
-	d.repo.On("Update", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(assert.AnError)
+	d.repo.On("Update", ctx, mock.AnythingOfType("*domain.Subscription")).Return(assert.AnError)
 
 	err := d.service.Subscribe(ctx, email, city, "daily")
 
@@ -283,7 +282,7 @@ func TestSubscribe_CreateFails_ReturnsErr(t *testing.T) {
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
 	d.tokens.On("Generate", email).Return(token, nil)
-	d.repo.On("Create", ctx, mock.AnythingOfType("*subscription.Subscription")).Return(assert.AnError)
+	d.repo.On("Create", ctx, mock.AnythingOfType("*domain.Subscription")).Return(assert.AnError)
 
 	err := d.service.Subscribe(ctx, email, city, "daily")
 
@@ -298,7 +297,7 @@ func TestConfirm_ValidToken_Success(t *testing.T) {
 	ctx := context.Background()
 	email := "user@example.com"
 	token := "valid-token"
-	sub := &subscription.Subscription{Email: email, IsConfirmed: false}
+	sub := &domain.Subscription{Email: email, IsConfirmed: false}
 
 	d.tokens.On("Parse", token).Return(email, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
@@ -315,7 +314,7 @@ func TestListConfirmedByFrequency(t *testing.T) {
 	d := createTestService()
 	ctx := context.Background()
 	frequency := "weekly"
-	subs := []subscription.Subscription{
+	subs := []domain.Subscription{
 		{Email: "a@example.com", IsConfirmed: true},
 		{Email: "b@example.com", IsConfirmed: true},
 	}
@@ -383,7 +382,7 @@ func TestConfirm_AlreadyConfirmed(t *testing.T) {
 	ctx := context.Background()
 	email := "user@example.com"
 	token := "valid-token"
-	sub := &subscription.Subscription{Email: email, IsConfirmed: true}
+	sub := &domain.Subscription{Email: email, IsConfirmed: true}
 
 	d.tokens.On("Parse", token).Return(email, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
@@ -400,7 +399,7 @@ func TestConfirm_UpdateFails(t *testing.T) {
 	ctx := context.Background()
 	email := "user@example.com"
 	token := "token"
-	sub := &subscription.Subscription{Email: email, IsConfirmed: false}
+	sub := &domain.Subscription{Email: email, IsConfirmed: false}
 
 	d.tokens.On("Parse", token).Return(email, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
@@ -421,7 +420,7 @@ func TestUnsubscribe_ValidToken_Success(t *testing.T) {
 	ctx := context.Background()
 	email := "user@example.com"
 	token := "valid-token"
-	sub := &subscription.Subscription{Email: email, IsUnsubscribed: false}
+	sub := &domain.Subscription{Email: email, IsUnsubscribed: false}
 
 	d.tokens.On("Parse", token).Return(email, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
@@ -439,7 +438,7 @@ func TestUnsubscribe_AlreadyUnsubscribed(t *testing.T) {
 	ctx := context.Background()
 	email := "user@example.com"
 	token := "token"
-	sub := &subscription.Subscription{Email: email, IsUnsubscribed: true}
+	sub := &domain.Subscription{Email: email, IsUnsubscribed: true}
 
 	d.tokens.On("Parse", token).Return(email, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
@@ -486,7 +485,7 @@ func TestUnsubscribe_UpdateFails_ReturnsErr(t *testing.T) {
 	ctx := context.Background()
 	email := "user@example.com"
 	token := "valid-token"
-	sub := &subscription.Subscription{Email: email, IsUnsubscribed: false}
+	sub := &domain.Subscription{Email: email, IsUnsubscribed: false}
 
 	d.tokens.On("Parse", token).Return(email, nil)
 	d.repo.On("GetByEmail", ctx, email).Return(sub, nil)
@@ -507,7 +506,7 @@ func TestGenerateWeatherReportTasks_Success(t *testing.T) {
 	ctx := context.Background()
 	frequency := "daily"
 
-	subs := []subscription.Subscription{
+	subs := []domain.Subscription{
 		{Email: "a@example.com", City: "Kyiv", Token: "token1"},
 		{Email: "b@example.com", City: "Lviv", Token: "token2"},
 	}
@@ -529,7 +528,7 @@ func TestGenerateWeatherReportTasks_ListFails_ReturnsError(t *testing.T) {
 	frequency := "daily"
 
 	d.repo.On("GetConfirmedByFrequency", ctx, frequency).
-		Return([]subscription.Subscription(nil), assert.AnError)
+		Return([]domain.Subscription(nil), assert.AnError)
 
 	tasks, err := d.service.GenerateWeatherReportTasks(ctx, frequency)
 

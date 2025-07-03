@@ -5,12 +5,13 @@ import (
 	"errors"
 	"log"
 	"time"
+	"weatherApi/internal/domain"
 
 	"weatherApi/internal/weather"
 )
 
 type writer interface {
-	Set(ctx context.Context, city string, provider string, report weather.Report, ttl time.Duration) error
+	Set(ctx context.Context, city string, provider string, report domain.Report, ttl time.Duration) error
 	SetCityNotFound(ctx context.Context, city, provider string, ttl time.Duration) error
 	GetCityNotFound(ctx context.Context, city, provider string) (bool, error)
 }
@@ -47,16 +48,16 @@ func NewWriter(
 // This is important because some weather providers do not support
 // small or less-known cities. Caching negative results avoids repeated
 // unnecessary calls to the provider and improves performance.
-func (c Writer) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (c Writer) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	if notFound, err := c.Cache.GetCityNotFound(ctx, city, c.ProviderName); err == nil && notFound {
-		return weather.Report{}, weather.ErrCityNotFound
+		return domain.Report{}, weather.ErrCityNotFound
 	} else if err != nil {
 		log.Printf("Error checking CityNotFound cache for %q/%s: %v", city, c.ProviderName, err)
 	}
 	return c.getReportAndCache(ctx, city)
 }
 
-func (c Writer) getReportAndCache(ctx context.Context, city string) (weather.Report, error) {
+func (c Writer) getReportAndCache(ctx context.Context, city string) (domain.Report, error) {
 	report, err := c.Provider.GetWeather(ctx, city)
 	if err != nil {
 		c.cacheCityNotFound(ctx, city, err)

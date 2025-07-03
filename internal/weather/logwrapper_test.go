@@ -6,12 +6,13 @@ import (
 	"log"
 	"strings"
 	"testing"
+	"weatherApi/internal/domain"
 )
 
 type fakeProvider struct{}
 
-func (f *fakeProvider) GetWeather(ctx context.Context, city string) (Report, error) {
-	return Report{
+func (f *fakeProvider) GetWeather(ctx context.Context, city string) (domain.Report, error) {
+	return domain.Report{
 		Temperature: 25.0,
 		Humidity:    55,
 		Description: "Cloudy",

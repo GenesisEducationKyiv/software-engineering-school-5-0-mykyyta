@@ -2,8 +2,7 @@ package testutils
 
 import (
 	"context"
-
-	"weatherApi/internal/weather"
+	"weatherApi/internal/domain"
 )
 
 // -------------------------------
@@ -69,7 +68,7 @@ func (f *FakeEmailProvider) Send(to, subject, plain, html string) error {
 type FakeWeatherProvider struct {
 	Valid         bool
 	CityExistsErr error
-	Weather       weather.Report
+	Weather       domain.Report
 	WeatherSet    bool
 	WeatherErr    error
 }
@@ -81,14 +80,14 @@ func (f *FakeWeatherProvider) CityIsValid(ctx context.Context, city string) (boo
 	return f.Valid, nil
 }
 
-func (f *FakeWeatherProvider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (f *FakeWeatherProvider) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	if f.WeatherErr != nil {
-		return weather.Report{}, f.WeatherErr
+		return domain.Report{}, f.WeatherErr
 	}
 	if f.WeatherSet {
 		return f.Weather, nil
 	}
-	return weather.Report{
+	return domain.Report{
 		Temperature: 22.5,
 		Humidity:    55,
 		Description: "Sunny",

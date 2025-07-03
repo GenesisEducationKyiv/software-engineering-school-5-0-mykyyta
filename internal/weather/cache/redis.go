@@ -7,8 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"weatherApi/internal/weather"
+	"weatherApi/internal/domain"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -41,7 +40,7 @@ func (r RedisCache) notFoundKey(city, provider string) string {
 	return makeKey(cachePrefix, "notfound", city, provider)
 }
 
-func (r RedisCache) Set(ctx context.Context, city, provider string, report weather.Report, ttl time.Duration) error {
+func (r RedisCache) Set(ctx context.Context, city, provider string, report domain.Report, ttl time.Duration) error {
 	key := r.key(city, provider)
 
 	data, err := json.Marshal(report)
@@ -55,20 +54,20 @@ func (r RedisCache) Set(ctx context.Context, city, provider string, report weath
 	return nil
 }
 
-func (r RedisCache) Get(ctx context.Context, city, provider string) (weather.Report, error) {
+func (r RedisCache) Get(ctx context.Context, city, provider string) (domain.Report, error) {
 	key := r.key(city, provider)
 
 	data, err := r.client.Get(ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
-		return weather.Report{}, ErrCacheMiss
+		return domain.Report{}, ErrCacheMiss
 	}
 	if err != nil {
-		return weather.Report{}, fmt.Errorf("redis get error: %w", err)
+		return domain.Report{}, fmt.Errorf("redis get error: %w", err)
 	}
 
-	var rep weather.Report
+	var rep domain.Report
 	if err := json.Unmarshal([]byte(data), &rep); err != nil {
-		return weather.Report{}, fmt.Errorf("failed to unmarshal report: %w", err)
+		return domain.Report{}, fmt.Errorf("failed to unmarshal report: %w", err)
 	}
 	return rep, nil
 }

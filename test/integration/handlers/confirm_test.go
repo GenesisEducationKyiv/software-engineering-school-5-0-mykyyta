@@ -7,7 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"weatherApi/internal/app/di"
-	"weatherApi/internal/delivery/handlers"
+	subscription2 "weatherApi/internal/delivery/handlers/subscription"
+	"weatherApi/internal/domain"
 	testutils2 "weatherApi/test/integration/testutils"
 
 	"weatherApi/internal/config"
@@ -41,7 +42,7 @@ func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T
 	}
 	services := di.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
-	err = subscription.NewRepo(pg.DB.Gorm).Create(ctx, &subscription.Subscription{
+	err = subscription.NewRepo(pg.DB.Gorm).Create(ctx, &domain.Subscription{
 		ID:             uuid.NewString(),
 		Email:          "test@example.com",
 		City:           "Kyiv",
@@ -52,7 +53,7 @@ func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewConfirm(services.SubService)
+	handler := subscription2.NewConfirm(services.SubService)
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.GET("/api/confirm/:token", handler.Handle)

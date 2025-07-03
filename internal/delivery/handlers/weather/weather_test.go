@@ -1,10 +1,11 @@
-package handlers
+package weather
 
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"weatherApi/internal/domain"
 
 	"weatherApi/internal/weather"
 
@@ -16,10 +17,10 @@ import (
 
 type mockWeatherService struct {
 	getWeatherFunc func(ctx context.Context, city string) (
-		weather.Report, error)
+		domain.Report, error)
 }
 
-func (m *mockWeatherService) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (m *mockWeatherService) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	return m.getWeatherFunc(ctx, city)
 }
 
@@ -38,8 +39,8 @@ func setupWeatherRouter(service weatherCurrent) *gin.Engine {
 func TestWeatherHandler(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		service := &mockWeatherService{
-			getWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
-				return weather.Report{
+			getWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{
 					Temperature: 21.5,
 					Humidity:    60,
 					Description: "Sunny",
@@ -74,8 +75,8 @@ func TestWeatherHandler(t *testing.T) {
 
 	t.Run("CityNotFound", func(t *testing.T) {
 		service := &mockWeatherService{
-			getWeatherFunc: func(ctx context.Context, city string) (weather.Report, error) {
-				return weather.Report{}, weather.ErrCityNotFound
+			getWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{}, weather.ErrCityNotFound
 			},
 		}
 

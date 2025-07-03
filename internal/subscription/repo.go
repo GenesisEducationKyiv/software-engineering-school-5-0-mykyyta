@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"time"
+	"weatherApi/internal/domain"
 
 	"gorm.io/gorm"
 )
@@ -19,7 +20,7 @@ type SubscriptionRecord struct {
 	CreatedAt      time.Time
 }
 
-func toRecord(s Subscription) SubscriptionRecord {
+func toRecord(s domain.Subscription) SubscriptionRecord {
 	return SubscriptionRecord{
 		ID:             s.ID,
 		Email:          s.Email,
@@ -32,12 +33,12 @@ func toRecord(s Subscription) SubscriptionRecord {
 	}
 }
 
-func fromRecord(r SubscriptionRecord) Subscription {
-	return Subscription{
+func fromRecord(r SubscriptionRecord) domain.Subscription {
+	return domain.Subscription{
 		ID:             r.ID,
 		Email:          r.Email,
 		City:           r.City,
-		Frequency:      Frequency(r.Frequency),
+		Frequency:      domain.Frequency(r.Frequency),
 		IsConfirmed:    r.IsConfirmed,
 		IsUnsubscribed: r.IsUnsubscribed,
 		Token:          r.Token,
@@ -53,7 +54,7 @@ func NewRepo(db *gorm.DB) *GormSubscriptionRepository {
 	return &GormSubscriptionRepository{db: db}
 }
 
-func (r *GormSubscriptionRepository) GetByEmail(ctx context.Context, email string) (*Subscription, error) {
+func (r *GormSubscriptionRepository) GetByEmail(ctx context.Context, email string) (*domain.Subscription, error) {
 	var rec SubscriptionRecord
 	err := r.db.WithContext(ctx).Where("email = ?", email).First(&rec).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -66,17 +67,17 @@ func (r *GormSubscriptionRepository) GetByEmail(ctx context.Context, email strin
 	return &sub, nil
 }
 
-func (r *GormSubscriptionRepository) Create(ctx context.Context, sub *Subscription) error {
+func (r *GormSubscriptionRepository) Create(ctx context.Context, sub *domain.Subscription) error {
 	rec := toRecord(*sub)
 	return r.db.WithContext(ctx).Create(&rec).Error
 }
 
-func (r *GormSubscriptionRepository) Update(ctx context.Context, sub *Subscription) error {
+func (r *GormSubscriptionRepository) Update(ctx context.Context, sub *domain.Subscription) error {
 	rec := toRecord(*sub)
 	return r.db.WithContext(ctx).Save(&rec).Error
 }
 
-func (r *GormSubscriptionRepository) GetConfirmedByFrequency(ctx context.Context, freq string) ([]Subscription, error) {
+func (r *GormSubscriptionRepository) GetConfirmedByFrequency(ctx context.Context, freq string) ([]domain.Subscription, error) {
 	var recs []SubscriptionRecord
 	err := r.db.WithContext(ctx).
 		Where("is_confirmed = ? AND is_unsubscribed = ? AND frequency = ?", true, false, freq).
@@ -85,7 +86,7 @@ func (r *GormSubscriptionRepository) GetConfirmedByFrequency(ctx context.Context
 		return nil, err
 	}
 
-	subs := make([]Subscription, 0, len(recs))
+	subs := make([]domain.Subscription, 0, len(recs))
 	for _, r := range recs {
 		subs = append(subs, fromRecord(r))
 	}
