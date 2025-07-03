@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (s Service) Subscribe(ctx context.Context, email, city, frequency string) error {
+func (s Service) Subscribe(ctx context.Context, email, city string, frequency Frequency) error {
 	_, err := s.weatherService.CityIsValid(ctx, city)
 	if err != nil {
 		if errors.Is(err, ErrCityNotFound) {

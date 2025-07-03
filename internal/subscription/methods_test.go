@@ -97,7 +97,7 @@ func TestSubscribe_SendsConfirmationEmail_Success(t *testing.T) {
 	ctx := context.Background()
 	email := "test@example.com"
 	city := "Kyiv"
-	frequency := "daily"
+	frequency := subscription.FreqDaily
 	token := "abc-token"
 
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
@@ -119,7 +119,7 @@ func TestSubscribe_EmailSendFails_ButSubscribeStillSuccess(t *testing.T) {
 	ctx := context.Background()
 	email := "fail@example.com"
 	city := "Lviv"
-	frequency := "weekly"
+	frequency := subscription.FreqDaily
 	token := "fail-token"
 
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
@@ -140,7 +140,7 @@ func TestSubscribe_RenewsUnsubscribedUser(t *testing.T) {
 	ctx := context.Background()
 	email := "user@example.com"
 	city := "Kyiv"
-	frequency := "daily"
+	frequency := subscription.FreqDaily
 	token := "new-token"
 
 	existing := &subscription.Subscription{Email: email, IsConfirmed: true, IsUnsubscribed: true}

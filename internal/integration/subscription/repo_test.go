@@ -7,9 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"weatherApi/internal/subscription"
-
 	"weatherApi/internal/integration/testutils"
+	"weatherApi/internal/subscription"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -32,10 +31,11 @@ func TestSubscriptionRepository_CRUD(t *testing.T) {
 		ID:             uuid.NewString(),
 		Email:          "test@example.com",
 		City:           "Kyiv",
-		Frequency:      "daily",
+		Frequency:      subscription.FreqDaily,
 		IsConfirmed:    false,
 		IsUnsubscribed: false,
 		Token:          "mock-token",
+		CreatedAt:      time.Now(),
 	}
 
 	err = repo.Create(ctx, sub)
@@ -43,10 +43,12 @@ func TestSubscriptionRepository_CRUD(t *testing.T) {
 
 	got, err := repo.GetByEmail(ctx, "test@example.com")
 	require.NoError(t, err)
+
 	require.Equal(t, sub.Email, got.Email)
 	require.Equal(t, sub.City, got.City)
+	require.Equal(t, sub.Frequency, got.Frequency)
 	require.False(t, got.IsConfirmed)
-	require.WithinDuration(t, time.Now(), got.CreatedAt, time.Minute)
+	require.WithinDuration(t, sub.CreatedAt, got.CreatedAt, time.Minute)
 
 	got.IsConfirmed = true
 	err = repo.Update(ctx, got)
