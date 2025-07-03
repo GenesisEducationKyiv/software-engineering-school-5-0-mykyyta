@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"weatherApi/internal/domain"
 
 	"github.com/stretchr/testify/require"
 )
 
 type MockProvider struct {
-	GetWeatherFunc  func(ctx context.Context, city string) (Report, error)
+	GetWeatherFunc  func(ctx context.Context, city string) (domain.Report, error)
 	CityIsValidFunc func(ctx context.Context, city string) (bool, error)
 }
 
-func (m *MockProvider) GetWeather(ctx context.Context, city string) (Report, error) {
+func (m *MockProvider) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	return m.GetWeatherFunc(ctx, city)
 }
 
@@ -42,8 +43,8 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 
 	t.Run("fallback to second", func(t *testing.T) {
 		first := NewChainNode(&MockProvider{
-			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
-				return Report{}, errors.New("network error")
+			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{}, errors.New("network error")
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 				return false, errors.New("network error")
@@ -51,8 +52,8 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 		})
 
 		second := NewChainNode(&MockProvider{
-			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
-				return Report{Temperature: 25, Description: "Sunny"}, nil
+			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{Temperature: 25, Description: "Sunny"}, nil
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 				return true, nil
@@ -72,16 +73,16 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 
 	t.Run("all not found", func(t *testing.T) {
 		first := NewChainNode(&MockProvider{
-			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
-				return Report{}, ErrCityNotFound
+			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{}, ErrCityNotFound
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 				return false, ErrCityNotFound
 			},
 		})
 		second := NewChainNode(&MockProvider{
-			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
-				return Report{}, ErrCityNotFound
+			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{}, ErrCityNotFound
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 				return false, ErrCityNotFound
@@ -101,16 +102,16 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 
 	t.Run("mixed errors with not found", func(t *testing.T) {
 		first := NewChainNode(&MockProvider{
-			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
-				return Report{}, errors.New("timeout")
+			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{}, errors.New("timeout")
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 				return false, errors.New("timeout")
 			},
 		})
 		second := NewChainNode(&MockProvider{
-			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
-				return Report{}, ErrCityNotFound
+			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{}, ErrCityNotFound
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 				return false, ErrCityNotFound
@@ -130,16 +131,16 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 
 	t.Run("all fail with non-notfound", func(t *testing.T) {
 		first := NewChainNode(&MockProvider{
-			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
-				return Report{}, errors.New("bad gateway")
+			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{}, errors.New("bad gateway")
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 				return false, errors.New("bad gateway")
 			},
 		})
 		second := NewChainNode(&MockProvider{
-			GetWeatherFunc: func(ctx context.Context, city string) (Report, error) {
-				return Report{}, errors.New("rate limit")
+			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
+				return domain.Report{}, errors.New("rate limit")
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
 				return false, errors.New("rate limit")

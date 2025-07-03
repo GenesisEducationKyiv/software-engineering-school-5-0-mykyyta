@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"weatherApi/internal/domain"
 )
 
 type provider interface {
-	GetWeather(ctx context.Context, city string) (Report, error)
+	GetWeather(ctx context.Context, city string) (domain.Report, error)
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
@@ -30,7 +31,7 @@ func (c *ChainNode) SetNext(next ChainableProvider) ChainableProvider {
 	return next
 }
 
-func (c *ChainNode) GetWeather(ctx context.Context, city string) (Report, error) {
+func (c *ChainNode) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	report, err := c.provider.GetWeather(ctx, city)
 	if err == nil {
 		return report, nil
@@ -38,7 +39,7 @@ func (c *ChainNode) GetWeather(ctx context.Context, city string) (Report, error)
 	if c.next != nil {
 		return c.next.GetWeather(ctx, city)
 	}
-	return Report{}, fmt.Errorf("all providers failed: %w", err)
+	return domain.Report{}, fmt.Errorf("all providers failed: %w", err)
 }
 
 func (c *ChainNode) CityIsValid(ctx context.Context, city string) (bool, error) {

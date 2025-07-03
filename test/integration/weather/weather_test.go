@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"weatherApi/internal/domain"
 
 	"weatherApi/internal/weather"
 	"weatherApi/internal/weather/cache"
@@ -23,8 +24,8 @@ import (
 
 type successProvider struct{}
 
-func (s *successProvider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
-	return weather.Report{Temperature: 20.5, Humidity: 60, Description: "Sunny"}, nil
+func (s *successProvider) GetWeather(ctx context.Context, city string) (domain.Report, error) {
+	return domain.Report{Temperature: 20.5, Humidity: 60, Description: "Sunny"}, nil
 }
 
 func (s *successProvider) CityIsValid(ctx context.Context, city string) (bool, error) {
@@ -33,8 +34,8 @@ func (s *successProvider) CityIsValid(ctx context.Context, city string) (bool, e
 
 type failProvider struct{}
 
-func (f *failProvider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
-	return weather.Report{}, context.DeadlineExceeded
+func (f *failProvider) GetWeather(ctx context.Context, city string) (domain.Report, error) {
+	return domain.Report{}, context.DeadlineExceeded
 }
 
 func (f *failProvider) CityIsValid(ctx context.Context, city string) (bool, error) {
@@ -43,8 +44,8 @@ func (f *failProvider) CityIsValid(ctx context.Context, city string) (bool, erro
 
 type cityNotFoundProvider struct{}
 
-func (c *cityNotFoundProvider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
-	return weather.Report{}, weather.ErrCityNotFound
+func (c *cityNotFoundProvider) GetWeather(ctx context.Context, city string) (domain.Report, error) {
+	return domain.Report{}, weather.ErrCityNotFound
 }
 
 func (c *cityNotFoundProvider) CityIsValid(ctx context.Context, city string) (bool, error) {
@@ -176,7 +177,7 @@ func TestIntegration_CacheReader_Hit(t *testing.T) {
 	normalizedCity := "kyiv"
 	cacheKey := "weather:report:" + normalizedCity + ":" + provider
 
-	expected := weather.Report{
+	expected := domain.Report{
 		Temperature: 20.5,
 		Humidity:    60,
 		Description: "Sunny",
@@ -232,7 +233,7 @@ func TestIntegration_CacheWriter_WritesToRedis_And_ReaderReadsIt(t *testing.T) {
 	ttl := 5 * time.Minute
 	notFoundTTL := 12 * time.Hour
 
-	expected := weather.Report{
+	expected := domain.Report{
 		Temperature: 20.5,
 		Humidity:    60,
 		Description: "Sunny",
@@ -263,18 +264,18 @@ func TestIntegration_CacheWriter_WritesToRedis_And_ReaderReadsIt(t *testing.T) {
 type readerStub struct {
 	CalledKeys []string
 	Responses  map[string]struct {
-		Report weather.Report
+		Report domain.Report
 		Err    error
 	}
 }
 
-func (r *readerStub) Get(ctx context.Context, city, provider string) (weather.Report, error) {
+func (r *readerStub) Get(ctx context.Context, city, provider string) (domain.Report, error) {
 	key := provider
 	r.CalledKeys = append(r.CalledKeys, key)
 
 	resp, ok := r.Responses[key]
 	if !ok {
-		return weather.Report{}, cache.ErrCacheMiss
+		return domain.Report{}, cache.ErrCacheMiss
 	}
 	return resp.Report, resp.Err
 }
@@ -283,11 +284,11 @@ func TestIntegration_Reader_TriesProvidersInOrder(t *testing.T) {
 	ctx := context.Background()
 	providerNames := []string{"CacheA", "CacheB", "CacheC"}
 
-	expected := weather.Report{Temperature: 22, Humidity: 55, Description: "Cloudy"}
+	expected := domain.Report{Temperature: 22, Humidity: 55, Description: "Cloudy"}
 
 	stub := &readerStub{
 		Responses: map[string]struct {
-			Report weather.Report
+			Report domain.Report
 			Err    error
 		}{
 			"CacheA": {Err: cache.ErrCacheMiss},
@@ -311,12 +312,12 @@ func TestIntegration_Reader_StopsOnRedisError(t *testing.T) {
 
 	stub := &readerStub{
 		Responses: map[string]struct {
-			Report weather.Report
+			Report domain.Report
 			Err    error
 		}{
 			"CacheA": {Err: cache.ErrCacheMiss},
 			"CacheB": {Err: errors.New("connection lost")},
-			"CacheC": {Report: weather.Report{Temperature: 99}, Err: nil},
+			"CacheC": {Report: domain.Report{Temperature: 99}, Err: nil},
 		},
 	}
 

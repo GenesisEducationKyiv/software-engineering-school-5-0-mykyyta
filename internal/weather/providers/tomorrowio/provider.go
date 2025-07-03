@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"weatherApi/internal/domain"
 
 	"weatherApi/internal/weather"
 )
@@ -44,23 +45,23 @@ type apiResponse struct {
 	} `json:"data"`
 }
 
-func (p Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
+func (p Provider) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	url := fmt.Sprintf("%s?location=%s&apikey=%s", p.baseURL, city, p.apiKey)
 	body, err := p.makeRequest(ctx, url)
 	if err != nil {
 		if isInvalidLocation(body) {
-			return weather.Report{}, weather.ErrCityNotFound
+			return domain.Report{}, weather.ErrCityNotFound
 		}
-		return weather.Report{}, err
+		return domain.Report{}, err
 	}
 
 	var res apiResponse
 	if err := json.Unmarshal(body, &res); err != nil {
-		return weather.Report{}, fmt.Errorf("failed to decode tomorrow.io response: %w", err)
+		return domain.Report{}, fmt.Errorf("failed to decode tomorrow.io response: %w", err)
 	}
 
 	values := res.Data.Values
-	return weather.Report{
+	return domain.Report{
 		Temperature: values.Temperature,
 		Humidity:    values.Humidity,
 		Description: getDescription(values.WeatherCode),

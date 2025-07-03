@@ -11,7 +11,8 @@ import (
 	"testing"
 	"time"
 	"weatherApi/internal/app/di"
-	"weatherApi/internal/delivery/handlers"
+	subscription2 "weatherApi/internal/delivery/handlers/subscription"
+	"weatherApi/internal/domain"
 	testutils2 "weatherApi/test/integration/testutils"
 
 	"weatherApi/internal/subscription"
@@ -44,7 +45,7 @@ func TestSubscribeHandler_ValidRequest_CreatesSubAndSendsEmail(t *testing.T) {
 	}
 	services := di.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
-	handler := handlers.NewSubscribe(services.SubService)
+	handler := subscription2.NewSubscribe(services.SubService)
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.POST("/api/subscribe", handler.Handle)
@@ -71,7 +72,7 @@ func TestSubscribeHandler_ValidRequest_CreatesSubAndSendsEmail(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, sub)
 	require.Equal(t, "Kyiv", sub.City)
-	require.Equal(t, subscription.FreqDaily, sub.Frequency)
+	require.Equal(t, domain.FreqDaily, sub.Frequency)
 	require.False(t, sub.IsConfirmed)
 	require.False(t, sub.IsUnsubscribed)
 	require.NotEmpty(t, sub.Token)

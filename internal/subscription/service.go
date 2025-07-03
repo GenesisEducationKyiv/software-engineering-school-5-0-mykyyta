@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"time"
+	"weatherApi/internal/domain"
 	"weatherApi/internal/job"
-
-	"weatherApi/internal/weather"
 )
 
 var (
@@ -19,19 +18,19 @@ var (
 )
 
 type repo interface {
-	GetByEmail(ctx context.Context, email string) (*Subscription, error)
-	Create(ctx context.Context, sub *Subscription) error
-	Update(ctx context.Context, sub *Subscription) error
-	GetConfirmedByFrequency(ctx context.Context, frequency string) ([]Subscription, error)
+	GetByEmail(ctx context.Context, email string) (*domain.Subscription, error)
+	Create(ctx context.Context, sub *domain.Subscription) error
+	Update(ctx context.Context, sub *domain.Subscription) error
+	GetConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error)
 }
 
 type emailService interface {
 	SendConfirmationEmail(email, token string) error
-	SendWeatherReport(email string, weather weather.Report, city, token string) error
+	SendWeatherReport(email string, weather domain.Report, city, token string) error
 }
 
 type weatherService interface {
-	GetWeather(ctx context.Context, city string) (weather.Report, error)
+	GetWeather(ctx context.Context, city string) (domain.Report, error)
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
@@ -61,7 +60,7 @@ func NewService(
 	}
 }
 
-func (s Service) Subscribe(ctx context.Context, email, city string, frequency Frequency) error {
+func (s Service) Subscribe(ctx context.Context, email, city string, frequency domain.Frequency) error {
 	_, err := s.weatherService.CityIsValid(ctx, city)
 	if err != nil {
 		if errors.Is(err, ErrCityNotFound) {
@@ -95,7 +94,7 @@ func (s Service) Subscribe(ctx context.Context, email, city string, frequency Fr
 			return fmt.Errorf("failed to update subscription: %w", err)
 		}
 	} else {
-		sub := &Subscription{
+		sub := &domain.Subscription{
 			ID:             uuid.New().String(),
 			Email:          email,
 			City:           city,
@@ -182,7 +181,7 @@ func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency strin
 	return tasks, nil
 }
 
-func (s Service) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]Subscription, error) {
+func (s Service) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error) {
 	return s.repo.GetConfirmedByFrequency(ctx, frequency)
 }
 

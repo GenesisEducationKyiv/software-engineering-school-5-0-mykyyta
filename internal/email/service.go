@@ -2,8 +2,7 @@ package email
 
 import (
 	"fmt"
-
-	"weatherApi/internal/weather"
+	"weatherApi/internal/domain"
 )
 
 type Provider interface {
@@ -31,7 +30,7 @@ func (s Service) SendConfirmationEmail(toEmail, token string) error {
 	return s.provider.Send(toEmail, subject, plain, html)
 }
 
-func (s Service) SendWeatherReport(toEmail string, weather weather.Report, city, token string) error {
+func (s Service) SendWeatherReport(toEmail string, weather domain.Report, city, token string) error {
 	url := fmt.Sprintf("%s/api/unsubscribe/%s", s.baseURL, token)
 	subject := fmt.Sprintf("Оновлення погоди для %s", city)
 

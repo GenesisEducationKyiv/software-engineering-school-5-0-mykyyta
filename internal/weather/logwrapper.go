@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"time"
+	"weatherApi/internal/domain"
 )
 
 type LogWrapper struct {
@@ -20,7 +21,7 @@ func NewLogWrapper(next Provider, providerName string, logger *log.Logger) LogWr
 	}
 }
 
-func (p LogWrapper) GetWeather(ctx context.Context, city string) (Report, error) {
+func (p LogWrapper) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	start := time.Now()
 	res, err := p.next.GetWeather(ctx, city)
 	p.log("GetWeather", city, time.Since(start), err)
