@@ -2,6 +2,7 @@ package app
 
 import (
 	"net/http"
+	"weatherApi/internal/app/di"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(s ServiceSet) *gin.Engine {
+func SetupRoutes(s di.Services) *gin.Engine {
 	router := gin.Default()
 
 	subscribeHandler := handlers.NewSubscribe(s.SubService)

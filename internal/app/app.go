@@ -3,33 +3,71 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
+	"weatherApi/internal/app/di"
+	infra2 "weatherApi/internal/infra"
 
 	"weatherApi/internal/weather/cache"
 
 	"github.com/redis/go-redis/v9"
 
 	"weatherApi/internal/config"
-	"weatherApi/internal/scheduler"
 )
 
 type App struct {
 	Server    *http.Server
-	DB        *DB
+	DB        *infra2.Gorm
 	Redis     *redis.Client
-	Scheduler *scheduler.WeatherScheduler
+	Scheduler *di.WeatherScheduler
 	Logger    *log.Logger
 }
 
+func Run(logger *log.Logger) error {
+	cfg := config.LoadConfig()
+	gin.SetMode(cfg.GinMode)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app, err := NewApp(ctx, cfg, logger)
+	if err != nil {
+		return fmt.Errorf("failed to build app: %w", err)
+	}
+	defer app.DB.Close()
+
+	app.StartServer()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	logger.Println("Shutdown signal received, cleaning up...")
+
+	cancel()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := app.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("App shutdown: %w", err)
+	}
+
+	logger.Println("Server exited gracefully")
+	return nil
+}
+
 func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, error) {
-	db, err := NewDB(cfg.DBUrl)
+	db, err := infra2.NewGorm(cfg.DBUrl)
 	if err != nil {
 		return nil, fmt.Errorf("DB error: %w", err)
 	}
 
-	redisClient, err := NewRedisClient(ctx, cfg)
+	redisClient, err := infra2.NewRedisClient(ctx, cfg)
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("redis error: %w", err)
@@ -46,18 +84,18 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 		},
 	}
 
-	providerDeps := ProviderDeps{
-		cfg:         cfg,
-		logger:      logger,
-		redisClient: redisClient,
-		httpClient:  httpClient,
-		metrics:     metrics,
+	providerDeps := di.ProviderDeps{
+		Cfg:         cfg,
+		Logger:      logger,
+		RedisClient: redisClient,
+		HttpClient:  httpClient,
+		Metrics:     metrics,
 	}
 
-	providerSet := BuildProviders(providerDeps)
-	serviceSet := BuildServices(db, cfg, providerSet)
+	providerSet := di.BuildProviders(providerDeps)
+	serviceSet := di.BuildServices(db, cfg, providerSet)
 
-	sr := scheduler.New(serviceSet.SubService)
+	sr := di.NewScheduler(serviceSet.SubService)
 	go sr.Start(ctx)
 
 	router := SetupRoutes(serviceSet)

@@ -1,4 +1,4 @@
-package app
+package infra
 
 import (
 	"fmt"
@@ -8,19 +8,19 @@ import (
 	"gorm.io/gorm"
 )
 
-type DB struct {
+type Gorm struct {
 	Gorm *gorm.DB
 }
 
-func NewDB(dsn string) (*DB, error) {
-	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+func NewGorm(dsn string) (*Gorm, error) {
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
-	return &DB{Gorm: gormDB}, nil
+	return &Gorm{Gorm: db}, nil
 }
 
-func (db *DB) Close() {
+func (db *Gorm) Close() {
 	if sqlDB, err := db.Gorm.DB(); err != nil {
 		log.Printf("failed to get sql.DB: %v", err)
 	} else if err := sqlDB.Close(); err != nil {

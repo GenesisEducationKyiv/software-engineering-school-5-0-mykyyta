@@ -10,13 +10,13 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"weatherApi/internal/app/di"
 
 	"weatherApi/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"weatherApi/internal/app"
 	"weatherApi/internal/config"
 	"weatherApi/internal/handlers"
 	"weatherApi/internal/integration/testutils"
@@ -37,12 +37,12 @@ func TestSubscribeHandler_ValidRequest_CreatesSubAndSendsEmail(t *testing.T) {
 	tokenProvider := &testutils.FakeTokenProvider{}
 	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
 
-	providers := app.ProviderSet{
+	providers := di.Providers{
 		EmailProvider:        emailProvider,
 		TokenProvider:        tokenProvider,
 		WeatherChainProvider: weatherProvider,
 	}
-	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
+	services := di.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
 	handler := handlers.NewSubscribe(services.SubService)
 	gin.SetMode(gin.TestMode)
