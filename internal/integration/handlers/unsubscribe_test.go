@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"weatherApi/internal/app/di"
 
-	"weatherApi/internal/app"
 	"weatherApi/internal/config"
 	"weatherApi/internal/handlers"
 	"weatherApi/internal/integration/testutils"
@@ -37,12 +37,12 @@ func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T
 	tokenProvider := &testutils.FakeTokenProvider{}
 	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
 
-	providers := app.ProviderSet{
+	providers := di.Providers{
 		EmailProvider:        emailProvider,
 		TokenProvider:        tokenProvider,
 		WeatherChainProvider: weatherProvider,
 	}
-	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
+	services := di.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
 	err = subscription.NewRepo(pg.DB.Gorm).Create(ctx, &subscription.Subscription{
 		ID:             uuid.NewString(),

@@ -8,8 +8,7 @@ import (
 	"log"
 	"path/filepath"
 	"time"
-
-	"weatherApi/internal/app"
+	"weatherApi/internal/infra"
 
 	"github.com/docker/go-connections/nat"
 	"github.com/golang-migrate/migrate/v4"
@@ -23,7 +22,7 @@ import (
 )
 
 type TestPostgres struct {
-	DB        *app.DB
+	DB        *infra.Gorm
 	Container testcontainers.Container
 	DSN       string
 }
@@ -73,7 +72,7 @@ func StartPostgres(ctx context.Context) (*TestPostgres, error) {
 	}
 
 	return &TestPostgres{
-		DB:        &app.DB{Gorm: gormDB},
+		DB:        &infra.Gorm{Gorm: gormDB},
 		Container: container,
 		DSN:       dsn,
 	}, nil

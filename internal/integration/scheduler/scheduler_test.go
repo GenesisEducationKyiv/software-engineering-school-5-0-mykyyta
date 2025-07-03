@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 	"time"
+	"weatherApi/internal/app/di"
 
 	"weatherApi/internal/config"
 
@@ -13,7 +14,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"weatherApi/internal/app"
 	"weatherApi/internal/integration/testutils"
 	"weatherApi/internal/jobs"
 	"weatherApi/internal/subscription"
@@ -41,13 +41,13 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *test
 
 	emailProvider := &testutils.FakeEmailProvider{}
 
-	providers := app.ProviderSet{
+	providers := di.Providers{
 		EmailProvider:        emailProvider,
 		TokenProvider:        &testutils.FakeTokenProvider{},
 		WeatherChainProvider: &testutils.FakeWeatherProvider{Valid: true},
 	}
 
-	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
+	services := di.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
 	err = pg.DB.Gorm.Exec("DELETE FROM subscriptions").Error
 	require.NoError(t, err)
@@ -99,12 +99,12 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 
 	emailProvider := &testutils.FakeEmailProvider{}
 
-	providers := app.ProviderSet{
+	providers := di.Providers{
 		EmailProvider:        emailProvider,
 		TokenProvider:        &testutils.FakeTokenProvider{},
 		WeatherChainProvider: &testutils.FakeWeatherProvider{Valid: true},
 	}
-	services := app.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
+	services := di.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
 	err = pg.DB.Gorm.Exec("DELETE FROM subscriptions").Error
 	require.NoError(t, err)

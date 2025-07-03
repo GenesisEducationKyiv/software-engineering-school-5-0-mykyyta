@@ -1,4 +1,4 @@
-package scheduler
+package di
 
 import (
 	"context"
@@ -18,7 +18,7 @@ type WeatherScheduler struct {
 	wg         sync.WaitGroup
 }
 
-func New(
+func NewScheduler(
 	subService subscription.Service,
 ) *WeatherScheduler {
 	queue := jobs.NewLocalQueue(100)
