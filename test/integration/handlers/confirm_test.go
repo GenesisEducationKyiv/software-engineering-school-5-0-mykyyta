@@ -9,15 +9,14 @@ import (
 	"weatherApi/internal/app/di"
 	subscription2 "weatherApi/internal/delivery/handlers/subscription"
 	"weatherApi/internal/domain"
+	"weatherApi/internal/subscription/repo"
 	testutils2 "weatherApi/test/integration/testutils"
-
-	"weatherApi/internal/config"
-	"weatherApi/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
+	"weatherApi/internal/config"
 )
 
 func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T) {
@@ -42,7 +41,7 @@ func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T
 	}
 	services := di.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
-	err = subscription.NewRepo(pg.DB.Gorm).Create(ctx, &domain.Subscription{
+	err = repo.NewRepo(pg.DB.Gorm).Create(ctx, &domain.Subscription{
 		ID:             uuid.NewString(),
 		Email:          "test@example.com",
 		City:           "Kyiv",
@@ -66,7 +65,7 @@ func TestConfirmHandler_ValidToken_ConfirmsSubscriptionSuccessfully(t *testing.T
 	require.Equal(t, 200, w.Code)
 	require.Contains(t, w.Body.String(), "Subscription confirmed successfully")
 
-	sub, err := subscription.NewRepo(pg.DB.Gorm).GetByEmail(ctx, "test@example.com")
+	sub, err := repo.NewRepo(pg.DB.Gorm).GetByEmail(ctx, "test@example.com")
 	require.NoError(t, err)
 	require.True(t, sub.IsConfirmed)
 }

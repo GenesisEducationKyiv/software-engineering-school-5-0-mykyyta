@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 	"weatherApi/internal/domain"
+	"weatherApi/internal/subscription/repo"
 	"weatherApi/test/integration/testutils"
 
 	"weatherApi/internal/subscription"
@@ -26,7 +27,7 @@ func TestSubscriptionRepository_CRUD(t *testing.T) {
 		}
 	}()
 
-	repo := subscription.NewRepo(pg.DB.Gorm)
+	repo := repo.NewRepo(pg.DB.Gorm)
 
 	sub := &domain.Subscription{
 		ID:             uuid.NewString(),
@@ -71,7 +72,7 @@ func TestSubscriptionRepository_NotFound(t *testing.T) {
 		}
 	}()
 
-	repo := subscription.NewRepo(pg.DB.Gorm)
+	repo := repo.NewRepo(pg.DB.Gorm)
 
 	sub, err := repo.GetByEmail(ctx, "nonexistent@example.com")
 	require.ErrorIs(t, err, subscription.ErrSubscriptionNotFound)

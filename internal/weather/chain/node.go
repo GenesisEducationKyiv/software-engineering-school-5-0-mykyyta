@@ -1,4 +1,4 @@
-package weather
+package chain
 
 import (
 	"context"
@@ -17,21 +17,21 @@ type ChainableProvider interface {
 	SetNext(handler ChainableProvider) ChainableProvider
 }
 
-type ChainNode struct {
+type Node struct {
 	next     ChainableProvider
 	provider provider
 }
 
-func NewChainNode(p provider) *ChainNode {
-	return &ChainNode{provider: p}
+func NewNode(p provider) *Node {
+	return &Node{provider: p}
 }
 
-func (c *ChainNode) SetNext(next ChainableProvider) ChainableProvider {
+func (c *Node) SetNext(next ChainableProvider) ChainableProvider {
 	c.next = next
 	return next
 }
 
-func (c *ChainNode) GetWeather(ctx context.Context, city string) (domain.Report, error) {
+func (c *Node) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	report, err := c.provider.GetWeather(ctx, city)
 	if err == nil {
 		return report, nil
@@ -42,7 +42,7 @@ func (c *ChainNode) GetWeather(ctx context.Context, city string) (domain.Report,
 	return domain.Report{}, fmt.Errorf("all providers failed: %w", err)
 }
 
-func (c *ChainNode) CityIsValid(ctx context.Context, city string) (bool, error) {
+func (c *Node) CityIsValid(ctx context.Context, city string) (bool, error) {
 	valid, err := c.provider.CityIsValid(ctx, city)
 	if err == nil {
 		return valid, nil

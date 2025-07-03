@@ -1,19 +1,20 @@
-package weather
+package logger
 
 import (
 	"context"
 	"log"
 	"time"
 	"weatherApi/internal/domain"
+	"weatherApi/internal/weather"
 )
 
 type LogWrapper struct {
-	next     Provider
+	next     weather.Provider
 	provider string
 	logger   *log.Logger
 }
 
-func NewLogWrapper(next Provider, providerName string, logger *log.Logger) LogWrapper {
+func NewWrapper(next weather.Provider, providerName string, logger *log.Logger) LogWrapper {
 	return LogWrapper{
 		next:     next,
 		provider: providerName,
