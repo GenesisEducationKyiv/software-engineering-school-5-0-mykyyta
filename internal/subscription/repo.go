@@ -45,9 +45,6 @@ func fromRecord(r SubscriptionRecord) Subscription {
 	}
 }
 
-// -----------------------------------------------------------------------------
-// GORM Repository
-// -----------------------------------------------------------------------------
 type GormSubscriptionRepository struct {
 	db *gorm.DB
 }
