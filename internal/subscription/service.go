@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"time"
-	"weatherApi/internal/jobs"
+	"weatherApi/internal/job"
 
 	"weatherApi/internal/weather"
 )
@@ -165,15 +165,15 @@ func (s Service) Unsubscribe(ctx context.Context, token string) error {
 	return nil
 }
 
-func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency string) ([]jobs.Task, error) {
+func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency string) ([]job.Task, error) {
 	subs, err := s.ListConfirmedByFrequency(ctx, frequency)
 	if err != nil {
 		return nil, err
 	}
 
-	tasks := make([]jobs.Task, 0, len(subs))
+	tasks := make([]job.Task, 0, len(subs))
 	for _, sub := range subs {
-		tasks = append(tasks, jobs.Task{
+		tasks = append(tasks, job.Task{
 			Email: sub.Email,
 			City:  sub.City,
 			Token: sub.Token,
@@ -186,7 +186,7 @@ func (s Service) ListConfirmedByFrequency(ctx context.Context, frequency string)
 	return s.repo.GetConfirmedByFrequency(ctx, frequency)
 }
 
-func (s Service) ProcessWeatherReportTask(ctx context.Context, task jobs.Task) error {
+func (s Service) ProcessWeatherReportTask(ctx context.Context, task job.Task) error {
 	report, err := s.weatherService.GetWeather(ctx, task.City)
 	if err != nil {
 		return fmt.Errorf("get weather for %s: %w", task.City, err)

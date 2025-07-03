@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 	"weatherApi/internal/app/di"
+	"weatherApi/internal/delivery/handlers"
 
 	"weatherApi/internal/subscription"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"weatherApi/internal/config"
-	"weatherApi/internal/handlers"
 	"weatherApi/internal/integration/testutils"
 )
 
