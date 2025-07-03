@@ -15,16 +15,21 @@ import (
 
 type Provider struct {
 	apiKey  string
+	client  *http.Client
 	baseURL string
 }
 
-func New(apiKey string, baseURL ...string) Provider {
+func New(apiKey string, client *http.Client, baseURL ...string) Provider {
 	url := "https://api.openweathermap.org/data/2.5/weather"
 	if len(baseURL) > 0 && baseURL[0] != "" {
 		url = baseURL[0]
 	}
+	if client == nil {
+		client = &http.Client{Timeout: 5 * time.Second}
+	}
 	return Provider{
 		apiKey:  apiKey,
+		client:  client,
 		baseURL: url,
 	}
 }
@@ -42,7 +47,7 @@ type apiResponse struct {
 
 func (p Provider) GetWeather(ctx context.Context, city string) (weather.Report, error) {
 	url := fmt.Sprintf("%s?q=%s&appid=%s&units=metric", p.baseURL, city, p.apiKey)
-	body, err := makeRequest(ctx, url)
+	body, err := p.makeRequest(ctx, url)
 	if err != nil {
 		if isCityNotFound(body) {
 			return weather.Report{}, weather.ErrCityNotFound
@@ -68,7 +73,7 @@ func (p Provider) GetWeather(ctx context.Context, city string) (weather.Report, 
 
 func (p Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	url := fmt.Sprintf("%s?q=%s&appid=%s", p.baseURL, city, p.apiKey)
-	body, err := makeRequest(ctx, url)
+	body, err := p.makeRequest(ctx, url)
 	if err != nil {
 		if isCityNotFound(body) {
 			return false, weather.ErrCityNotFound
@@ -89,16 +94,13 @@ func isCityNotFound(body []byte) bool {
 	return errResp.Cod == "404"
 }
 
-func makeRequest(ctx context.Context, url string) ([]byte, error) {
+func (p Provider) makeRequest(ctx context.Context, url string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
-	resp, err := client.Do(req)
+	resp, err := p.client.Do(req)
 	if err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return nil, fmt.Errorf("request timed out: %w", err)

@@ -16,28 +16,29 @@ import (
 func TestGetCurrentWeather_Success(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "/current.json", r.URL.Path)
-		require.Contains(t, r.URL.Query().Get("key"), "fake-api-key")
-		require.Contains(t, r.URL.Query().Get("q"), "Kyiv")
+		require.Equal(t, "fake-api-key", r.URL.Query().Get("key"))
+		require.Equal(t, "Kyiv", r.URL.Query().Get("q"))
 
 		w.WriteHeader(http.StatusOK)
 		_, err := fmt.Fprint(w, `{
-	"current": {
-		"temp_с": 21.5,
-		"humidity": 55,
-		"condition": {
-			"text": "Clear"
-		}
-	}
-}`)
+			"current": {
+				"temp_c": 21.5,
+				"humidity": 55,
+				"condition": {
+					"text": "Clear"
+				}
+			}
+		}`)
 		require.NoError(t, err)
 	}))
 	defer mockServer.Close()
 
-	provider := New("fake-api-key", mockServer.URL)
+	client := mockServer.Client()
+	provider := New("fake-api-key", client, mockServer.URL)
+
 	result, err := provider.GetWeather(context.Background(), "Kyiv")
 
 	require.NoError(t, err)
-	require.NotNil(t, result)
 	require.Equal(t, 21.5, result.Temperature)
 	require.Equal(t, 55, result.Humidity)
 	require.Equal(t, "Clear", result.Description)
@@ -48,7 +49,7 @@ func TestCityExists_True(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, err := fmt.Fprint(w, `{
 			"current": {
-				"temp_с": 18.0,
+				"temp_c": 18.0,
 				"humidity": 50,
 				"condition": {
 					"text": "Sunny"
@@ -59,7 +60,9 @@ func TestCityExists_True(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := New("fake-api-key", mockServer.URL)
+	client := mockServer.Client()
+	provider := New("fake-api-key", client, mockServer.URL)
+
 	exists, err := provider.CityIsValid(context.Background(), "Kyiv")
 
 	require.NoError(t, err)
@@ -79,7 +82,9 @@ func TestCityExists_False(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := New("fake-api-key", mockServer.URL)
+	client := mockServer.Client()
+	provider := New("fake-api-key", client, mockServer.URL)
+
 	exists, err := provider.CityIsValid(context.Background(), "UnknownCity")
 
 	require.ErrorIs(t, err, weather.ErrCityNotFound)
@@ -92,7 +97,10 @@ func TestGetCurrentWeather_Timeout(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	provider := New("fake-api-key", mockServer.URL)
+	client := &http.Client{
+		Timeout: 200 * time.Millisecond,
+	}
+	provider := New("fake-api-key", client, mockServer.URL)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
