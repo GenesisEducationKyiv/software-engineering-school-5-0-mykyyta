@@ -71,7 +71,7 @@ func TestSubscribeHandler_ValidRequest_CreatesSubAndSendsEmail(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, sub)
 	require.Equal(t, "Kyiv", sub.City)
-	require.Equal(t, "daily", sub.Frequency)
+	require.Equal(t, subscription.FreqDaily, sub.Frequency)
 	require.False(t, sub.IsConfirmed)
 	require.False(t, sub.IsUnsubscribed)
 	require.NotEmpty(t, sub.Token)

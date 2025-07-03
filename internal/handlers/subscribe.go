@@ -11,7 +11,7 @@ import (
 )
 
 type subscribe interface {
-	Subscribe(ctx context.Context, email, city, frequency string) error
+	Subscribe(ctx context.Context, email, city string, frequency subscription.Frequency) error
 }
 
 type Subscribe struct {
@@ -35,7 +35,13 @@ func (h Subscribe) Handle(c *gin.Context) {
 		return
 	}
 
-	err := h.service.Subscribe(c.Request.Context(), req.Email, req.City, req.Frequency)
+	freq := subscription.Frequency(req.Frequency)
+	if !freq.Valid() {
+		SendError(c, http.StatusBadRequest, "Invalid frequency value")
+		return
+	}
+
+	err := h.service.Subscribe(c.Request.Context(), req.Email, req.City, freq)
 	if err != nil {
 		switch {
 		case errors.Is(err, subscription.ErrCityNotFound):

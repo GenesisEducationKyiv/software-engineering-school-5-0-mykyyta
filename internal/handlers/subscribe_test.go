@@ -18,14 +18,14 @@ import (
 // --- Mock Service Implementation ---
 
 type mockSubscribeService struct {
-	subscribeFunc func(ctx context.Context, email, city, frequency string) error
+	subscribeFunc func(ctx context.Context, email, city string, frequency subscription.Frequency) error
 }
 
-func (m *mockSubscribeService) Subscribe(ctx context.Context, email, city, frequency string) error {
+func (m *mockSubscribeService) Subscribe(ctx context.Context, email, city string, frequency subscription.Frequency) error {
 	return m.subscribeFunc(ctx, email, city, frequency)
 }
 
-// --- Test Cases ---
+// --- Test Setup ---
 
 func setupTestRouter(handler Subscribe) *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -34,10 +34,13 @@ func setupTestRouter(handler Subscribe) *gin.Engine {
 	return r
 }
 
+// --- Test Cases ---
+
 func TestSubscribeHandler(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		service := &mockSubscribeService{
-			subscribeFunc: func(ctx context.Context, email, city, frequency string) error {
+			subscribeFunc: func(ctx context.Context, email, city string, frequency subscription.Frequency) error {
+				assert.Equal(t, subscription.FreqDaily, frequency)
 				return nil
 			},
 		}
@@ -86,7 +89,7 @@ func TestSubscribeHandler(t *testing.T) {
 		form := url.Values{}
 		form.Add("email", "test@example.com")
 		form.Add("city", "Kyiv")
-		form.Add("frequency", "weekly") // not allowed
+		form.Add("frequency", "weekly") // invalid
 
 		req := httptest.NewRequest(http.MethodPost, "/api/subscribe", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -100,7 +103,7 @@ func TestSubscribeHandler(t *testing.T) {
 
 	t.Run("DuplicateEmail", func(t *testing.T) {
 		service := &mockSubscribeService{
-			subscribeFunc: func(ctx context.Context, email, city, frequency string) error {
+			subscribeFunc: func(ctx context.Context, email, city string, frequency subscription.Frequency) error {
 				return subscription.ErrEmailAlreadyExists
 			},
 		}
@@ -124,7 +127,7 @@ func TestSubscribeHandler(t *testing.T) {
 
 	t.Run("CityNotFound", func(t *testing.T) {
 		service := &mockSubscribeService{
-			subscribeFunc: func(ctx context.Context, email, city, frequency string) error {
+			subscribeFunc: func(ctx context.Context, email, city string, frequency subscription.Frequency) error {
 				return subscription.ErrCityNotFound
 			},
 		}
@@ -148,7 +151,7 @@ func TestSubscribeHandler(t *testing.T) {
 
 	t.Run("InternalError", func(t *testing.T) {
 		service := &mockSubscribeService{
-			subscribeFunc: func(ctx context.Context, email, city, frequency string) error {
+			subscribeFunc: func(ctx context.Context, email, city string, frequency subscription.Frequency) error {
 				return errors.New("unexpected error")
 			},
 		}
