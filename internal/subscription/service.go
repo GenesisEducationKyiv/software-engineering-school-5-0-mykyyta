@@ -3,6 +3,8 @@ package subscription
 import (
 	"context"
 	"errors"
+
+	"weatherApi/internal/weather"
 )
 
 var (
@@ -21,9 +23,11 @@ type repo interface {
 
 type emailService interface {
 	SendConfirmationEmail(email, token string) error
+	SendWeatherReport(email string, weather weather.Report, city, token string) error
 }
 
-type cityValidator interface {
+type weatherService interface {
+	GetWeather(ctx context.Context, city string) (weather.Report, error)
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
@@ -33,22 +37,22 @@ type tokenService interface {
 }
 
 type Service struct {
-	repo          repo
-	emailService  emailService
-	cityValidator cityValidator
-	tokenService  tokenService
+	repo           repo
+	emailService   emailService
+	weatherService weatherService
+	tokenService   tokenService
 }
 
 func NewService(
 	repo repo,
 	emailService emailService,
-	cityValidator cityValidator,
+	weatherService weatherService,
 	tokenService tokenService,
 ) Service {
 	return Service{
-		repo:          repo,
-		emailService:  emailService,
-		cityValidator: cityValidator,
-		tokenService:  tokenService,
+		repo:           repo,
+		emailService:   emailService,
+		weatherService: weatherService,
+		tokenService:   tokenService,
 	}
 }
