@@ -9,9 +9,9 @@ import (
 	"testing"
 	"weatherApi/internal/app/di"
 	"weatherApi/internal/delivery/handlers"
+	testutils2 "weatherApi/test/integration/testutils"
 
 	"weatherApi/internal/config"
-	"weatherApi/internal/integration/testutils"
 	"weatherApi/internal/subscription"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +22,7 @@ import (
 func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T) {
 	ctx := context.Background()
 
-	pg, err := testutils.StartPostgres(ctx)
+	pg, err := testutils2.StartPostgres(ctx)
 	require.NoError(t, err)
 	defer func() {
 		if err := pg.Terminate(ctx); err != nil {
@@ -33,9 +33,9 @@ func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T
 	token := "mock-token-test@example.com"
 	email := "test@example.com"
 
-	emailProvider := &testutils.FakeEmailProvider{}
-	tokenProvider := &testutils.FakeTokenProvider{}
-	weatherProvider := &testutils.FakeWeatherProvider{Valid: true}
+	emailProvider := &testutils2.FakeEmailProvider{}
+	tokenProvider := &testutils2.FakeTokenProvider{}
+	weatherProvider := &testutils2.FakeWeatherProvider{Valid: true}
 
 	providers := di.Providers{
 		EmailProvider:        emailProvider,
