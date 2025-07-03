@@ -5,6 +5,7 @@ import (
 	"weatherApi/internal/email"
 	"weatherApi/internal/infra"
 	"weatherApi/internal/subscription"
+	"weatherApi/internal/subscription/repo"
 	"weatherApi/internal/token"
 	"weatherApi/internal/weather"
 )
@@ -20,7 +21,7 @@ func BuildServices(db *infra.Gorm, cfg *config.Config, p Providers) Services {
 	tokenService := token.NewService(p.TokenProvider)
 	weatherService := weather.NewService(p.WeatherChainProvider)
 
-	repo := subscription.NewRepo(db.Gorm)
+	repo := repo.NewRepo(db.Gorm)
 	subService := subscription.NewService(repo, emailService, weatherService, tokenService)
 
 	return Services{

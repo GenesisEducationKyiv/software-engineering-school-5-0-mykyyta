@@ -13,9 +13,8 @@ import (
 	"weatherApi/internal/app/di"
 	subscription2 "weatherApi/internal/delivery/handlers/subscription"
 	"weatherApi/internal/domain"
+	"weatherApi/internal/subscription/repo"
 	testutils2 "weatherApi/test/integration/testutils"
-
-	"weatherApi/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -67,7 +66,7 @@ func TestSubscribeHandler_ValidRequest_CreatesSubAndSendsEmail(t *testing.T) {
 	require.Equal(t, 200, w.Code)
 	require.Contains(t, w.Body.String(), "Confirmation email sent.")
 
-	repo := subscription.NewRepo(pg.DB.Gorm)
+	repo := repo.NewRepo(pg.DB.Gorm)
 	sub, err := repo.GetByEmail(ctx, "test@example.com")
 	require.NoError(t, err)
 	require.NotNil(t, sub)

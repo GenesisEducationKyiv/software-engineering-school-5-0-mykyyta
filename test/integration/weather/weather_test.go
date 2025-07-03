@@ -12,9 +12,10 @@ import (
 	"testing"
 	"time"
 	"weatherApi/internal/domain"
-
 	"weatherApi/internal/weather"
 	"weatherApi/internal/weather/cache"
+	"weatherApi/internal/weather/chain"
+	"weatherApi/internal/weather/logger"
 
 	redismock "github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/require"
@@ -54,7 +55,7 @@ func (c *cityNotFoundProvider) CityIsValid(ctx context.Context, city string) (bo
 
 // --- Test Utils ---
 
-func chainWith(handlers ...weather.ChainableProvider) weather.ChainableProvider {
+func chainWith(handlers ...chain.ChainableProvider) chain.ChainableProvider {
 	if len(handlers) == 0 {
 		return nil
 	}
@@ -77,16 +78,16 @@ func TestIntegration_ChainAndLogging(t *testing.T) {
 	require.NoError(err)
 
 	defer file.Close()
-	logger := log.New(file, "", log.LstdFlags)
+	logg := log.New(file, "", log.LstdFlags)
 
 	fp := &failProvider{}
 	sp := &successProvider{}
-	wrappedFail := weather.NewLogWrapper(fp, "FailProvider", logger)
-	wrappedSuccess := weather.NewLogWrapper(sp, "SuccessProvider", logger)
+	wrappedFail := logger.NewWrapper(fp, "FailProvider", logg)
+	wrappedSuccess := logger.NewWrapper(sp, "SuccessProvider", logg)
 
 	handler := chainWith(
-		weather.NewChainNode(wrappedFail),
-		weather.NewChainNode(wrappedSuccess),
+		chain.NewNode(wrappedFail),
+		chain.NewNode(wrappedSuccess),
 	)
 
 	ctx := context.Background()
@@ -106,9 +107,9 @@ func TestIntegration_ChainAndLogging(t *testing.T) {
 
 func TestIntegration_CityNotFoundError(t *testing.T) {
 	handler := chainWith(
-		weather.NewChainNode(&failProvider{}),
-		weather.NewChainNode(&cityNotFoundProvider{}),
-		weather.NewChainNode(&failProvider{}),
+		chain.NewNode(&failProvider{}),
+		chain.NewNode(&cityNotFoundProvider{}),
+		chain.NewNode(&failProvider{}),
 	)
 
 	ctx := context.Background()
@@ -119,8 +120,8 @@ func TestIntegration_CityNotFoundError(t *testing.T) {
 
 func TestIntegration_ChainErrors(t *testing.T) {
 	handler := chainWith(
-		weather.NewChainNode(&failProvider{}),
-		weather.NewChainNode(&failProvider{}),
+		chain.NewNode(&failProvider{}),
+		chain.NewNode(&failProvider{}),
 	)
 
 	ctx := context.Background()
@@ -132,9 +133,9 @@ func TestIntegration_ChainErrors(t *testing.T) {
 
 func TestIntegration_CityIsValid_PrioritizeNotFound(t *testing.T) {
 	handler := chainWith(
-		weather.NewChainNode(&failProvider{}),
-		weather.NewChainNode(&cityNotFoundProvider{}),
-		weather.NewChainNode(&failProvider{}),
+		chain.NewNode(&failProvider{}),
+		chain.NewNode(&cityNotFoundProvider{}),
+		chain.NewNode(&failProvider{}),
 	)
 
 	ctx := context.Background()
@@ -146,9 +147,9 @@ func TestIntegration_CityIsValid_PrioritizeNotFound(t *testing.T) {
 
 func TestIntegration_CityIsValid_SkipsCityNotFoundIfLaterSucceeds(t *testing.T) {
 	handler := chainWith(
-		weather.NewChainNode(&failProvider{}),
-		weather.NewChainNode(&cityNotFoundProvider{}),
-		weather.NewChainNode(&successProvider{}),
+		chain.NewNode(&failProvider{}),
+		chain.NewNode(&cityNotFoundProvider{}),
+		chain.NewNode(&successProvider{}),
 	)
 
 	ctx := context.Background()

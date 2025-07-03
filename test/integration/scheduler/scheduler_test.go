@@ -8,6 +8,7 @@ import (
 	"time"
 	"weatherApi/internal/app/di"
 	"weatherApi/internal/domain"
+	"weatherApi/internal/subscription/repo"
 	testutils2 "weatherApi/test/integration/testutils"
 
 	"weatherApi/internal/config"
@@ -17,7 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"weatherApi/internal/job"
-	"weatherApi/internal/subscription"
 )
 
 type fakeEventSource struct {
@@ -53,7 +53,7 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *test
 	err = pg.DB.Gorm.Exec("DELETE FROM subscriptions").Error
 	require.NoError(t, err)
 
-	repo := subscription.NewRepo(pg.DB.Gorm)
+	repo := repo.NewRepo(pg.DB.Gorm)
 	sub := &domain.Subscription{
 		Email:          "test@example.com",
 		City:           "Kyiv",
@@ -110,7 +110,7 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 	err = pg.DB.Gorm.Exec("DELETE FROM subscriptions").Error
 	require.NoError(t, err)
 
-	repo := subscription.NewRepo(pg.DB.Gorm)
+	repo := repo.NewRepo(pg.DB.Gorm)
 	subs := []*domain.Subscription{
 		{
 			ID:             uuid.NewString(),

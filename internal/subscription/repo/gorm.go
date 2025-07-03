@@ -1,10 +1,11 @@
-package subscription
+package repo
 
 import (
 	"context"
 	"errors"
 	"time"
 	"weatherApi/internal/domain"
+	"weatherApi/internal/subscription"
 
 	"gorm.io/gorm"
 )
@@ -58,7 +59,7 @@ func (r *GormSubscriptionRepository) GetByEmail(ctx context.Context, email strin
 	var rec SubscriptionRecord
 	err := r.db.WithContext(ctx).Where("email = ?", email).First(&rec).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, ErrSubscriptionNotFound
+		return nil, subscription.ErrSubscriptionNotFound
 	}
 	if err != nil {
 		return nil, err

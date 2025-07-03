@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"weatherApi/internal/weather/cache"
+	"weatherApi/internal/weather/chain"
+	"weatherApi/internal/weather/logger"
 
 	"github.com/redis/go-redis/v9"
 
@@ -11,8 +13,8 @@ import (
 	"weatherApi/internal/email"
 	"weatherApi/internal/token"
 	"weatherApi/internal/weather"
-	"weatherApi/internal/weather/providers/tomorrowio"
-	"weatherApi/internal/weather/providers/weatherapi"
+	"weatherApi/internal/weather/provider/tomorrowio"
+	"weatherApi/internal/weather/provider/weatherapi"
 )
 
 type Providers struct {
@@ -69,11 +71,11 @@ func buildWeatherProvider(deps ProviderDeps) weather.Provider {
 		)
 	}
 
-	loggedWeatherAPI := weather.NewLogWrapper(wrappedWeatherAPI, "WeatherAPI", deps.Logger)
-	loggedTomorrowIO := weather.NewLogWrapper(wrappedTomorrowIO, "TomorrowIO", deps.Logger)
+	loggedWeatherAPI := logger.NewWrapper(wrappedWeatherAPI, "WeatherAPI", deps.Logger)
+	loggedTomorrowIO := logger.NewWrapper(wrappedTomorrowIO, "TomorrowIO", deps.Logger)
 
-	nodeWeatherAPI := weather.NewChainNode(loggedWeatherAPI)
-	nodeTomorrowIO := weather.NewChainNode(loggedTomorrowIO)
+	nodeWeatherAPI := chain.NewNode(loggedWeatherAPI)
+	nodeTomorrowIO := chain.NewNode(loggedTomorrowIO)
 	nodeWeatherAPI.SetNext(nodeTomorrowIO)
 
 	if deps.RedisClient != nil && deps.Cfg.Cache.Enabled {
