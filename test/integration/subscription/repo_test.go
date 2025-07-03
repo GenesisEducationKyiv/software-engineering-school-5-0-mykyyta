@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 	"time"
+	"weatherApi/test/integration/testutils"
 
-	"weatherApi/internal/integration/testutils"
 	"weatherApi/internal/subscription"
 
 	"github.com/google/uuid"

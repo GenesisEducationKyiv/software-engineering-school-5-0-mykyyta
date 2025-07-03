@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 	"weatherApi/internal/app/di"
+	testutils2 "weatherApi/test/integration/testutils"
 
 	"weatherApi/internal/config"
 
@@ -14,7 +15,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"weatherApi/internal/integration/testutils"
 	"weatherApi/internal/job"
 	"weatherApi/internal/subscription"
 )
@@ -31,7 +31,7 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *test
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	pg, err := testutils.StartPostgres(ctx)
+	pg, err := testutils2.StartPostgres(ctx)
 	require.NoError(t, err)
 	defer func() {
 		if err := pg.Terminate(ctx); err != nil {
@@ -39,12 +39,12 @@ func TestEmailDispatcher_DailyFrequency_SendsWeatherEmailToConfirmedUser(t *test
 		}
 	}()
 
-	emailProvider := &testutils.FakeEmailProvider{}
+	emailProvider := &testutils2.FakeEmailProvider{}
 
 	providers := di.Providers{
 		EmailProvider:        emailProvider,
-		TokenProvider:        &testutils.FakeTokenProvider{},
-		WeatherChainProvider: &testutils.FakeWeatherProvider{Valid: true},
+		TokenProvider:        &testutils2.FakeTokenProvider{},
+		WeatherChainProvider: &testutils2.FakeWeatherProvider{Valid: true},
 	}
 
 	services := di.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
@@ -89,7 +89,7 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	pg, err := testutils.StartPostgres(ctx)
+	pg, err := testutils2.StartPostgres(ctx)
 	require.NoError(t, err)
 	defer func() {
 		if err := pg.Terminate(ctx); err != nil {
@@ -97,12 +97,12 @@ func TestEmailDispatcher_MultipleFrequencies_SendsToCorrectSubscribersOnly(t *te
 		}
 	}()
 
-	emailProvider := &testutils.FakeEmailProvider{}
+	emailProvider := &testutils2.FakeEmailProvider{}
 
 	providers := di.Providers{
 		EmailProvider:        emailProvider,
-		TokenProvider:        &testutils.FakeTokenProvider{},
-		WeatherChainProvider: &testutils.FakeWeatherProvider{Valid: true},
+		TokenProvider:        &testutils2.FakeTokenProvider{},
+		WeatherChainProvider: &testutils2.FakeWeatherProvider{Valid: true},
 	}
 	services := di.BuildServices(pg.DB, &config.Config{BaseURL: "http://localhost:8080"}, providers)
 
