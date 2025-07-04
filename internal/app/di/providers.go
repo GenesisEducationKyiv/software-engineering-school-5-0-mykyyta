@@ -3,6 +3,8 @@ package di
 import (
 	"log"
 	"net/http"
+	"weatherApi/internal/email/sendgrid"
+	"weatherApi/internal/token/jwt"
 
 	"weatherApi/internal/weather/cache"
 	"weatherApi/internal/weather/chain"
@@ -33,8 +35,8 @@ type ProviderDeps struct {
 }
 
 func BuildProviders(deps ProviderDeps) Providers {
-	emailProvider := email.NewSendgrid(deps.Cfg.SendGridKey, deps.Cfg.EmailFrom)
-	tokenProvider := token.NewJWT(deps.Cfg.JWTSecret)
+	emailProvider := sendgrid.NewSendgrid(deps.Cfg.SendGridKey, deps.Cfg.EmailFrom)
+	tokenProvider := jwt.NewJWT(deps.Cfg.JWTSecret)
 
 	weatherChainProvider := buildWeatherProvider(deps)
 
