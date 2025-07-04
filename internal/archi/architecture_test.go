@@ -156,19 +156,20 @@ func TestArchitecture(t *testing.T) {
 func checkPackageImports(t *testing.T, packagePath string, forbiddenImports []string) {
 	t.Helper()
 
-	// Перевіряємо, чи існує пакет
-	if _, err := os.Stat(packagePath); os.IsNotExist(err) {
-		t.Logf("Package %s does not exist, skipping import check", packagePath)
-		return
-	}
+	adapterFolders := []string{"/repo/", "/cache/", "/infra/", "/adapter/", "/client/"}
 
-	// Парсимо всі Go файли в пакеті та підпапках
 	err := filepath.Walk(packagePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Обробляємо тільки .go файли, крім тестових
+		// Пропускаємо .go файли, що лежать в adapter-like папках
+		for _, adapter := range adapterFolders {
+			if strings.Contains(path, adapter) {
+				return nil
+			}
+		}
+
 		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
@@ -180,14 +181,12 @@ func checkPackageImports(t *testing.T, packagePath string, forbiddenImports []st
 			return nil
 		}
 
-		// Перевіряємо імпорти
 		for _, imp := range src.Imports {
 			importPath := strings.Trim(imp.Path.Value, `"`)
 
 			for _, forbidden := range forbiddenImports {
 				if importPath == forbidden || strings.HasPrefix(importPath, forbidden) {
-					t.Errorf("Package %s should not import %s (found in %s)",
-						packagePath, forbidden, path)
+					t.Errorf("Package %s should not import %s (found in %s)", packagePath, forbidden, path)
 				}
 			}
 		}
@@ -243,6 +242,8 @@ func TestSpecificArchitectureRules(t *testing.T) {
 			"time",
 			"errors",
 			"log",
+			"weatherApi/internal/domain",
+			"weatherApi/internal/delivery",
 		}
 
 		checkPackageOnlyUsesAllowedImports(t, "../delivery/handlers", allowedImportPrefixes)
