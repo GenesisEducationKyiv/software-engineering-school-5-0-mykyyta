@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"weatherApi/internal/delivery"
+
+	"weatherApi/internal/delivery/handlers/response"
+
 	"weatherApi/internal/domain"
 
 	"weatherApi/internal/weather"
@@ -33,7 +35,7 @@ func NewWeatherCurrent(service weatherCurrent) *WeatherCurrent {
 func (h WeatherCurrent) Handle(c *gin.Context) {
 	city := c.Query("city")
 	if city == "" {
-		delivery.SendError(c, http.StatusBadRequest, "City is required")
+		response.SendError(c, http.StatusBadRequest, "City is required")
 		return
 	}
 
@@ -41,9 +43,9 @@ func (h WeatherCurrent) Handle(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, weather.ErrCityNotFound):
-			delivery.SendError(c, http.StatusBadRequest, "City not found")
+			response.SendError(c, http.StatusBadRequest, "City not found")
 		default:
-			delivery.SendError(c, http.StatusInternalServerError, "Failed to fetch weather data")
+			response.SendError(c, http.StatusInternalServerError, "Failed to fetch weather data")
 		}
 		return
 	}

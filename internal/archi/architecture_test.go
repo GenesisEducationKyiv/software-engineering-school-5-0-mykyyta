@@ -205,7 +205,7 @@ func checkPackageExists(t *testing.T, packagePath string) {
 	}
 }
 
-// Додаткові перевірки для специфічних правил
+// Додаткові перевірки для специфічних правил.
 func TestSpecificArchitectureRules(t *testing.T) {
 	// Перевірка, що в доменних пакетах немає HTTP статус кодів
 	t.Run("DomainShouldNotUseHTTPStatusCodes", func(t *testing.T) {

@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"time"
+
 	"weatherApi/internal/domain"
 	"weatherApi/internal/job"
+
+	"github.com/google/uuid"
 )
 
 var (

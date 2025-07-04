@@ -7,16 +7,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
 	"weatherApi/internal/app/di"
 	subscription2 "weatherApi/internal/delivery/handlers/subscription"
 	"weatherApi/internal/domain"
 	"weatherApi/internal/subscription/repo"
 	testutils2 "weatherApi/test/integration/testutils"
 
+	"weatherApi/internal/config"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"weatherApi/internal/config"
 )
 
 func TestUnsubscribeHandler_ValidToken_UnsubscribesUserSuccessfully(t *testing.T) {
