@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
 	"weatherApi/internal/app/di"
 	subscription2 "weatherApi/internal/delivery/handlers/subscription"
 	"weatherApi/internal/domain"

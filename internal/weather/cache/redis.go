@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
 	"weatherApi/internal/domain"
 
 	"github.com/redis/go-redis/v9"

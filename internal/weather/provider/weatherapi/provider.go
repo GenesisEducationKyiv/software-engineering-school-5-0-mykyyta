@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+
 	"weatherApi/internal/domain"
 
 	"weatherApi/internal/weather"

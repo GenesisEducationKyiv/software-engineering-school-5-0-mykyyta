@@ -3,16 +3,18 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
 	"weatherApi/internal/app/di"
 	"weatherApi/internal/delivery"
 	infra2 "weatherApi/internal/infra"
+
+	"github.com/gin-gonic/gin"
 
 	"weatherApi/internal/weather/cache"
 

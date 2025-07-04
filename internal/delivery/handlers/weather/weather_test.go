@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
 	"weatherApi/internal/domain"
 
 	"weatherApi/internal/weather"

@@ -3,10 +3,12 @@ package chain
 import (
 	"context"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
+
 	"weatherApi/internal/domain"
 	"weatherApi/internal/weather"
+
+	"github.com/stretchr/testify/require"
 )
 
 type MockProvider struct {

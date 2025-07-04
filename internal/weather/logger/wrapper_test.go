@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"testing"
+
 	"weatherApi/internal/domain"
 )
 

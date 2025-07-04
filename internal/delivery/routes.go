@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"net/http"
+
 	"weatherApi/internal/app/di"
 	"weatherApi/internal/delivery/handlers/subscription"
 	handlers2 "weatherApi/internal/delivery/handlers/weather"

@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+
 	"weatherApi/internal/domain"
 )
 

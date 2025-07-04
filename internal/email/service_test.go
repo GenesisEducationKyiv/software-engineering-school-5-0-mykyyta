@@ -3,10 +3,12 @@ package email_test
 import (
 	"fmt"
 	"testing"
+
 	"weatherApi/internal/domain"
 
-	"github.com/stretchr/testify/assert"
 	"weatherApi/internal/email"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type mockProvider struct {
