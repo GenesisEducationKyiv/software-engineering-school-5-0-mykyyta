@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
-
+	"weatherApi/internal/delivery"
 	"weatherApi/internal/subscription"
 
 	"github.com/gin-gonic/gin"
@@ -30,14 +30,14 @@ func (h Confirm) Handle(c *gin.Context) {
 	if err := h.service.Confirm(c.Request.Context(), token); err != nil {
 		switch {
 		case errors.Is(err, subscription.ErrInvalidToken):
-			SendError(c, http.StatusBadRequest, "Invalid token")
+			delivery.SendError(c, http.StatusBadRequest, "Invalid token")
 		case errors.Is(err, subscription.ErrSubscriptionNotFound):
-			SendError(c, http.StatusNotFound, "Subscription not found")
+			delivery.SendError(c, http.StatusNotFound, "Subscription not found")
 		default:
-			SendError(c, http.StatusInternalServerError, "Something went wrong")
+			delivery.SendError(c, http.StatusInternalServerError, "Something went wrong")
 		}
 		return
 	}
 
-	SendSuccess(c, "Subscription confirmed successfully")
+	delivery.SendSuccess(c, "Subscription confirmed successfully")
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"weatherApi/internal/delivery"
 	"weatherApi/internal/domain"
 
 	"weatherApi/internal/subscription"
@@ -32,13 +33,13 @@ type SubscribeRequest struct {
 func (h Subscribe) Handle(c *gin.Context) {
 	var req SubscribeRequest
 	if err := c.ShouldBind(&req); err != nil {
-		SendError(c, http.StatusBadRequest, "Invalid input")
+		delivery.SendError(c, http.StatusBadRequest, "Invalid input")
 		return
 	}
 
 	freq := domain.Frequency(req.Frequency)
 	if !freq.Valid() {
-		SendError(c, http.StatusBadRequest, "Invalid frequency value")
+		delivery.SendError(c, http.StatusBadRequest, "Invalid frequency value")
 		return
 	}
 
@@ -46,14 +47,14 @@ func (h Subscribe) Handle(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, subscription.ErrCityNotFound):
-			SendError(c, http.StatusBadRequest, "City not found")
+			delivery.SendError(c, http.StatusBadRequest, "City not found")
 		case errors.Is(err, subscription.ErrEmailAlreadyExists):
-			SendError(c, http.StatusConflict, "Email already subscribed")
+			delivery.SendError(c, http.StatusConflict, "Email already subscribed")
 		default:
-			SendError(c, http.StatusInternalServerError, "Something went wrong")
+			delivery.SendError(c, http.StatusInternalServerError, "Something went wrong")
 		}
 		return
 	}
 
-	SendSuccess(c, "Subscription successful. Confirmation email sent.")
+	delivery.SendSuccess(c, "Subscription successful. Confirmation email sent.")
 }
