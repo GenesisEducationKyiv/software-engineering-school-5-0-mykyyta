@@ -1,4 +1,4 @@
-package archtest
+package arch_test
 
 import (
 	"testing"

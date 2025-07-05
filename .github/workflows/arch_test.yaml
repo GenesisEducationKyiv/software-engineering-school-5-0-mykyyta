@@ -24,4 +24,4 @@ jobs:
       - name: Run arch tests
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
-          gotestsum -- ./internal/arch_test
+          gotestsum -- ./test/arch_test
