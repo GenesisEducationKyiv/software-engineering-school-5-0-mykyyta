@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"time"
 
-	"weatherApi/internal/domain"
+	"weather/internal/domain"
 
-	"weatherApi/internal/weather"
+	"weather/internal"
 )
 
 type Provider struct {
