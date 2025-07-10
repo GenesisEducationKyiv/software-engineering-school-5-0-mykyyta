@@ -1,0 +1,31 @@
+{
+  "id": null,
+  "uid": null,
+  "title": "Weather Cache",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Cache Hitrate",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
+      "id": 1,
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "100 * sum(weather_cache_access_total{status=\"hit\"}) / sum(weather_cache_access_total)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "5s"
+}

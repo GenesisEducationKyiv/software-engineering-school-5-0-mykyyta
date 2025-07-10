@@ -12,7 +12,7 @@ import (
 
 	"weatherApi/internal/app/di"
 	"weatherApi/internal/delivery"
-	infra2 "weatherApi/internal/infra"
+	"weatherApi/internal/infra"
 
 	"github.com/gin-gonic/gin"
 
@@ -25,7 +25,7 @@ import (
 
 type App struct {
 	Server    *http.Server
-	DB        *infra2.Gorm
+	DB        *infra.Gorm
 	Redis     *redis.Client
 	Scheduler *di.WeatherScheduler
 	Logger    *log.Logger
@@ -65,12 +65,12 @@ func Run(logger *log.Logger) error {
 }
 
 func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, error) {
-	db, err := infra2.NewGorm(cfg.DBUrl)
+	db, err := infra.NewGorm(cfg.DBUrl)
 	if err != nil {
 		return nil, fmt.Errorf("DB error: %w", err)
 	}
 
-	redisClient, err := infra2.NewRedisClient(ctx, cfg)
+	redisClient, err := infra.NewRedisClient(ctx, cfg)
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("redis error: %w", err)

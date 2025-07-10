@@ -3,15 +3,17 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
 	"weather/internal/delivery"
 	"weather/internal/delivery/handler"
+
+	"github.com/redis/go-redis/v9"
 
 	"weather/internal/app/di"
 	"weather/internal/cache"

@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-
 	"weatherApi/internal/weather"
 
 	"github.com/stretchr/testify/require"
