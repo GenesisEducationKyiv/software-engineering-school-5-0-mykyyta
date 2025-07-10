@@ -4,18 +4,19 @@ import (
 	"context"
 	"log"
 	"time"
+
 	"weather/internal/service"
 
 	"weather/internal/domain"
 )
 
 type LogWrapper struct {
-	next     service.weather
+	next     service.Provider
 	provider string
 	logger   *log.Logger
 }
 
-func NewWrapper(next service.weather, providerName string, logger *log.Logger) LogWrapper {
+func NewWrapper(next service.Provider, providerName string, logger *log.Logger) LogWrapper {
 	return LogWrapper{
 		next:     next,
 		provider: providerName,
