@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"weather/internal/service"
 
-	"weather/internal"
 	"weather/internal/domain"
 
 	"github.com/stretchr/testify/require"
@@ -76,30 +76,30 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 	t.Run("all not found", func(t *testing.T) {
 		first := NewNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
-				return domain.Report{}, weather.ErrCityNotFound
+				return domain.Report{}, service.weather.ErrCityNotFound
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
-				return false, weather.ErrCityNotFound
+				return false, service.weather.ErrCityNotFound
 			},
 		})
 		second := NewNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
-				return domain.Report{}, weather.ErrCityNotFound
+				return domain.Report{}, service.weather.ErrCityNotFound
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
-				return false, weather.ErrCityNotFound
+				return false, service.weather.ErrCityNotFound
 			},
 		})
 		first.SetNext(second)
 
 		_, err := first.GetWeather(ctx, "Atlantis")
 		require.Error(t, err)
-		require.True(t, errors.Is(err, weather.ErrCityNotFound))
+		require.True(t, errors.Is(err, service.weather.ErrCityNotFound))
 
 		ok, err := first.CityIsValid(ctx, "Atlantis")
 		require.False(t, ok)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, weather.ErrCityNotFound))
+		require.True(t, errors.Is(err, service.weather.ErrCityNotFound))
 	})
 
 	t.Run("mixed errors with not found", func(t *testing.T) {
@@ -113,22 +113,22 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 		})
 		second := NewNode(&MockProvider{
 			GetWeatherFunc: func(ctx context.Context, city string) (domain.Report, error) {
-				return domain.Report{}, weather.ErrCityNotFound
+				return domain.Report{}, service.weather.ErrCityNotFound
 			},
 			CityIsValidFunc: func(ctx context.Context, city string) (bool, error) {
-				return false, weather.ErrCityNotFound
+				return false, service.weather.ErrCityNotFound
 			},
 		})
 		first.SetNext(second)
 
 		_, err := first.GetWeather(ctx, "Unknown")
 		require.Error(t, err)
-		require.True(t, errors.Is(err, weather.ErrCityNotFound))
+		require.True(t, errors.Is(err, service.weather.ErrCityNotFound))
 
 		ok, err := first.CityIsValid(ctx, "Unknown")
 		require.False(t, ok)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, weather.ErrCityNotFound))
+		require.True(t, errors.Is(err, service.weather.ErrCityNotFound))
 	})
 
 	t.Run("all fail with non-notfound", func(t *testing.T) {
@@ -152,12 +152,12 @@ func TestBaseProvider_ChainLogic(t *testing.T) {
 
 		_, err := first.GetWeather(ctx, "Kyiv")
 		require.Error(t, err)
-		require.False(t, errors.Is(err, weather.ErrCityNotFound))
+		require.False(t, errors.Is(err, service.weather.ErrCityNotFound))
 
 		ok, err := first.CityIsValid(ctx, "Kyiv")
 		require.False(t, ok)
 		require.Error(t, err)
-		require.False(t, errors.Is(err, weather.ErrCityNotFound))
+		require.False(t, errors.Is(err, service.weather.ErrCityNotFound))
 
 		errs := ExtractJoinedErrors(err)
 		require.Len(t, errs, 2)
