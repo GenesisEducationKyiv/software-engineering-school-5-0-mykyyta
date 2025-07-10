@@ -1,4 +1,4 @@
-package weather
+package service
 
 import (
 	"context"

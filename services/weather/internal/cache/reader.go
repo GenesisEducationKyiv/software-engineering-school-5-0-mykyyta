@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
-	weather "weather/internal"
+	weather "weather/internal/service"
 
 	"weather/internal/domain"
 )
