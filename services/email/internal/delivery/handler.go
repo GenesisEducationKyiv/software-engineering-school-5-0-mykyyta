@@ -1,11 +1,12 @@
 package delivery
 
 import (
-	"email/internal/domain"
-	"email/internal/service"
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"email/internal/domain"
+	"email/internal/service"
 )
 
 type EmailHandler struct {

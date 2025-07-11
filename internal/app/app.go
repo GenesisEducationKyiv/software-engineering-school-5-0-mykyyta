@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -120,7 +121,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 func (a *App) StartServer() {
 	go func() {
 		log.Printf("Server listening on %s", a.Server.Addr)
-		if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server error: %v", err)
 		}
 	}()
