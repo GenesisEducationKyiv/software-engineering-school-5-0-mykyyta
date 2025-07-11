@@ -2,12 +2,13 @@ package template
 
 import (
 	"bytes"
-	"email/internal/domain"
 	"fmt"
 	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"email/internal/domain"
 )
 
 type templateParts struct {

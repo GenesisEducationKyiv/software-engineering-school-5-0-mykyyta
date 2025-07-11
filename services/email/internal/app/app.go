@@ -2,17 +2,18 @@ package app
 
 import (
 	"context"
-	"email/internal/adapter/sendgrid"
-	"email/internal/adapter/template"
-	"email/internal/config"
-	"email/internal/delivery"
-	"email/internal/service"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"email/internal/adapter/sendgrid"
+	"email/internal/adapter/template"
+	"email/internal/config"
+	"email/internal/delivery"
+	"email/internal/service"
 )
 
 type App struct {

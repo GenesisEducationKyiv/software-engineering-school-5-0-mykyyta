@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
 	"weather/internal/adapter/cache"
 
 	"weather/internal/delivery"
@@ -95,7 +97,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 func (a *App) Start() {
 	go func() {
 		a.Logger.Printf("Weather service running at %s", a.Server.Addr)
-		if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.Logger.Fatalf("server error: %v", err)
 		}
 	}()
