@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"weather/internal/adapter/cache"
 
 	"weather/internal/delivery"
 	"weather/internal/delivery/handler"
@@ -16,7 +17,6 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"weather/internal/app/di"
-	"weather/internal/cache"
 	"weather/internal/config"
 	"weather/internal/infra"
 	"weather/internal/service"

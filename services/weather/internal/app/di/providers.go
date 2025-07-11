@@ -3,15 +3,15 @@ package di
 import (
 	"log"
 	"net/http"
+	cache2 "weather/internal/adapter/cache"
+	"weather/internal/adapter/chain"
+	"weather/internal/adapter/logger"
+	"weather/internal/adapter/provider/tomorrowio"
+	"weather/internal/adapter/provider/weatherapi"
 
 	"github.com/redis/go-redis/v9"
 
-	"weather/internal/cache"
-	"weather/internal/chain"
 	"weather/internal/config"
-	"weather/internal/logger"
-	"weather/internal/provider/tomorrowio"
-	"weather/internal/provider/weatherapi"
 	"weather/internal/service"
 )
 
@@ -20,7 +20,7 @@ type ProviderDeps struct {
 	Logger      *log.Logger
 	RedisClient *redis.Client
 	HttpClient  *http.Client
-	Metrics     *cache.Metrics
+	Metrics     *cache2.Metrics
 }
 
 func BuildProviders(deps ProviderDeps) service.Provider {
@@ -28,12 +28,12 @@ func BuildProviders(deps ProviderDeps) service.Provider {
 	baseTomorrowIO := tomorrowio.New(deps.Cfg.TomorrowioAPIKey, deps.HttpClient)
 
 	var wrappedWeatherAPI, wrappedTomorrowIO service.Provider = baseWeatherAPI, baseTomorrowIO
-	var redisCache cache.RedisCache
+	var redisCache cache2.RedisCache
 
 	if deps.RedisClient != nil && deps.Cfg.Cache.Enabled {
-		redisCache = cache.NewRedisCache(deps.RedisClient)
+		redisCache = cache2.NewRedisCache(deps.RedisClient)
 
-		wrappedWeatherAPI = cache.NewWriter(
+		wrappedWeatherAPI = cache2.NewWriter(
 			baseWeatherAPI,
 			redisCache,
 			"WeatherAPI",
@@ -41,7 +41,7 @@ func BuildProviders(deps ProviderDeps) service.Provider {
 			deps.Cfg.Cache.NotFoundTTL,
 		)
 
-		wrappedTomorrowIO = cache.NewWriter(
+		wrappedTomorrowIO = cache2.NewWriter(
 			baseTomorrowIO,
 			redisCache,
 			"TomorrowIO",
@@ -58,7 +58,7 @@ func BuildProviders(deps ProviderDeps) service.Provider {
 	nodeWeatherAPI.SetNext(nodeTomorrowIO)
 
 	if deps.RedisClient != nil && deps.Cfg.Cache.Enabled {
-		return cache.NewReader(
+		return cache2.NewReader(
 			nodeWeatherAPI,
 			redisCache,
 			deps.Metrics,
