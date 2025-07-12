@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"weather/internal/domain"
@@ -30,6 +31,11 @@ func (h *WeatherHandler) GetWeather(w http.ResponseWriter, r *http.Request) {
 
 	report, err := h.service.GetWeather(r.Context(), city)
 	if err != nil {
+		if errors.Is(err, domain.ErrCityNotFound) {
+			http.Error(w, `{"error":"city not found"}`, http.StatusNotFound)
+			return
+		}
+
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
