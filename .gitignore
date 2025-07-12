@@ -52,3 +52,4 @@ coverage.*
 # System files
 .DS_Store
 Thumbs.dblogs/
+microservices/email/.env
