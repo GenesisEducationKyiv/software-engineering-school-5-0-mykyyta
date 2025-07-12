@@ -6,14 +6,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	di2 "monolith/internal/app/di"
+	"monolith/internal/config"
+	"monolith/internal/domain"
+	"monolith/internal/subscription/repo"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-	di2 "weatherApi/monolith/internal/app/di"
-	"weatherApi/monolith/internal/config"
-	"weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/subscription/repo"
 
 	testutils2 "weatherApi/test/integration/testutils"
 

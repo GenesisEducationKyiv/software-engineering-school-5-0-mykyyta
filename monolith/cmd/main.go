@@ -1,8 +1,8 @@
 package main
 
 import (
-	"weatherApi/monolith/internal/app"
-	"weatherApi/monolith/internal/infra"
+	"monolith/internal/app"
+	"monolith/internal/infra"
 )
 
 func main() {

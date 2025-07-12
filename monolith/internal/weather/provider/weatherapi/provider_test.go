@@ -3,11 +3,11 @@ package weatherapi
 import (
 	"context"
 	"fmt"
+	"monolith/internal/weather"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-	"weatherApi/monolith/internal/weather"
 
 	"github.com/stretchr/testify/require"
 )

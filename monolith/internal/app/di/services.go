@@ -1,13 +1,13 @@
 package di
 
 import (
-	"weatherApi/monolith/internal/config"
-	"weatherApi/monolith/internal/email"
-	"weatherApi/monolith/internal/infra"
-	"weatherApi/monolith/internal/subscription"
-	"weatherApi/monolith/internal/subscription/repo"
-	"weatherApi/monolith/internal/token"
-	"weatherApi/monolith/internal/weather"
+	"monolith/internal/config"
+	"monolith/internal/email"
+	"monolith/internal/infra"
+	"monolith/internal/subscription"
+	"monolith/internal/subscription/repo"
+	"monolith/internal/token"
+	"monolith/internal/weather"
 )
 
 type Services struct {

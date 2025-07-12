@@ -3,9 +3,9 @@ package subscription_test
 import (
 	"context"
 	"errors"
+	domain2 "monolith/internal/domain"
+	"monolith/internal/subscription"
 	"testing"
-	domain2 "weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/subscription"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

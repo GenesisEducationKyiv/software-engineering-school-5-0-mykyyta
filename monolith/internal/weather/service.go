@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"weatherApi/monolith/internal/domain"
+	"monolith/internal/domain"
 )
 
 var ErrCityNotFound = errors.New("city not found")

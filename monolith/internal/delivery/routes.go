@@ -1,10 +1,10 @@
 package delivery
 
 import (
+	"monolith/internal/app/di"
+	subscription2 "monolith/internal/delivery/handlers/subscription"
+	handlers2 "monolith/internal/delivery/handlers/weather"
 	"net/http"
-	"weatherApi/monolith/internal/app/di"
-	subscription2 "weatherApi/monolith/internal/delivery/handlers/subscription"
-	handlers2 "weatherApi/monolith/internal/delivery/handlers/weather"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

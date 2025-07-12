@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"log"
+	"monolith/internal/domain"
 	"strings"
 	"testing"
-	"weatherApi/monolith/internal/domain"
 )
 
 type fakeProvider struct{}

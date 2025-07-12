@@ -1,4 +1,4 @@
-module weatherApi
+module monolith
 
 go 1.24
 

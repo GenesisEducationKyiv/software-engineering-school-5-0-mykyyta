@@ -51,7 +51,7 @@ func NewWriter(
 // unnecessary calls to the provider and improves performance.
 func (c Writer) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	if notFound, err := c.Cache.GetCityNotFound(ctx, city, c.ProviderName); err == nil && notFound {
-		return domain.Report{}, weather.ErrCityNotFound
+		return domain.Report{}, domain.ErrCityNotFound
 	} else if err != nil {
 		log.Printf("Error checking CityNotFound cache for %q/%s: %v", city, c.ProviderName, err)
 	}
@@ -71,7 +71,7 @@ func (c Writer) getReportAndCache(ctx context.Context, city string) (domain.Repo
 }
 
 func (c Writer) cacheCityNotFound(ctx context.Context, city string, err error) {
-	if !errors.Is(err, weather.ErrCityNotFound) {
+	if !errors.Is(err, domain.ErrCityNotFound) {
 		return
 	}
 	if cacheErr := c.Cache.SetCityNotFound(ctx, city, c.ProviderName, c.NotFoundTTL); cacheErr != nil {

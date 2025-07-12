@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-	"weatherApi/internal/weather"
+	"weather/internal/domain"
 
 	"github.com/stretchr/testify/require"
 )
@@ -86,7 +86,7 @@ func TestCityExists_False(t *testing.T) {
 
 	exists, err := provider.CityIsValid(context.Background(), "UnknownCity")
 
-	require.ErrorIs(t, err, weather.ErrCityNotFound)
+	require.ErrorIs(t, err, domain.ErrCityNotFound)
 	require.False(t, exists)
 }
 
