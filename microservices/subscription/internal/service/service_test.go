@@ -1,4 +1,4 @@
-package subscription_test
+package service_test
 
 import (
 	"context"
@@ -77,7 +77,7 @@ type testDeps struct {
 	tokens    *mockTokenService
 	emails    *mockEmailService
 	validator *mockCityValidator
-	service   subscription.Service
+	service   service.Service
 }
 
 func createTestService() *testDeps {
@@ -85,7 +85,7 @@ func createTestService() *testDeps {
 	tokens := new(mockTokenService)
 	emails := new(mockEmailService)
 	validator := new(mockCityValidator)
-	service := subscription.NewService(repo, emails, validator, tokens)
+	service := service.NewService(repo, emails, validator, tokens)
 
 	return &testDeps{repo, tokens, emails, validator, service}
 }
@@ -101,7 +101,7 @@ func TestSubscribe_SendsConfirmationEmail_Success(t *testing.T) {
 	token := "abc-token"
 
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
-	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, service.ErrSubscriptionNotFound)
 	d.tokens.On("Generate", email).Return(token, nil)
 	d.repo.On("Create", ctx, mock.AnythingOfType("*domain.Subscription")).Return(nil)
 
@@ -123,7 +123,7 @@ func TestSubscribe_EmailSendFails_ButSubscribeStillSuccess(t *testing.T) {
 	token := "fail-token"
 
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
-	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, service.ErrSubscriptionNotFound)
 	d.tokens.On("Generate", email).Return(token, nil)
 	d.repo.On("Create", ctx, mock.AnythingOfType("*domain.Subscription")).Return(nil)
 
@@ -166,11 +166,11 @@ func TestSubscribe_CityValidatorFails_Error(t *testing.T) {
 	email := "user@example.com"
 	city := "InvalidCity"
 
-	d.validator.On("CityIsValid", ctx, city).Return(false, subscription.ErrCityNotFound)
+	d.validator.On("CityIsValid", ctx, city).Return(false, service.ErrCityNotFound)
 
 	err := d.service.Subscribe(ctx, email, city, "daily")
 
-	assert.ErrorIs(t, err, subscription.ErrCityNotFound)
+	assert.ErrorIs(t, err, service.ErrCityNotFound)
 	d.validator.AssertExpectations(t)
 }
 
@@ -209,7 +209,7 @@ func TestSubscribe_AlreadySubscribed_ReturnsErr(t *testing.T) {
 
 	err := d.service.Subscribe(ctx, email, city, "daily")
 
-	assert.ErrorIs(t, err, subscription.ErrEmailAlreadyExists)
+	assert.ErrorIs(t, err, service.ErrEmailAlreadyExists)
 }
 
 func TestSubscribe_GetByEmailUnexpectedError_ReturnsErr(t *testing.T) {
@@ -281,7 +281,7 @@ func TestSubscribe_CreateFails_ReturnsErr(t *testing.T) {
 	token := "token456"
 
 	d.validator.On("CityIsValid", ctx, city).Return(true, nil)
-	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, service.ErrSubscriptionNotFound)
 	d.tokens.On("Generate", email).Return(token, nil)
 	d.repo.On("Create", ctx, mock.AnythingOfType("*domain.Subscription")).Return(assert.AnError)
 
@@ -336,11 +336,11 @@ func TestConfirm_SubscriptionNotFound(t *testing.T) {
 	token := "token-404"
 
 	d.tokens.On("Parse", token).Return(email, nil)
-	d.repo.On("GetByEmail", ctx, email).Return(nil, subscription.ErrSubscriptionNotFound)
+	d.repo.On("GetByEmail", ctx, email).Return(nil, service.ErrSubscriptionNotFound)
 
 	err := d.service.Confirm(ctx, token)
 
-	assert.ErrorIs(t, err, subscription.ErrSubscriptionNotFound)
+	assert.ErrorIs(t, err, service.ErrSubscriptionNotFound)
 	d.tokens.AssertExpectations(t)
 	d.repo.AssertExpectations(t)
 }
@@ -370,11 +370,11 @@ func TestConfirm_InvalidToken(t *testing.T) {
 	ctx := context.Background()
 	token := "invalid-token"
 
-	d.tokens.On("Parse", token).Return("", subscription.ErrInvalidToken)
+	d.tokens.On("Parse", token).Return("", service.ErrInvalidToken)
 
 	err := d.service.Confirm(ctx, token)
 
-	assert.ErrorIs(t, err, subscription.ErrInvalidToken)
+	assert.ErrorIs(t, err, service.ErrInvalidToken)
 	d.tokens.AssertExpectations(t)
 }
 
@@ -456,11 +456,11 @@ func TestUnsubscribe_InvalidToken_ReturnsErr(t *testing.T) {
 	ctx := context.Background()
 	token := "bad-token"
 
-	d.tokens.On("Parse", token).Return("", subscription.ErrInvalidToken)
+	d.tokens.On("Parse", token).Return("", service.ErrInvalidToken)
 
 	err := d.service.Unsubscribe(ctx, token)
 
-	assert.ErrorIs(t, err, subscription.ErrInvalidToken)
+	assert.ErrorIs(t, err, service.ErrInvalidToken)
 	d.tokens.AssertExpectations(t)
 }
 
