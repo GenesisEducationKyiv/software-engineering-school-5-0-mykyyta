@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	domain2 "monolith/internal/domain"
+	"monolith/internal/job"
 	"time"
-	domain2 "weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/job"
 
 	"github.com/google/uuid"
 )

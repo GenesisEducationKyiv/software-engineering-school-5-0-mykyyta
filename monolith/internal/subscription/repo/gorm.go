@@ -3,9 +3,9 @@ package repo
 import (
 	"context"
 	"errors"
+	"monolith/internal/domain"
+	"monolith/internal/subscription"
 	"time"
-	"weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/subscription"
 
 	"gorm.io/gorm"
 )

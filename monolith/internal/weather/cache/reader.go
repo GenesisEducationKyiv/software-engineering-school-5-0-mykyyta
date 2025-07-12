@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"log"
-	"weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/weather"
+	"monolith/internal/domain"
+	"monolith/internal/weather"
 )
 
 type reader interface {

@@ -3,10 +3,10 @@ package weather
 import (
 	"context"
 	"errors"
+	"monolith/internal/delivery/handlers/response"
+	"monolith/internal/domain"
+	"monolith/internal/weather"
 	"net/http"
-	"weatherApi/monolith/internal/delivery/handlers/response"
-	"weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/weather"
 
 	"github.com/gin-gonic/gin"
 )

@@ -3,10 +3,10 @@ package subscription
 import (
 	"context"
 	"errors"
+	"monolith/internal/delivery/handlers/response"
+	"monolith/internal/domain"
+	"monolith/internal/subscription"
 	"net/http"
-	"weatherApi/monolith/internal/delivery/handlers/response"
-	"weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 )

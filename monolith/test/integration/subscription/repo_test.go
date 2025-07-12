@@ -4,11 +4,11 @@ package subscription_test
 
 import (
 	"context"
+	"monolith/internal/domain"
+	"monolith/internal/subscription"
+	"monolith/internal/subscription/repo"
 	"testing"
 	"time"
-	"weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/subscription"
-	"weatherApi/monolith/internal/subscription/repo"
 
 	"weatherApi/test/integration/testutils"
 

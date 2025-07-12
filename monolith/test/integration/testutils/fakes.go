@@ -2,7 +2,7 @@ package testutils
 
 import (
 	"context"
-	"weatherApi/monolith/internal/domain"
+	"monolith/internal/domain"
 )
 
 // -------------------------------

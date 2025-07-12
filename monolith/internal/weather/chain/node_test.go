@@ -3,9 +3,9 @@ package chain
 import (
 	"context"
 	"errors"
+	"monolith/internal/domain"
+	"monolith/internal/weather"
 	"testing"
-	"weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/weather"
 
 	"github.com/stretchr/testify/require"
 )

@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"time"
 
-	"weather/internal/service"
-
 	"weather/internal/domain"
 )
 
@@ -60,7 +58,7 @@ func (p Provider) GetWeather(ctx context.Context, city string) (domain.Report, e
 	}
 
 	if isCityNotFound(body) {
-		return domain.Report{}, service.ErrCityNotFound
+		return domain.Report{}, domain.ErrCityNotFound
 	}
 
 	var data weatherAPIResponse
@@ -82,7 +80,7 @@ func (p Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	}
 
 	if isCityNotFound(body) {
-		return false, service.ErrCityNotFound
+		return false, domain.ErrCityNotFound
 	}
 
 	return true, nil

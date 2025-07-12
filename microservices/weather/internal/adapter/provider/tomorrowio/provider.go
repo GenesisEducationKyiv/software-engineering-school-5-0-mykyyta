@@ -9,8 +9,7 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"weatherApi/internal/domain"
-	"weatherApi/internal/weather"
+	"weather/internal/domain"
 )
 
 type Provider struct {
@@ -49,7 +48,7 @@ func (p Provider) GetWeather(ctx context.Context, city string) (domain.Report, e
 	body, err := p.makeRequest(ctx, url)
 	if err != nil {
 		if isInvalidLocation(body) {
-			return domain.Report{}, weather.ErrCityNotFound
+			return domain.Report{}, domain.ErrCityNotFound
 		}
 		return domain.Report{}, err
 	}
@@ -72,7 +71,7 @@ func (p Provider) CityIsValid(ctx context.Context, city string) (bool, error) {
 	body, err := p.makeRequest(ctx, url)
 	if err != nil {
 		if isInvalidLocation(body) {
-			return false, weather.ErrCityNotFound
+			return false, domain.ErrCityNotFound
 		}
 		return false, err
 	}

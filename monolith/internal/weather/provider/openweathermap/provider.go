@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"monolith/internal/domain"
+	"monolith/internal/weather"
 	"net/http"
 	"time"
-	"weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/weather"
 )
 
 type Provider struct {

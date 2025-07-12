@@ -2,7 +2,7 @@ package email
 
 import (
 	"fmt"
-	"weatherApi/monolith/internal/domain"
+	"monolith/internal/domain"
 )
 
 type Provider interface {

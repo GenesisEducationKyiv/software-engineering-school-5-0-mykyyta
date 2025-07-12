@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"log"
+	"monolith/internal/domain"
+	"monolith/internal/weather"
 	"time"
-	"weatherApi/monolith/internal/domain"
-	"weatherApi/monolith/internal/weather"
 )
 
 type writer interface {
