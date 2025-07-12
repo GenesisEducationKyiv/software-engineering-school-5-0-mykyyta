@@ -20,14 +20,14 @@ vendor/
 *.iml
 
 # Environment variables
-.env
+monolith/.env
 .env.local
 .env.*.local
-.env.deploy
+monolith/.env.deploy
 
 # Logs
 *.log
-logs/
+monolith/logs/
 *.png
 *.jpg
 *.jpeg
