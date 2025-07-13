@@ -27,7 +27,7 @@ func LoadConfig() *Config {
 	_ = godotenv.Load()
 
 	return &Config{
-		Port:             getEnv("PORT", "8080"),
+		Port:             getEnv("PORT", "8082"),
 		WeatherAPIKey:    mustGet("WEATHER_API_KEY"),
 		TomorrowioAPIKey: mustGet("TOMORROWIO_API_KEY"),
 		Cache:            loadCacheConfig(),

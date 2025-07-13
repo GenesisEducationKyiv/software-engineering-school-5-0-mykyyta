@@ -1,10 +1,8 @@
 package config
 
 import (
-	"os"
-	"strings"
-
 	"github.com/joho/godotenv"
+	"os"
 )
 
 type Config struct {
@@ -18,10 +16,9 @@ func LoadConfig() *Config {
 	_ = godotenv.Load()
 
 	return &Config{
-		Port:        getEnv("PORT", "8080"),
+		Port:        getEnv("PORT", "8081"),
 		SendGridKey: mustGet("SENDGRID_API_KEY"),
 		EmailFrom:   mustGet("EMAIL_FROM"),
-		BaseURL:     strings.TrimRight(getEnv("BASE_URL", "http://localhost:8080"), "/"),
 	}
 }
 

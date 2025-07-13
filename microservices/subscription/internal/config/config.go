@@ -14,7 +14,6 @@ type Config struct {
 	JWTSecret         string
 	BaseURL           string
 	EmailAPIBaseURL   string
-	EmailFrom         string
 	WeatherAPIBaseURL string
 }
 
@@ -28,12 +27,9 @@ func LoadConfig() *Config {
 		BaseURL:           strings.TrimRight(getEnv("BASE_URL", "http://localhost:8080"), "/"),
 		JWTSecret:         mustGet("JWT_SECRET"),
 		EmailAPIBaseURL:   mustGet("EMAIL_API_BASE_URL"),
-		EmailFrom:         mustGet("EMAIL_FROM"),
 		WeatherAPIBaseURL: mustGet("WEATHER_API_BASE_URL"),
 	}
 }
-
-// --- utils ---
 
 func mustGet(key string) string {
 	val := os.Getenv(key)
