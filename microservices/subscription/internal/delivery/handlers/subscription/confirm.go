@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"weatherApi/monolith/internal/delivery/handlers/response"
-	"weatherApi/monolith/internal/subscription"
+	"subscription/internal/delivery/handlers/response"
+	"subscription/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,9 +29,9 @@ func (h Confirm) Handle(c *gin.Context) {
 
 	if err := h.service.Confirm(c.Request.Context(), token); err != nil {
 		switch {
-		case errors.Is(err, subscription.ErrInvalidToken):
+		case errors.Is(err, service.ErrInvalidToken):
 			response.SendError(c, http.StatusBadRequest, "Invalid token")
-		case errors.Is(err, subscription.ErrSubscriptionNotFound):
+		case errors.Is(err, service.ErrSubscriptionNotFound):
 			response.SendError(c, http.StatusNotFound, "Subscription not found")
 		default:
 			response.SendError(c, http.StatusInternalServerError, "Something went wrong")

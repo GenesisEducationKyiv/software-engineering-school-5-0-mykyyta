@@ -45,7 +45,11 @@ func (c *Client) GetWeather(ctx context.Context, city string) (domain.Report, er
 	if err != nil {
 		return domain.Report{}, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Printf("error closing response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return domain.Report{}, ErrCityNotFound
@@ -79,7 +83,11 @@ func (c *Client) CityIsValid(ctx context.Context, city string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Printf("error closing response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return false, fmt.Errorf("unexpected status: %s", resp.Status)

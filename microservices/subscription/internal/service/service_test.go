@@ -52,11 +52,11 @@ func (m *mockTokenService) Parse(token string) (string, error) {
 
 type mockEmailService struct{ mock.Mock }
 
-func (m *mockEmailService) SendConfirmationEmail(email, token string) error {
+func (m *mockEmailService) SendConfirmationEmail(ctx context.Context, email, token string) error {
 	return m.Called(email, token).Error(0)
 }
 
-func (m *mockEmailService) SendWeatherReport(email string, weatherReport domain.Report, city, token string) error {
+func (m *mockEmailService) SendWeatherReport(ctx context.Context, email string, weatherReport domain.Report, city, token string) error {
 	return m.Called(email, weatherReport, city, token).Error(0)
 }
 

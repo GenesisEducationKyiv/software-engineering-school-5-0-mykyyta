@@ -111,7 +111,7 @@ func (s Service) Subscribe(ctx context.Context, email, city string, frequency do
 		}
 	}
 
-	if err := s.emailService.SendConfirmationEmail(email, token); err != nil {
+	if err := s.emailService.SendConfirmationEmail(ctx, email, token); err != nil {
 		fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
 	}
 
@@ -193,7 +193,7 @@ func (s Service) ProcessWeatherReportTask(ctx context.Context, task job.Task) er
 		return fmt.Errorf("get weather for %s: %w", task.City, err)
 	}
 
-	if err := s.emailService.SendWeatherReport(task.Email, report, task.City, task.Token); err != nil {
+	if err := s.emailService.SendWeatherReport(ctx, task.Email, report, task.City, task.Token); err != nil {
 		return fmt.Errorf("send email to %s: %w", task.Email, err)
 	}
 

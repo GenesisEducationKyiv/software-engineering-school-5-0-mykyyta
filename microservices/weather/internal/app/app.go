@@ -38,9 +38,13 @@ func Run(logger *log.Logger) error {
 
 	app, err := NewApp(ctx, cfg, logger)
 	if err != nil {
-		return fmt.Errorf("failed to build app: %w", err)
+		return fmt.Errorf("build app: %w", err)
 	}
-	defer app.Redis.Close()
+	defer func() {
+		if err := app.Redis.Close(); err != nil {
+			logger.Printf("close Redis: %v", err)
+		}
+	}()
 
 	app.Start()
 

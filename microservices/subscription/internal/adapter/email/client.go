@@ -71,7 +71,11 @@ func (e *Client) send(ctx context.Context, req Request) error {
 	if err != nil {
 		return fmt.Errorf("failed to send email request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Printf("error closing response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("email service returned status %d", resp.StatusCode)
