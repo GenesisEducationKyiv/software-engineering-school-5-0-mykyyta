@@ -2,11 +2,12 @@ package weather
 
 import (
 	"context"
-	"monolith/internal/domain"
-	"monolith/internal/weather"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"monolith/internal/domain"
+	"monolith/internal/weather"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

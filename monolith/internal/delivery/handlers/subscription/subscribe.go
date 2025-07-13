@@ -3,10 +3,11 @@ package subscription
 import (
 	"context"
 	"errors"
+	"net/http"
+
 	"monolith/internal/delivery/handlers/response"
 	"monolith/internal/domain"
 	"monolith/internal/subscription"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )

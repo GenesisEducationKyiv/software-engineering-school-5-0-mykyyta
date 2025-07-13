@@ -2,6 +2,7 @@ package email
 
 import (
 	"fmt"
+
 	"monolith/internal/domain"
 )
 

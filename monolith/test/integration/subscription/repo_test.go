@@ -4,13 +4,13 @@ package subscription_test
 
 import (
 	"context"
+	"testing"
+	"time"
+	"weatherApi/test/integration/testutils"
+
 	"monolith/internal/domain"
 	"monolith/internal/subscription"
 	"monolith/internal/subscription/repo"
-	"testing"
-	"time"
-
-	"weatherApi/test/integration/testutils"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"

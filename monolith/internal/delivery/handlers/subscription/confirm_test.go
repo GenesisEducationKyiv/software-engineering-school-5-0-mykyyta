@@ -2,12 +2,13 @@ package subscription
 
 import (
 	"context"
-	"monolith/internal/subscription"
-	"monolith/internal/token/jwt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"monolith/internal/subscription"
+	"monolith/internal/token/jwt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

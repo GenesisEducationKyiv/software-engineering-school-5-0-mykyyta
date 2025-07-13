@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"testing"
+
 	"subscription/internal/service"
 	"subscription/internal/token/jwt"
-	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

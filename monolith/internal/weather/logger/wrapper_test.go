@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"context"
 	"log"
-	"monolith/internal/domain"
 	"strings"
 	"testing"
+
+	"monolith/internal/domain"
 )
 
 type fakeProvider struct{}

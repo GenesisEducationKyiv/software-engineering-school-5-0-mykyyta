@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"net/http"
+
 	"subscription/internal/adapter/weather"
 	"subscription/internal/service"
 
@@ -9,7 +10,6 @@ import (
 	handlers2 "subscription/internal/delivery/handlers/weather"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func SetupRoutes(subService service.Service, weatherClient *weather.Client) *gin.Engine {
@@ -31,8 +31,6 @@ func SetupRoutes(subService service.Service, weatherClient *weather.Client) *gin
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
-
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	if gin.Mode() != gin.TestMode {
 		router.LoadHTMLGlob("templates/*.html")

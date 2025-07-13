@@ -36,6 +36,8 @@ lint-weather:
 test-weather:
 	cd microservices/weather && gotestsum -- -count=1 ./...
 
+lint-micro: lint-sub lint-email lint-weather
+
 # === Monolith ===
 
 lint-monolith:
@@ -63,3 +65,4 @@ e2e: e2e-up
 # === Global Check ===
 
 check: fmt lint test
+

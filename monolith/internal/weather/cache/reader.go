@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+
 	"monolith/internal/domain"
 	"monolith/internal/weather"
 )

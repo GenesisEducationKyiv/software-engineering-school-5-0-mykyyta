@@ -3,10 +3,11 @@ package subscription
 import (
 	"context"
 	"errors"
-	"monolith/internal/subscription"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"monolith/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

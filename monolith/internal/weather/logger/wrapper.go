@@ -3,9 +3,10 @@ package logger
 import (
 	"context"
 	"log"
+	"time"
+
 	"monolith/internal/domain"
 	"monolith/internal/weather"
-	"time"
 )
 
 type LogWrapper struct {

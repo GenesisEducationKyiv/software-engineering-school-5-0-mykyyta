@@ -7,9 +7,10 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"testing"
+
 	"subscription/internal/domain"
 	"subscription/internal/service"
-	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

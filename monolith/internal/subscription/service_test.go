@@ -3,9 +3,10 @@ package subscription_test
 import (
 	"context"
 	"errors"
+	"testing"
+
 	domain2 "monolith/internal/domain"
 	"monolith/internal/subscription"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

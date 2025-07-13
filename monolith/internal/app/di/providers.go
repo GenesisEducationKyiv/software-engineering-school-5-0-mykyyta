@@ -2,6 +2,8 @@ package di
 
 import (
 	"log"
+	"net/http"
+
 	"monolith/internal/config"
 	"monolith/internal/email"
 	"monolith/internal/email/sendgrid"
@@ -13,7 +15,6 @@ import (
 	"monolith/internal/weather/logger"
 	"monolith/internal/weather/provider/tomorrowio"
 	"monolith/internal/weather/provider/weatherapi"
-	"net/http"
 
 	"github.com/redis/go-redis/v9"
 )

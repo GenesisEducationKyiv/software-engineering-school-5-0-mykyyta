@@ -4,13 +4,14 @@ package handlers_test
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	di2 "monolith/internal/app/di"
 	"monolith/internal/config"
 	"monolith/internal/domain"
 	"monolith/internal/subscription/repo"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 
 	testutils2 "weatherApi/test/integration/testutils"
 

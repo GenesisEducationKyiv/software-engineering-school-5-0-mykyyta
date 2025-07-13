@@ -3,9 +3,10 @@ package di
 import (
 	"context"
 	"log"
+	"sync"
+
 	job2 "monolith/internal/job"
 	"monolith/internal/subscription"
-	"sync"
 )
 
 type WeatherScheduler struct {

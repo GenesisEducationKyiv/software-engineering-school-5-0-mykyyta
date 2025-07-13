@@ -3,13 +3,14 @@ package subscription
 import (
 	"context"
 	"errors"
-	"monolith/internal/domain"
-	"monolith/internal/subscription"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"monolith/internal/domain"
+	"monolith/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

@@ -4,13 +4,14 @@ package scheduler_test
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	di2 "monolith/internal/app/di"
 	"monolith/internal/config"
 	"monolith/internal/domain"
 	job2 "monolith/internal/job"
 	"monolith/internal/subscription/repo"
-	"testing"
-	"time"
 
 	testutils2 "weatherApi/test/integration/testutils"
 

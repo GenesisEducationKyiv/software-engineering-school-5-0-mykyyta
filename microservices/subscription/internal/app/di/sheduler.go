@@ -3,9 +3,10 @@ package di
 import (
 	"context"
 	"log"
+	"sync"
+
 	"subscription/internal/job"
 	"subscription/internal/service"
-	"sync"
 )
 
 type WeatherScheduler struct {

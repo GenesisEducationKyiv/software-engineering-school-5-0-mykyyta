@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
+
 	"subscription/internal/adapter/email"
 	"subscription/internal/adapter/gorm"
 	"subscription/internal/adapter/weather"
@@ -17,8 +20,6 @@ import (
 	"subscription/internal/infra"
 	"subscription/internal/service"
 	"subscription/internal/token/jwt"
-	"syscall"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )

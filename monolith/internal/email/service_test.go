@@ -2,9 +2,10 @@ package email_test
 
 import (
 	"fmt"
+	"testing"
+
 	"monolith/internal/domain"
 	"monolith/internal/email"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )

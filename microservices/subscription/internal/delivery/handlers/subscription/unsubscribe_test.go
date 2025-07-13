@@ -5,8 +5,9 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"subscription/internal/service"
 	"testing"
+
+	"subscription/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
