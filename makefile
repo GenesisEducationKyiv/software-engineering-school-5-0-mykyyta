@@ -66,3 +66,24 @@ e2e: e2e-up
 
 check: fmt lint test
 
+# === RUN ===
+
+COMPOSE=docker compose -f microservices/docker-compose.yml
+
+.PHONY: up down restart logs build
+
+up:
+	$(COMPOSE) up -d --build
+
+down:
+	$(COMPOSE) down
+
+restart:
+	$(COMPOSE) down
+	$(COMPOSE) up -d --build
+
+logs:
+	$(COMPOSE) logs -f --tail=100
+
+build:
+	$(COMPOSE) build

@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   db:
     image: postgres:15
@@ -37,17 +35,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./subscription/migrations:/migrations
     env_file:
       - ./subscription/.env
+    volumes:
+      - ./subscription/migrations:/migrations
     entrypoint: [
       "migrate",
       "-path", "/migrations",
-      "-database", "${DB_URL}",
+      "-database", "postgres://postgres:postgres@db:5432/subscriptiondb?sslmode=disable",
       "up"
     ]
     restart: on-failure
+
 
   email:
     build:
@@ -62,6 +61,11 @@ services:
       - ./email/.env
     volumes:
       - ./email/logs:/app/logs
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8081/health" ]
+      interval: 3s
+      timeout: 5s
+      retries: 5
 
   weather:
     build:
@@ -76,6 +80,11 @@ services:
       - ./weather/.env
     volumes:
       - ./weather/logs:/app/logs
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8082/health" ]
+      interval: 3s
+      timeout: 5s
+      retries: 5
 
   subscription:
     build:
@@ -115,3 +124,4 @@ services:
     volumes:
       - ./weather/grafana/provisioning:/etc/grafana/provisioning
       - ./weather/grafana/dashboards:/etc/grafana/dashboards
+

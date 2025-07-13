@@ -15,6 +15,7 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /app/main .
 COPY ./logs ./logs
+COPY templates templates/
 
 RUN chmod +x /app/main
 RUN adduser -D appuser

@@ -19,7 +19,7 @@ RUN apk --no-cache add ca-certificates
 
 # Copy binary and templates
 COPY --from=builder /app/main .
-COPY ../templates templates/
+COPY templates templates/
 
 # Ensure executable permissions (redundant if already set, but safe)
 RUN chmod +x /app/main
