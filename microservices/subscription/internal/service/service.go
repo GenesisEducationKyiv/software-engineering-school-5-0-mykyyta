@@ -27,8 +27,8 @@ type repo interface {
 }
 
 type emailService interface {
-	SendConfirmationEmail(email, token string) error
-	SendWeatherReport(email string, weather domain.Report, city, token string) error
+	SendConfirmationEmail(ctx context.Context, email, token string) error
+	SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string) error
 }
 
 type weatherService interface {

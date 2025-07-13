@@ -12,31 +12,26 @@ import (
 	"subscription/internal/domain"
 )
 
-type EmailService interface {
-	SendConfirmationEmail(ctx context.Context, email, token string) error
-	SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string) error
-}
-
-type EmailClient struct {
+type Client struct {
 	baseURL string
 	logger  *log.Logger
 	client  *http.Client
 }
 
-func NewEmailClient(baseURL string, logger *log.Logger, client *http.Client) *EmailClient {
+func NewClient(baseURL string, logger *log.Logger, client *http.Client) *Client {
 	if client == nil {
 		client = &http.Client{Timeout: 5 * time.Second}
 	}
 
-	return &EmailClient{
+	return &Client{
 		baseURL: baseURL,
 		logger:  logger,
 		client:  client,
 	}
 }
 
-func (e *EmailClient) SendConfirmationEmail(ctx context.Context, email, token string) error {
-	return e.send(ctx, EmailRequest{
+func (e *Client) SendConfirmationEmail(ctx context.Context, email, token string) error {
+	return e.send(ctx, Request{
 		To:       email,
 		Template: "confirmation",
 		Data: map[string]string{
@@ -45,8 +40,8 @@ func (e *EmailClient) SendConfirmationEmail(ctx context.Context, email, token st
 	})
 }
 
-func (e *EmailClient) SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string) error {
-	return e.send(ctx, EmailRequest{
+func (e *Client) SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string) error {
+	return e.send(ctx, Request{
 		To:       email,
 		Template: "weather_report",
 		Data: map[string]string{
@@ -59,7 +54,7 @@ func (e *EmailClient) SendWeatherReport(ctx context.Context, email string, weath
 	})
 }
 
-func (e *EmailClient) send(ctx context.Context, req EmailRequest) error {
+func (e *Client) send(ctx context.Context, req Request) error {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return fmt.Errorf("failed to marshal email request: %w", err)
@@ -86,7 +81,7 @@ func (e *EmailClient) send(ctx context.Context, req EmailRequest) error {
 	return nil
 }
 
-type EmailRequest struct {
+type Request struct {
 	To       string            `json:"to"`
 	Template string            `json:"template"`
 	Data     map[string]string `json:"data"`
