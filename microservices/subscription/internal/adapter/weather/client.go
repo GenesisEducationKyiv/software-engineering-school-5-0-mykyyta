@@ -27,6 +27,13 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
+type weatherResponse struct {
+	City        string  `json:"city"`
+	Temperature float64 `json:"temperature"`
+	Humidity    int     `json:"humidity"`
+	Description string  `json:"description"`
+}
+
 func (c *Client) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	endpoint := fmt.Sprintf("%s/weather?city=%s", c.baseURL, url.QueryEscape(city))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
@@ -48,21 +55,16 @@ func (c *Client) GetWeather(ctx context.Context, city string) (domain.Report, er
 		return domain.Report{}, fmt.Errorf("unexpected status: %s", resp.Status)
 	}
 
-	var data struct {
-		City        string  `json:"city"`
-		Temperature float64 `json:"temperature"`
-		Humidity    int     `json:"humidity"`
-		Description string  `json:"description"`
-	}
+	var res weatherResponse
 
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return domain.Report{}, fmt.Errorf("decode response: %w", err)
 	}
 
 	return domain.Report{
-		Temperature: data.Temperature,
-		Humidity:    data.Humidity,
-		Description: data.Description,
+		Temperature: res.Temperature,
+		Humidity:    res.Humidity,
+		Description: res.Description,
 	}, nil
 }
 
