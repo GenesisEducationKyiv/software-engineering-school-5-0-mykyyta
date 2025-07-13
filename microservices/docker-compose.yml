@@ -1,0 +1,117 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: subscriptiondb
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+    command: >
+      redis-server
+      --save ""
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+
+  migrate:
+    image: migrate/migrate:v4.16.2
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./subscription/migrations:/migrations
+    env_file:
+      - ./subscription/.env
+    entrypoint: [
+      "migrate",
+      "-path", "/migrations",
+      "-database", "${DB_URL}",
+      "up"
+    ]
+    restart: on-failure
+
+  email:
+    build:
+      context: ./email
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./email/.env
+    volumes:
+      - ./email/logs:/app/logs
+
+  weather:
+    build:
+      context: ./weather
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    env_file:
+      - ./weather/.env
+    volumes:
+      - ./weather/logs:/app/logs
+
+  subscription:
+    build:
+      context: ./subscription
+    restart: on-failure
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      email:
+        condition: service_healthy
+      weather:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./subscription/.env
+    volumes:
+      - ./subscription/logs:/app/logs
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./weather/prometheus.yaml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./weather/grafana/provisioning:/etc/grafana/provisioning
+      - ./weather/grafana/dashboards:/etc/grafana/dashboards

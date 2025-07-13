@@ -31,3 +31,4 @@ RUN adduser -D appuser
 USER appuser
 
 CMD ["/app/main"]
+
