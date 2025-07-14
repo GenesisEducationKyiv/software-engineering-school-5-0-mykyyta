@@ -21,7 +21,15 @@ type ProviderDeps struct {
 	Logger      *log.Logger
 	RedisClient *redis.Client
 	HttpClient  *http.Client
-	Metrics     *cache2.Metrics
+	Metrics     CacheMetrics
+}
+
+type CacheMetrics interface {
+	Register()
+	RecordProviderHit(provider string)
+	RecordProviderMiss(provider string)
+	RecordTotalHit()
+	RecordTotalMiss()
 }
 
 func BuildProviders(deps ProviderDeps) service.Provider {

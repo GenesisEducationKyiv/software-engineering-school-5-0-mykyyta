@@ -14,6 +14,7 @@ type Config struct {
 	WeatherAPIKey    string
 	TomorrowioAPIKey string
 	Cache            CacheConfig
+	BenchmarkMode    bool
 }
 
 type CacheConfig struct {
@@ -33,6 +34,7 @@ func LoadConfig() *Config {
 		WeatherAPIKey:    mustGet("WEATHER_API_KEY"),
 		TomorrowioAPIKey: mustGet("TOMORROWIO_API_KEY"),
 		Cache:            loadCacheConfig(),
+		BenchmarkMode:    getBoolEnv("BENCHMARK_MODE", false),
 	}
 }
 

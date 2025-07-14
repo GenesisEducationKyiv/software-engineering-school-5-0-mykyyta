@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"weather/internal/adapter/benchmark"
 	"weather/internal/adapter/cache"
 	"weather/internal/delivery/grpcapi"
 	"weather/internal/delivery/httpapi"
@@ -44,11 +45,6 @@ func Run(logger *log.Logger) error {
 	if err != nil {
 		return fmt.Errorf("build app: %w", err)
 	}
-	defer func() {
-		if err := app.Redis.Close(); err != nil {
-			logger.Printf("close Redis: %v", err)
-		}
-	}()
 
 	app.Start()
 
@@ -66,23 +62,39 @@ func Run(logger *log.Logger) error {
 }
 
 func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, error) {
-	redisClient, err := infra.NewRedisClient(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("redis error: %w", err)
+	var redisClient *redis.Client
+	var metrics di.CacheMetrics
+	var httpClient *http.Client
+	var weatherProvider service.Provider
+
+	if cfg.BenchmarkMode {
+		logger.Println(" Running in BENCHMARK MODE — skipping Redis and using BenchmarkProvider")
+
+		redisClient = nil
+		metrics = cache.NewNoopMetrics() // створимо нижче
+		httpClient = &http.Client{Timeout: 5 * time.Second}
+		weatherProvider = benchmark.NewProvider()
+
+	} else {
+		redis, err := infra.NewRedisClient(ctx, cfg)
+		if err != nil {
+			return nil, fmt.Errorf("redis error: %w", err)
+		}
+		redisClient = redis
+
+		metrics = cache.NewMetrics()
+		metrics.Register()
+
+		httpClient = &http.Client{Timeout: 5 * time.Second}
+
+		weatherProvider = di.BuildProviders(di.ProviderDeps{
+			Cfg:         cfg,
+			Logger:      logger,
+			RedisClient: redisClient,
+			HttpClient:  httpClient,
+			Metrics:     metrics,
+		})
 	}
-
-	metrics := cache.NewMetrics()
-	metrics.Register()
-
-	httpClient := &http.Client{Timeout: 5 * time.Second}
-
-	weatherProvider := di.BuildProviders(di.ProviderDeps{
-		Cfg:         cfg,
-		Logger:      logger,
-		RedisClient: redisClient,
-		HttpClient:  httpClient,
-		Metrics:     metrics,
-	})
 
 	weatherService := service.NewService(weatherProvider)
 
