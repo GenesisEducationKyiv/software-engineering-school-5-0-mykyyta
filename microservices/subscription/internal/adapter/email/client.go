@@ -60,7 +60,7 @@ func (e *Client) send(ctx context.Context, req Request) error {
 		return fmt.Errorf("failed to marshal email request: %w", err)
 	}
 
-	url := fmt.Sprintf("%sapi/email/send", e.baseURL)
+	url := fmt.Sprintf("%s/api/email/send", e.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
