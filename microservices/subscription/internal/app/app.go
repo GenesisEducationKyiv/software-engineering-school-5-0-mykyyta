@@ -4,16 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	weathergrpc "subscription/internal/adapter/weahtergrpc"
 	"syscall"
 	"time"
 
 	"subscription/internal/adapter/email"
 	"subscription/internal/adapter/gorm"
-	"subscription/internal/adapter/weather"
+	"subscription/internal/adapter/weatherhttp"
 	"subscription/internal/app/di"
 	"subscription/internal/config"
 	"subscription/internal/delivery"
@@ -25,10 +27,11 @@ import (
 )
 
 type App struct {
-	Server    *http.Server
-	DB        *infra.Gorm
-	Logger    *log.Logger
-	Scheduler *di.WeatherScheduler
+	Server        *http.Server
+	DB            *infra.Gorm
+	Logger        *log.Logger
+	Scheduler     *di.WeatherScheduler
+	WeatherClient io.Closer
 }
 
 func Run(logger *log.Logger) error {
@@ -73,7 +76,24 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 
 	// Adapters
 	emailClient := email.NewClient(cfg.EmailAPIBaseURL, logger, nil)
-	weatherClient := weather.NewClient(cfg.WeatherAPIBaseURL)
+
+	var weatherClient service.WeatherClient
+	var weatherCloser io.Closer
+
+	if cfg.UseGRPC {
+		client, err := weathergrpc.NewClient(ctx, cfg.WeatherGRPCAddr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to weather via gRPC: %w", err)
+		}
+		weatherClient = client
+		weatherCloser = client
+		log.Println("Using gRPC weather client")
+	} else {
+		httpClient := weatherhttp.NewClient(cfg.WeatherHTTPAddr)
+		weatherClient = httpClient
+		log.Println("Using HTTP weather client")
+	}
+
 	tokenProvider := jwt.NewJWT(cfg.JWTSecret)
 	subscriptionRepo := gorm.NewRepo(db.Gorm)
 
@@ -97,10 +117,11 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	}
 
 	return &App{
-		Server:    server,
-		DB:        db,
-		Logger:    logger,
-		Scheduler: scheduler,
+		Server:        server,
+		DB:            db,
+		Logger:        logger,
+		Scheduler:     scheduler,
+		WeatherClient: weatherCloser,
 	}, nil
 }
 
@@ -118,6 +139,10 @@ func (a *App) Shutdown(ctx context.Context) error {
 
 	a.Scheduler.Stop()
 	a.DB.Close()
+
+	if a.WeatherClient != nil {
+		_ = a.WeatherClient.Close()
+	}
 
 	if err := a.Server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("server shutdown error: %w", err)

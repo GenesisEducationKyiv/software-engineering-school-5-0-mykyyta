@@ -26,12 +26,12 @@ type repo interface {
 	GetConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error)
 }
 
-type emailService interface {
+type emailClient interface {
 	SendConfirmationEmail(ctx context.Context, email, token string) error
 	SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string) error
 }
 
-type weatherService interface {
+type WeatherClient interface {
 	GetWeather(ctx context.Context, city string) (domain.Report, error)
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
@@ -43,15 +43,15 @@ type tokenService interface {
 
 type Service struct {
 	repo           repo
-	emailService   emailService
-	weatherService weatherService
+	emailService   emailClient
+	weatherService WeatherClient
 	tokenService   tokenService
 }
 
 func NewService(
 	repo repo,
-	emailService emailService,
-	weatherService weatherService,
+	emailService emailClient,
+	weatherService WeatherClient,
 	tokenService tokenService,
 ) Service {
 	return Service{

@@ -2,8 +2,10 @@ package delivery
 
 import (
 	"net/http"
+	"subscription/internal/domain"
 
-	"subscription/internal/adapter/weather"
+	"golang.org/x/net/context"
+
 	"subscription/internal/service"
 
 	subscription2 "subscription/internal/delivery/handlers/subscription"
@@ -12,7 +14,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(subService service.Service, weatherClient *weather.Client) *gin.Engine {
+type weatherService interface {
+	GetWeather(ctx context.Context, city string) (domain.Report, error)
+}
+
+func SetupRoutes(subService service.Service, weatherClient weatherService) *gin.Engine {
 	router := gin.Default()
 
 	subscribeHandler := subscription2.NewSubscribe(subService)
