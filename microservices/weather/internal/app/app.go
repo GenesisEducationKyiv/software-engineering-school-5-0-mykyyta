@@ -5,29 +5,33 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
 	"weather/internal/adapter/cache"
+	"weather/internal/delivery/grpcapi"
+	"weather/internal/delivery/httpapi"
+	weatherpb "weather/internal/proto"
 
-	"weather/internal/delivery"
-	"weather/internal/delivery/handler"
-
-	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
 
 	"weather/internal/app/di"
 	"weather/internal/config"
 	"weather/internal/infra"
 	"weather/internal/service"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type App struct {
-	Server *http.Server
-	Redis  *redis.Client
-	Logger *log.Logger
+	HttpServer *http.Server
+	Redis      *redis.Client
+	Logger     *log.Logger
+	GrpcServer *grpc.Server
+	GrpcLis    net.Listener
 }
 
 func Run(logger *log.Logger) error {
@@ -82,27 +86,49 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 
 	weatherService := service.NewService(weatherProvider)
 
+	// HTTP
 	mux := http.NewServeMux()
-	weatherHandler := handler.NewWeatherHandler(weatherService)
-	delivery.RegisterRoutes(mux, weatherHandler)
+	weatherHandler := httpapi.NewWeatherHandler(weatherService)
+	httpapi.RegisterRoutes(mux, weatherHandler)
 
-	server := &http.Server{
+	httpServer := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: mux,
 	}
 
+	// gRPC
+	grpcLis, err := net.Listen("tcp", ":"+cfg.GRPCPort)
+	if err != nil {
+		return nil, fmt.Errorf("listen gRPC: %w", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	grpcHandler := grpcapi.NewHandler(weatherService)
+	weatherpb.RegisterWeatherServiceServer(grpcServer, grpcHandler)
+
 	return &App{
-		Server: server,
-		Redis:  redisClient,
-		Logger: logger,
+		HttpServer: httpServer,
+		GrpcServer: grpcServer,
+		GrpcLis:    grpcLis,
+		Redis:      redisClient,
+		Logger:     logger,
 	}, nil
 }
 
 func (a *App) Start() {
+	// HTTP
 	go func() {
-		a.Logger.Printf("Weather service running at %s", a.Server.Addr)
-		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			a.Logger.Fatalf("server error: %v", err)
+		a.Logger.Printf("HTTP server running at %s", a.HttpServer.Addr)
+		if err := a.HttpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			a.Logger.Fatalf("HTTP server error: %v", err)
+		}
+	}()
+
+	// gRPC
+	go func() {
+		a.Logger.Println("gRPC server running at :50051")
+		if err := a.GrpcServer.Serve(a.GrpcLis); err != nil {
+			a.Logger.Fatalf("gRPC server error: %v", err)
 		}
 	}()
 }
@@ -116,9 +142,11 @@ func (a *App) Shutdown(ctx context.Context) error {
 		}
 	}
 
-	if err := a.Server.Shutdown(ctx); err != nil {
-		return fmt.Errorf("server shutdown error: %w", err)
+	if err := a.HttpServer.Shutdown(ctx); err != nil {
+		return fmt.Errorf("HTTP server shutdown error: %w", err)
 	}
+
+	a.GrpcServer.GracefulStop()
 
 	log.Println("Shutdown complete")
 	return nil

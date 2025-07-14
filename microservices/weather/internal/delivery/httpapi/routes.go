@@ -1,14 +1,12 @@
-package delivery
+package httpapi
 
 import (
 	"net/http"
 
-	"weather/internal/delivery/handler"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func RegisterRoutes(mux *http.ServeMux, h *handler.WeatherHandler) {
+func RegisterRoutes(mux *http.ServeMux, h *WeatherHandler) {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

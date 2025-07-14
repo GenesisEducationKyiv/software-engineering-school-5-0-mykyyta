@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	Port             string
+	GRPCPort         string
 	WeatherAPIKey    string
 	TomorrowioAPIKey string
 	Cache            CacheConfig
@@ -28,6 +29,7 @@ func LoadConfig() *Config {
 
 	return &Config{
 		Port:             getEnv("PORT", "8082"),
+		GRPCPort:         getEnv("GRPC_PORT", "50051"),
 		WeatherAPIKey:    mustGet("WEATHER_API_KEY"),
 		TomorrowioAPIKey: mustGet("TOMORROWIO_API_KEY"),
 		Cache:            loadCacheConfig(),

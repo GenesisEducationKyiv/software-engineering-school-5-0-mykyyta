@@ -87,3 +87,15 @@ logs:
 
 build:
 	$(COMPOSE) build
+
+
+# === Generate PROTO ===
+
+PROTO_DIR=microservices/weather/proto
+PROTO_OUT_DIR=microservices/weather/internal/proto
+
+generate-proto:
+	protoc -I=$(PROTO_DIR) \
+	       --go_out=$(PROTO_OUT_DIR) --go_opt=paths=source_relative \
+	       --go-grpc_out=$(PROTO_OUT_DIR) --go-grpc_opt=paths=source_relative \
+	       $(PROTO_DIR)/weather.proto
