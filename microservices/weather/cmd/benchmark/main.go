@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	concurrentLimit = 10
-	nRequests       = 50000
+	concurrentLimit = 50
+	nRequests       = 1000
 	httpURL         = "http://localhost:8082/weather?city=Kyiv"
 	grpcAddr        = "localhost:50051"
 )
@@ -55,39 +55,27 @@ func benchmarkGRPC() time.Duration {
 }
 
 func benchmarkHTTP() time.Duration {
-	tr := &http.Transport{
-		MaxIdleConns:        concurrentLimit,
-		MaxIdleConnsPerHost: concurrentLimit,
-		MaxConnsPerHost:     concurrentLimit,
-		IdleConnTimeout:     30 * time.Second,
-	}
-	client := &http.Client{Transport: tr, Timeout: 5 * time.Second}
-
-	jobs := make(chan struct{}, nRequests)
+	client := &http.Client{Timeout: 3 * time.Second}
 	var wg sync.WaitGroup
+	sem := make(chan struct{}, concurrentLimit)
 
 	start := time.Now()
-
-	for i := 0; i < concurrentLimit; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			for range jobs {
-				resp, err := client.Get(httpURL)
-				if err != nil {
-					log.Printf("[HTTP wrk %d] %v", id, err)
-					continue
-				}
-				_ = resp.Body.Close()
-			}
-		}(i)
-	}
-
 	for i := 0; i < nRequests; i++ {
-		jobs <- struct{}{}
-	}
-	close(jobs)
-	wg.Wait()
+		wg.Add(1)
+		sem <- struct{}{}
 
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			resp, err := client.Get(httpURL)
+			if err != nil {
+				log.Println("HTTP error:", err)
+				return
+			}
+			_ = resp.Body.Close()
+		}()
+	}
+	wg.Wait()
 	return time.Since(start)
 }
