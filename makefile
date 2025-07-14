@@ -1,24 +1,52 @@
-# Format all Go files
+# === Shared Tools ===
+
 fmt:
 	goimports -w .
 	gofumpt -w .
 
-# Run static code analysis
 lint:
 	golangci-lint run --fix ./...
 
-# Run all tests (unit + integration)
 test:
 	gotestsum -- -count=1 -tags=integration ./...
 
-# Run only unit tests (all tests that do NOT have the 'integration' build tag)
 test-unit:
 	gotestsum -- -count=1 ./...
 
-# Run only integration tests (tests with //go:build integration)
 test-integration:
 	gotestsum -- -count=1 -tags=integration ./internal/integration/...
 
+# === Microservices ===
+
+lint-sub:
+	cd microservices/subscription && golangci-lint run --fix ./...
+
+test-sub:
+	cd microservices/subscription && gotestsum -- -count=1 ./...
+
+lint-email:
+	cd microservices/email && golangci-lint run --fix ./...
+
+test-email:
+	cd microservices/email && gotestsum -- -count=1 ./...
+
+lint-weather:
+	cd microservices/weather && golangci-lint run --fix ./...
+
+test-weather:
+	cd microservices/weather && gotestsum -- -count=1 ./...
+
+lint-micro: lint-sub lint-email lint-weather
+
+# === Monolith ===
+
+lint-monolith:
+	golangci-lint run --fix ./monolith/...
+
+test-monolith:
+	gotestsum -- -count=1 ./monolith/...
+
+# === End-to-End ===
 
 e2e-up:
 	docker compose up -d --quiet-pull
@@ -34,52 +62,49 @@ e2e: e2e-up
 	make e2e-test
 	make e2e-down
 
+# === Global Check ===
 
-# Run formatting, linting and tests
 check: fmt lint test
 
-# Run locally using Docker Compose
-run:
-	docker-compose up --build
+# === RUN ===
 
-# Build and deploy Docker image to Amazon ECS
-ecs:
-	@echo "Building Docker image for $(PLATFORM)..."
-	docker buildx build \
-		--platform=$(PLATFORM) \
-		--output=type=docker \
-		-t $(IMAGE_NAME) .
+COMPOSE=docker compose -f microservices/docker-compose.yml
 
-	@echo "Logging in to Amazon ECR..."
-	aws ecr get-login-password --region $(REGION) | \
-	docker login --username AWS --password-stdin $(ECR_URI)
+.PHONY: up down restart logs build
 
-	@echo "Tagging image..."
-	docker tag $(IMAGE_NAME):latest $(ECR_URI):latest
+up:
+	$(COMPOSE) up -d --build
 
-	@echo "Pushing image to ECR..."
-	docker push $(ECR_URI):latest
+down:
+	$(COMPOSE) down
 
-	@echo "Redeploying ECS service..."
-	./scripts/redeploy_ecs.sh
+restart:
+	$(COMPOSE) down
+	$(COMPOSE) up -d --build
 
-	@echo "ECS redeployment complete."
+logs:
+	$(COMPOSE) logs -f --tail=100
 
-# Deploy AWS CDK stack
-cdk:
-	@echo "Deploying CDK stack from $(CDK_DIR)/ ..."
-	cd $(CDK_DIR) && \
-	if [ -f .venv/bin/activate ]; then \
-		source .venv/bin/activate && \
-		cdk deploy --require-approval never; \
-	else \
-		echo "No virtualenv found. Please run:"; \
-		echo "python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"; \
-		exit 1; \
-	fi
+build:
+	$(COMPOSE) build
 
-# Full deployment: Docker image + CDK stack
-deploy: ecs cdk
-	@echo "Full deployment complete."
 
-.PHONY: fmt lint test test-quiet check run ecs cdk deploy
+# === Generate PROTO ===
+
+PROTO_DIR=microservices/proto
+WEATHER_OUT_DIR=microservices/weather/internal/proto
+SUBSCRIPTION_OUT_DIR=microservices/subscription/internal/adapter/weatherpb
+
+generate-proto:
+	mkdir -p $(WEATHER_OUT_DIR)
+	mkdir -p $(SUBSCRIPTION_OUT_DIR)
+
+	protoc -I=$(PROTO_DIR) \
+	       --go_out=$(WEATHER_OUT_DIR) --go_opt=paths=source_relative \
+	       --go-grpc_out=$(WEATHER_OUT_DIR) --go-grpc_opt=paths=source_relative \
+	       $(PROTO_DIR)/weather.proto
+
+	protoc -I=$(PROTO_DIR) \
+	       --go_out=$(SUBSCRIPTION_OUT_DIR) --go_opt=paths=source_relative \
+	       --go-grpc_out=$(SUBSCRIPTION_OUT_DIR) --go-grpc_opt=paths=source_relative \
+	       $(PROTO_DIR)/weather.proto

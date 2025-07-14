@@ -1,7 +1,7 @@
 # Go build artifacts
-/bin/
-/build/
-/dist/
+**/bin/
+**/build/
+**/dist/
 *.exe
 *.exe~
 *.dll
@@ -20,14 +20,15 @@ vendor/
 *.iml
 
 # Environment variables
-.env
-.env.local
-.env.*.local
-.env.deploy
+**/.env
+**/.env.local
+**/.env.*.local
 
 # Logs
 *.log
-logs/
+**/logs/
+
+# Media
 *.png
 *.jpg
 *.jpeg
@@ -51,4 +52,4 @@ coverage.*
 
 # System files
 .DS_Store
-Thumbs.dblogs/
+Thumbs.db
