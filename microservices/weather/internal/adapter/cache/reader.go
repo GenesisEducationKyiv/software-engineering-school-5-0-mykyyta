@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	weather "weather/internal/service"
+	"weather/internal/weather"
 
 	"weather/internal/domain"
 )

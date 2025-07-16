@@ -13,7 +13,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"weather/internal/config"
-	"weather/internal/service"
+	"weather/internal/weather"
 )
 
 type ProviderDeps struct {
@@ -32,11 +32,11 @@ type CacheMetrics interface {
 	RecordTotalMiss()
 }
 
-func BuildProviders(deps ProviderDeps) service.Provider {
+func BuildProviders(deps ProviderDeps) weather.Provider {
 	baseWeatherAPI := weatherapi.New(deps.Cfg.WeatherAPIKey, deps.HttpClient)
 	baseTomorrowIO := tomorrowio.New(deps.Cfg.TomorrowioAPIKey, deps.HttpClient)
 
-	var wrappedWeatherAPI, wrappedTomorrowIO service.Provider = baseWeatherAPI, baseTomorrowIO
+	var wrappedWeatherAPI, wrappedTomorrowIO weather.Provider = baseWeatherAPI, baseTomorrowIO
 	var redisCache cache.RedisCache
 
 	if deps.RedisClient != nil && deps.Cfg.Cache.Enabled {

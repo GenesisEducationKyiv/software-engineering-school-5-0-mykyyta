@@ -24,7 +24,7 @@ import (
 	"weather/internal/app/di"
 	"weather/internal/config"
 	"weather/internal/infra"
-	"weather/internal/service"
+	"weather/internal/weather"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -70,7 +70,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	var redisClient *redis.Client
 	var metrics di.CacheMetrics
 	var httpClient *http.Client
-	var weatherProvider service.Provider
+	var weatherProvider weather.Provider
 
 	if cfg.BenchmarkMode {
 		logger.Println(" Running in BENCHMARK MODE — skipping Redis and using BenchmarkProvider")
@@ -99,7 +99,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 		})
 	}
 
-	weatherService := service.NewService(weatherProvider)
+	weatherService := weather.NewService(weatherProvider)
 
 	// HTTP
 	mux := http.NewServeMux()
