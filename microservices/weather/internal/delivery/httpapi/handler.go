@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"weather/internal/domain"
@@ -23,8 +24,8 @@ func NewWeatherHandler(service WeatherService) *WeatherHandler {
 }
 
 func (h *WeatherHandler) GetWeather(w http.ResponseWriter, r *http.Request) {
-	city := r.URL.Query().Get("city")
-	if city == "" {
+	city, err := getQueryParam(r, "city")
+	if err != nil {
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
@@ -51,8 +52,8 @@ func (h *WeatherHandler) GetWeather(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WeatherHandler) ValidateCity(w http.ResponseWriter, r *http.Request) {
-	city := r.URL.Query().Get("city")
-	if city == "" {
+	city, err := getQueryParam(r, "city")
+	if err != nil {
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
@@ -71,9 +72,16 @@ func (h *WeatherHandler) ValidateCity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// helper.
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(data)
+}
+
+func getQueryParam(r *http.Request, param string) (string, error) {
+	value := r.URL.Query().Get(param)
+	if value == "" {
+		return "", fmt.Errorf("missing query parameter: %s", param)
+	}
+	return value, nil
 }
