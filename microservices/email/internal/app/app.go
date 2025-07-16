@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"github.com/pkg/errors"
 	"log"
 	"net/http"
 	"os"
@@ -29,11 +31,12 @@ func Run(logger *log.Logger) error {
 
 	app, err := NewApp(ctx, cfg, logger)
 	if err != nil {
-		logger.Printf("Сreating application: %v", err)
-		return err
+		return fmt.Errorf("creating application: %w", err)
 	}
 
-	app.Start()
+	if err := app.Start(); err != nil {
+		return fmt.Errorf("starting server: %w", err)
+	}
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
@@ -45,7 +48,12 @@ func Run(logger *log.Logger) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	return app.Shutdown(shutdownCtx)
+	if err := app.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("shutdown error: %w", err)
+	}
+
+	logger.Println("Server exited gracefully")
+	return nil
 }
 
 func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, error) {
@@ -74,20 +82,23 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	}, nil
 }
 
-func (a *App) Start() {
+func (a *App) Start() error {
 	go func() {
 		a.Logger.Printf("Email service running at %s", a.Server.Addr)
-		if err := a.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			a.Logger.Fatalf("server error: %v", err)
+		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			a.Logger.Printf("Server error: %v", err)
 		}
 	}()
+
+	time.Sleep(100 * time.Millisecond)
+	return nil
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
 	a.Logger.Println("Shutting down email service...")
 
 	if err := a.Server.Shutdown(ctx); err != nil {
-		return err
+		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
 	a.Logger.Println("Shutdown complete")
