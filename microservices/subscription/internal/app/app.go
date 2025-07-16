@@ -20,7 +20,7 @@ import (
 	"subscription/internal/config"
 	"subscription/internal/delivery"
 	"subscription/internal/infra"
-	"subscription/internal/service"
+	"subscription/internal/subscription"
 	"subscription/internal/token/jwt"
 
 	"github.com/gin-gonic/gin"
@@ -47,7 +47,9 @@ func Run(logger *log.Logger) error {
 	}
 	defer app.DB.Close()
 
-	app.StartServer()
+	if err := app.StartServer(ctx); err != nil {
+		return fmt.Errorf("failed to start server: %w", err)
+	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -77,7 +79,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	// Adapters
 	emailClient := email.NewClient(cfg.EmailAPIBaseURL, logger, nil)
 
-	var weatherClient service.WeatherClient
+	var weatherClient subscription.WeatherClient
 	var weatherCloser io.Closer
 
 	if cfg.UseGRPC {
@@ -87,18 +89,18 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 		}
 		weatherClient = client
 		weatherCloser = client
-		log.Println("Using gRPC weather client")
+		logger.Println("Using gRPC weather client")
 	} else {
 		httpClient := weatherhttp.NewClient(cfg.WeatherHTTPAddr)
 		weatherClient = httpClient
-		log.Println("Using HTTP weather client")
+		logger.Println("Using HTTP weather client")
 	}
 
 	tokenProvider := jwt.NewJWT(cfg.JWTSecret)
 	subscriptionRepo := gorm.NewRepo(db.Gorm)
 
 	// Service
-	subService := service.NewService(
+	subService := subscription.NewService(
 		subscriptionRepo,
 		emailClient,
 		weatherClient,
@@ -107,7 +109,6 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 
 	// Scheduler
 	scheduler := di.NewScheduler(subService)
-	go scheduler.Start(ctx)
 
 	// HTTP server
 	router := delivery.SetupRoutes(subService, weatherClient)
@@ -125,29 +126,35 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	}, nil
 }
 
-func (a *App) StartServer() {
+func (a *App) StartServer(ctx context.Context) error {
+	go a.Scheduler.Start(ctx)
+
 	go func() {
-		log.Printf("Server listening on %s", a.Server.Addr)
+		a.Logger.Printf("Server listening on %s", a.Server.Addr)
 		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("Server error: %v", err)
+			a.Logger.Printf("Server error: %v", err)
 		}
 	}()
+	return nil
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
-	log.Println("Shutting down application...")
-
-	a.Scheduler.Stop()
-	a.DB.Close()
-
-	if a.WeatherClient != nil {
-		_ = a.WeatherClient.Close()
-	}
+	a.Logger.Println("Shutting down application...")
 
 	if err := a.Server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	log.Println("Shutdown complete")
+	a.Scheduler.Stop()
+
+	if a.WeatherClient != nil {
+		if err := a.WeatherClient.Close(); err != nil {
+			a.Logger.Printf("Weather client close error: %v", err)
+		}
+	}
+
+	a.DB.Close()
+
+	a.Logger.Println("Shutdown complete")
 	return nil
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"subscription/internal/domain"
-	"subscription/internal/service"
+	"subscription/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -105,7 +105,7 @@ func TestSubscribeHandler(t *testing.T) {
 	t.Run("DuplicateEmail", func(t *testing.T) {
 		service := &mockSubscribeService{
 			subscribeFunc: func(ctx context.Context, email, city string, frequency domain.Frequency) error {
-				return service.ErrEmailAlreadyExists
+				return subscription.ErrEmailAlreadyExists
 			},
 		}
 		handler := NewSubscribe(service)
@@ -129,7 +129,7 @@ func TestSubscribeHandler(t *testing.T) {
 	t.Run("CityNotFound", func(t *testing.T) {
 		service := &mockSubscribeService{
 			subscribeFunc: func(ctx context.Context, email, city string, frequency domain.Frequency) error {
-				return service.ErrCityNotFound
+				return subscription.ErrCityNotFound
 			},
 		}
 		handler := NewSubscribe(service)

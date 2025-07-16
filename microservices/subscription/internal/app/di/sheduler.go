@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"subscription/internal/job"
-	"subscription/internal/service"
+	"subscription/internal/subscription"
 )
 
 type WeatherScheduler struct {
@@ -19,7 +19,7 @@ type WeatherScheduler struct {
 }
 
 func NewScheduler(
-	subService service.Service,
+	subService subscription.Service,
 ) *WeatherScheduler {
 	queue := job.NewLocalQueue(100)
 	cron := job.NewCronEventSource()

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"subscription/internal/delivery/handlers/response"
-	"subscription/internal/service"
+	"subscription/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,9 +28,9 @@ func (h Unsubscribe) Handle(c *gin.Context) {
 
 	if err := h.service.Unsubscribe(c.Request.Context(), token); err != nil {
 		switch {
-		case errors.Is(err, service.ErrInvalidToken):
+		case errors.Is(err, subscription.ErrInvalidToken):
 			response.SendError(c, http.StatusBadRequest, "Invalid token")
-		case errors.Is(err, service.ErrSubscriptionNotFound):
+		case errors.Is(err, subscription.ErrSubscriptionNotFound):
 			response.SendError(c, http.StatusNotFound, "Subscription not found")
 		default:
 			response.SendError(c, http.StatusInternalServerError, "Something went wrong")

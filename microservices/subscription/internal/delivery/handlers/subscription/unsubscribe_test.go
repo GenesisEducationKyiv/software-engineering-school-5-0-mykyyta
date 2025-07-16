@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"subscription/internal/service"
+	"subscription/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +53,7 @@ func TestUnsubscribeHandler(t *testing.T) {
 	t.Run("InvalidToken", func(t *testing.T) {
 		service := &mockUnsubscribeService{
 			unsubscribeFunc: func(ctx context.Context, token string) error {
-				return service.ErrInvalidToken
+				return subscription.ErrInvalidToken
 			},
 		}
 		router := setupUnsubscribeRouter(service)
@@ -69,7 +69,7 @@ func TestUnsubscribeHandler(t *testing.T) {
 	t.Run("NotFound", func(t *testing.T) {
 		service := &mockUnsubscribeService{
 			unsubscribeFunc: func(ctx context.Context, token string) error {
-				return service.ErrSubscriptionNotFound
+				return subscription.ErrSubscriptionNotFound
 			},
 		}
 		router := setupUnsubscribeRouter(service)

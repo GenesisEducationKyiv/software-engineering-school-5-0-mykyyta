@@ -6,7 +6,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"subscription/internal/service"
+	"subscription/internal/subscription"
 
 	subscription2 "subscription/internal/delivery/handlers/subscription"
 	handlers2 "subscription/internal/delivery/handlers/weather"
@@ -18,7 +18,7 @@ type weatherService interface {
 	GetWeather(ctx context.Context, city string) (domain.Report, error)
 }
 
-func SetupRoutes(subService service.Service, weatherClient weatherService) *gin.Engine {
+func SetupRoutes(subService subscription.Service, weatherClient weatherService) *gin.Engine {
 	router := gin.Default()
 
 	subscribeHandler := subscription2.NewSubscribe(subService)

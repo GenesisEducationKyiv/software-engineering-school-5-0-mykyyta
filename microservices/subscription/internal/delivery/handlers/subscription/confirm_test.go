@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"subscription/internal/service"
+	"subscription/internal/subscription"
 	"subscription/internal/token/jwt"
 
 	"github.com/gin-gonic/gin"
@@ -66,7 +66,7 @@ func TestConfirmHandler(t *testing.T) {
 	t.Run("InvalidToken", func(t *testing.T) {
 		mock := &mockConfirmService{
 			ConfirmFunc: func(ctx context.Context, token string) error {
-				return service.ErrInvalidToken
+				return subscription.ErrInvalidToken
 			},
 		}
 
@@ -86,7 +86,7 @@ func TestConfirmHandler(t *testing.T) {
 
 		mock := &mockConfirmService{
 			ConfirmFunc: func(ctx context.Context, token string) error {
-				return service.ErrSubscriptionNotFound
+				return subscription.ErrSubscriptionNotFound
 			},
 		}
 

@@ -7,7 +7,7 @@ import (
 
 	"subscription/internal/delivery/handlers/response"
 	"subscription/internal/domain"
-	"subscription/internal/service"
+	"subscription/internal/subscription"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,9 +46,9 @@ func (h Subscribe) Handle(c *gin.Context) {
 	err := h.service.Subscribe(c.Request.Context(), req.Email, req.City, freq)
 	if err != nil {
 		switch {
-		case errors.Is(err, service.ErrCityNotFound):
+		case errors.Is(err, subscription.ErrCityNotFound):
 			response.SendError(c, http.StatusBadRequest, "City not found")
-		case errors.Is(err, service.ErrEmailAlreadyExists):
+		case errors.Is(err, subscription.ErrEmailAlreadyExists):
 			response.SendError(c, http.StatusConflict, "Email already subscribed")
 		default:
 			response.SendError(c, http.StatusInternalServerError, "Something went wrong")
