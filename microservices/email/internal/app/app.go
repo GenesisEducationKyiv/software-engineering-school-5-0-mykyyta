@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"log"
 	"net/http"
 	"os"
@@ -11,11 +10,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"email/internal/adapter/sendgrid"
 	"email/internal/adapter/template"
 	"email/internal/config"
 	"email/internal/delivery"
-	"email/internal/service"
+	"email/internal/email"
 )
 
 type App struct {
@@ -64,7 +65,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	}
 
 	emailProvider := sendgrid.New(cfg.SendGridKey, cfg.EmailFrom)
-	emailService := service.NewService(emailProvider, templateStore)
+	emailService := email.NewService(emailProvider, templateStore)
 
 	handler := delivery.NewEmailHandler(emailService, logger)
 

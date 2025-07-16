@@ -3,6 +3,7 @@ package weathergrpc
 import (
 	"context"
 	"fmt"
+
 	weatherpb2 "subscription/internal/adapter/weahtergrpc/pb"
 	"subscription/internal/domain"
 

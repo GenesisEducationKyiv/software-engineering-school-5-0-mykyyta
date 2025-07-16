@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 	"time"
+
 	"weather/internal/domain"
 )
 

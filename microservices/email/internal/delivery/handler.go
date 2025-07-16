@@ -6,15 +6,15 @@ import (
 	"net/http"
 
 	"email/internal/domain"
-	"email/internal/service"
+	"email/internal/email"
 )
 
 type EmailHandler struct {
-	sender service.Sender
+	sender email.Sender
 	logger *log.Logger
 }
 
-func NewEmailHandler(sender service.Sender, logger *log.Logger) *EmailHandler {
+func NewEmailHandler(sender email.Sender, logger *log.Logger) *EmailHandler {
 	return &EmailHandler{
 		sender: sender,
 		logger: logger,

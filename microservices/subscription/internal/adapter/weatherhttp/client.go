@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -36,33 +37,24 @@ type weatherResponse struct {
 
 func (c *Client) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	endpoint := fmt.Sprintf("%s/weather?city=%s", c.baseURL, url.QueryEscape(city))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return domain.Report{}, fmt.Errorf("create request: %w", err)
-	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.doRequest(ctx, http.MethodGet, endpoint)
 	if err != nil {
-		return domain.Report{}, fmt.Errorf("request failed: %w", err)
+		return domain.Report{}, fmt.Errorf("weather request failed: %w", err)
 	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			fmt.Printf("error closing response body: %v\n", err)
-		}
-	}()
+	defer c.closeBody(resp.Body, "GetWeather")
 
 	if resp.StatusCode == http.StatusNotFound {
 		return domain.Report{}, ErrCityNotFound
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return domain.Report{}, fmt.Errorf("unexpected status: %s", resp.Status)
+		return domain.Report{}, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, resp.Status)
 	}
 
 	var res weatherResponse
-
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return domain.Report{}, fmt.Errorf("decode response: %w", err)
+		return domain.Report{}, fmt.Errorf("decode weather response: %w", err)
 	}
 
 	return domain.Report{
@@ -74,23 +66,15 @@ func (c *Client) GetWeather(ctx context.Context, city string) (domain.Report, er
 
 func (c *Client) CityIsValid(ctx context.Context, city string) (bool, error) {
 	endpoint := fmt.Sprintf("%s/validate?city=%s", c.baseURL, url.QueryEscape(city))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return false, fmt.Errorf("create request: %w", err)
-	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.doRequest(ctx, http.MethodGet, endpoint)
 	if err != nil {
-		return false, fmt.Errorf("request failed: %w", err)
+		return false, fmt.Errorf("city validation request failed: %w", err)
 	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			fmt.Printf("error closing response body: %v\n", err)
-		}
-	}()
+	defer c.closeBody(resp.Body, "CityIsValid")
 
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("unexpected status: %s", resp.Status)
+		return false, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, resp.Status)
 	}
 
 	var data struct {
@@ -98,8 +82,28 @@ func (c *Client) CityIsValid(ctx context.Context, city string) (bool, error) {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return false, fmt.Errorf("decode response: %w", err)
+		return false, fmt.Errorf("decode validation response: %w", err)
 	}
 
 	return data.Valid, nil
+}
+
+func (c *Client) doRequest(ctx context.Context, method, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (c *Client) closeBody(body io.Closer, operation string) {
+	if err := body.Close(); err != nil {
+		fmt.Printf("[WARN] Failed to close response body in %s: %v\n", operation, err)
+	}
 }

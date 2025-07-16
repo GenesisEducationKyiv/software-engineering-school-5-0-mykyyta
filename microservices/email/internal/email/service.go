@@ -1,4 +1,4 @@
-package service
+package email
 
 import "email/internal/domain"
 

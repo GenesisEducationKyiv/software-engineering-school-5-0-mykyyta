@@ -9,9 +9,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	weathergrpc "subscription/internal/adapter/weahtergrpc"
 	"syscall"
 	"time"
+
+	weathergrpc "subscription/internal/adapter/weahtergrpc"
 
 	"subscription/internal/adapter/email"
 	"subscription/internal/adapter/gorm"
