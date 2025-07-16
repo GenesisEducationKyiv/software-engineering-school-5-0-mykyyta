@@ -1,6 +1,8 @@
 package app
 
 import (
+	"api-gateway/internal/adapter/subscription"
+	"api-gateway/internal/delivery"
 	"context"
 	"fmt"
 	"log"
@@ -10,9 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"api-gateway/internal/client"
 	"api-gateway/internal/config"
-	"api-gateway/internal/router"
 )
 
 type App struct {
@@ -23,12 +23,12 @@ type App struct {
 func NewApp(cfg *config.Config) (*App, error) {
 	logger := log.New(os.Stdout, "[API-GATEWAY] ", log.LstdFlags)
 
-	subscriptionClient := client.NewSubscriptionClient(
+	subscriptionClient := subscription.NewSubscriptionClient(
 		cfg.SubscriptionServiceAddr,
 		cfg.RequestTimeout,
 	)
 
-	mux := router.SetupRoutes(subscriptionClient, logger)
+	mux := delivery.SetupRoutes(subscriptionClient, logger)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,

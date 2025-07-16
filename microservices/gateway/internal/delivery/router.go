@@ -1,21 +1,20 @@
 // internal/router/router.go
-package router
+package delivery
 
 import (
+	"api-gateway/internal/adapter/subscription"
 	"log"
 	"net/http"
 
-	"api-gateway/internal/client"
-	"api-gateway/internal/handler"
 	"api-gateway/internal/middleware"
 )
 
-func SetupRoutes(subscriptionClient *client.SubscriptionClient, logger *log.Logger) http.Handler {
+func SetupRoutes(subscriptionClient *subscription.SubscriptionClient, logger *log.Logger) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/health", handler.HealthCheck)
+	mux.HandleFunc("/health", HealthCheck)
 
-	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionClient, logger)
+	subscriptionHandler := NewSubscriptionHandler(subscriptionClient, logger)
 
 	mux.HandleFunc("/api/subscription/subscribe", subscriptionHandler.Subscribe)
 	mux.HandleFunc("/api/subscription/confirm", subscriptionHandler.Confirm)

@@ -1,28 +1,26 @@
-package handler
+package delivery
 
 import (
+	"api-gateway/internal/adapter/subscription"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
-
-	"api-gateway/internal/client"
 )
 
 type SubscriptionHandler struct {
-	client *client.SubscriptionClient
+	client *subscription.SubscriptionClient
 	logger *log.Logger
 }
 
-func NewSubscriptionHandler(client *client.SubscriptionClient, logger *log.Logger) *SubscriptionHandler {
+func NewSubscriptionHandler(client *subscription.SubscriptionClient, logger *log.Logger) *SubscriptionHandler {
 	return &SubscriptionHandler{
 		client: client,
 		logger: logger,
 	}
 }
 
-// ErrorResponse для consistent error handling
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message,omitempty"`
@@ -35,21 +33,19 @@ func (h *SubscriptionHandler) Subscribe(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var req client.SubscribeRequest
+	var req subscription.SubscribeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Printf("Failed to decode subscribe request: %v", err)
 		h.writeError(w, http.StatusBadRequest, "Invalid JSON", "Request body must be valid JSON")
 		return
 	}
 
-	// Валідація
 	if err := h.validateSubscribeRequest(req); err != nil {
 		h.logger.Printf("Subscribe validation failed: %v", err)
 		h.writeError(w, http.StatusBadRequest, "Validation failed", err.Error())
 		return
 	}
 
-	// Виклик subscription service
 	resp, err := h.client.Subscribe(r.Context(), req)
 	if err != nil {
 		h.logger.Printf("Subscribe failed: %v", err)
@@ -61,27 +57,24 @@ func (h *SubscriptionHandler) Subscribe(w http.ResponseWriter, r *http.Request) 
 	h.writeSuccess(w, resp)
 }
 
-// Confirm підтверджує підписку
 func (h *SubscriptionHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.writeError(w, http.StatusMethodNotAllowed, "Method not allowed", "")
 		return
 	}
 
-	var req client.ConfirmRequest
+	var req subscription.ConfirmRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Printf("Failed to decode confirm request: %v", err)
 		h.writeError(w, http.StatusBadRequest, "Invalid JSON", "Request body must be valid JSON")
 		return
 	}
 
-	// Валідація
 	if req.Token == "" {
 		h.writeError(w, http.StatusBadRequest, "Validation failed", "Token is required")
 		return
 	}
 
-	// Виклик subscription service
 	resp, err := h.client.Confirm(r.Context(), req)
 	if err != nil {
 		h.logger.Printf("Confirm failed: %v", err)
@@ -93,27 +86,24 @@ func (h *SubscriptionHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	h.writeSuccess(w, resp)
 }
 
-// Unsubscribe скасовує підписку
 func (h *SubscriptionHandler) Unsubscribe(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.writeError(w, http.StatusMethodNotAllowed, "Method not allowed", "")
 		return
 	}
 
-	var req client.UnsubscribeRequest
+	var req subscription.UnsubscribeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Printf("Failed to decode unsubscribe request: %v", err)
 		h.writeError(w, http.StatusBadRequest, "Invalid JSON", "Request body must be valid JSON")
 		return
 	}
 
-	// Валідація
 	if req.Token == "" {
 		h.writeError(w, http.StatusBadRequest, "Validation failed", "Token is required")
 		return
 	}
 
-	// Виклик subscription service
 	resp, err := h.client.Unsubscribe(r.Context(), req)
 	if err != nil {
 		h.logger.Printf("Unsubscribe failed: %v", err)
@@ -126,7 +116,7 @@ func (h *SubscriptionHandler) Unsubscribe(w http.ResponseWriter, r *http.Request
 }
 
 // validateSubscribeRequest валідує дані для підписки
-func (h *SubscriptionHandler) validateSubscribeRequest(req client.SubscribeRequest) error {
+func (h *SubscriptionHandler) validateSubscribeRequest(req subscription.SubscribeRequest) error {
 	if req.Email == "" {
 		return fmt.Errorf("email is required")
 	}
@@ -160,12 +150,10 @@ func (h *SubscriptionHandler) validateSubscribeRequest(req client.SubscribeReque
 	return nil
 }
 
-// isValidEmail базова валідація email
 func (h *SubscriptionHandler) isValidEmail(email string) bool {
 	return strings.Contains(email, "@") && strings.Contains(email, ".")
 }
 
-// handleServiceError обробляє помилки від subscription service
 func (h *SubscriptionHandler) handleServiceError(w http.ResponseWriter, err error) {
 	errStr := err.Error()
 
@@ -187,7 +175,6 @@ func (h *SubscriptionHandler) handleServiceError(w http.ResponseWriter, err erro
 	}
 }
 
-// writeError writes error response
 func (h *SubscriptionHandler) writeError(w http.ResponseWriter, statusCode int, error, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
@@ -200,7 +187,6 @@ func (h *SubscriptionHandler) writeError(w http.ResponseWriter, statusCode int, 
 	json.NewEncoder(w).Encode(response)
 }
 
-// writeSuccess writes success response
 func (h *SubscriptionHandler) writeSuccess(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
