@@ -8,8 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	pb "weather/internal/proto"
+
+	"google.golang.org/grpc"
 )
 
 const (
@@ -30,11 +33,16 @@ func main() {
 }
 
 func benchmarkGRPC() time.Duration {
-	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
+	conn, err := grpc.NewClient(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal("gRPC dial error:", err)
 	}
-	defer conn.Close()
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("failed to close connection: %v", err)
+		}
+	}()
 
 	client := pb.NewWeatherServiceClient(conn)
 	var wg sync.WaitGroup
@@ -58,6 +66,7 @@ func benchmarkHTTP() time.Duration {
 	client := &http.Client{Timeout: 3 * time.Second}
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, concurrentLimit)
+	ctx := context.Background()
 
 	start := time.Now()
 	for i := 0; i < nRequests; i++ {
@@ -68,7 +77,13 @@ func benchmarkHTTP() time.Duration {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			resp, err := client.Get(httpURL)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, httpURL, nil)
+			if err != nil {
+				log.Println("Error creating HTTP request:", err)
+				return
+			}
+
+			resp, err := client.Do(req)
 			if err != nil {
 				log.Println("HTTP error:", err)
 				return
@@ -77,5 +92,6 @@ func benchmarkHTTP() time.Duration {
 		}()
 	}
 	wg.Wait()
+
 	return time.Since(start)
 }

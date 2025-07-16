@@ -17,6 +17,8 @@ import (
 	"weather/internal/delivery/httpapi"
 	weatherpb "weather/internal/proto"
 
+	"golang.org/x/sync/errgroup"
+
 	"google.golang.org/grpc"
 
 	"weather/internal/app/di"
@@ -29,6 +31,7 @@ import (
 
 type App struct {
 	HttpServer *http.Server
+	HttpLis    net.Listener
 	Redis      *redis.Client
 	Logger     *log.Logger
 	GrpcServer *grpc.Server
@@ -46,13 +49,15 @@ func Run(logger *log.Logger) error {
 		return fmt.Errorf("build app: %w", err)
 	}
 
-	app.Start()
+	if err := app.Start(); err != nil {
+		logger.Printf("Starting application: %v", err)
+		return err
+	}
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 	logger.Println("Shutdown signal received")
-
 	cancel()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -69,10 +74,8 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 
 	if cfg.BenchmarkMode {
 		logger.Println(" Running in BENCHMARK MODE — skipping Redis and using BenchmarkProvider")
-
 		redisClient = nil
-		metrics = cache.NewNoopMetrics() // створимо нижче
-		httpClient = &http.Client{Timeout: 5 * time.Second}
+		metrics = cache.NewNoopMetrics()
 		weatherProvider = benchmark.NewProvider()
 
 	} else {
@@ -103,10 +106,12 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	weatherHandler := httpapi.NewWeatherHandler(weatherService)
 	httpapi.RegisterRoutes(mux, weatherHandler)
 
-	httpServer := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: mux,
+	httpLis, err := net.Listen("tcp", ":"+cfg.Port)
+	if err != nil {
+		return nil, fmt.Errorf("listen HTTP: %w", err)
 	}
+
+	httpServer := &http.Server{Handler: mux}
 
 	// gRPC
 	grpcLis, err := net.Listen("tcp", ":"+cfg.GRPCPort)
@@ -118,8 +123,10 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	grpcHandler := grpcapi.NewHandler(weatherService)
 	weatherpb.RegisterWeatherServiceServer(grpcServer, grpcHandler)
 
+	logger.Printf("[INFO] Application initialized successfully")
 	return &App{
 		HttpServer: httpServer,
+		HttpLis:    httpLis,
 		GrpcServer: grpcServer,
 		GrpcLis:    grpcLis,
 		Redis:      redisClient,
@@ -127,39 +134,66 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	}, nil
 }
 
-func (a *App) Start() {
-	// HTTP
+func (a *App) Start() error {
+	a.Logger.Println("[INFO] Starting servers...")
+
+	var g errgroup.Group
+
+	g.Go(func() error {
+		a.Logger.Printf("[INFO] HTTP server starting on %s", a.HttpLis.Addr())
+		if err := a.HttpServer.Serve(a.HttpLis); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("HTTP server error: %w", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		a.Logger.Printf("[INFO] gRPC server starting on %s", a.GrpcLis.Addr())
+		if err := a.GrpcServer.Serve(a.GrpcLis); err != nil {
+			return fmt.Errorf("gRPC server error: %w", err)
+		}
+		return nil
+	})
+
+	time.Sleep(100 * time.Millisecond)
+
 	go func() {
-		a.Logger.Printf("HTTP server running at %s", a.HttpServer.Addr)
-		if err := a.HttpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			a.Logger.Fatalf("HTTP server error: %v", err)
+		if err := g.Wait(); err != nil {
+			a.Logger.Printf("[ERROR] Server exited with error: %v", err)
 		}
 	}()
 
-	// gRPC
-	go func() {
-		a.Logger.Println("gRPC server running at :50051")
-		if err := a.GrpcServer.Serve(a.GrpcLis); err != nil {
-			a.Logger.Fatalf("gRPC server error: %v", err)
-		}
-	}()
+	a.Logger.Println("[INFO] All servers started successfully")
+	return nil
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
-	log.Println("Shutting down application...")
+	a.Logger.Println("[INFO] Initiating graceful shutdown...")
 
 	if a.Redis != nil {
 		if err := a.Redis.Close(); err != nil {
-			a.Logger.Printf("Redis close error: %v", err)
+			a.Logger.Printf("[ERROR] Redis close error: %v", err)
 		}
 	}
 
 	if err := a.HttpServer.Shutdown(ctx); err != nil {
-		return fmt.Errorf("HTTP server shutdown error: %w", err)
+		a.Logger.Printf("[ERROR] HTTP shutdown error: %v", err)
+	} else {
+		a.Logger.Printf("[INFO] HTTP server stopped")
 	}
 
-	a.GrpcServer.GracefulStop()
+	done := make(chan struct{})
+	go func() {
+		a.GrpcServer.GracefulStop()
+		close(done)
+	}()
 
-	log.Println("Shutdown complete")
+	select {
+	case <-done:
+		a.Logger.Printf("[INFO] gRPC server stopped gracefully")
+	case <-ctx.Done():
+		a.Logger.Printf("[WARN] gRPC server force stopped due to timeout")
+		a.GrpcServer.Stop()
+	}
 	return nil
 }

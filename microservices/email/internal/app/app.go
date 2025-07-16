@@ -29,12 +29,12 @@ func Run(logger *log.Logger) error {
 
 	app, err := NewApp(ctx, cfg, logger)
 	if err != nil {
+		logger.Printf("Сreating application: %v", err)
 		return err
 	}
 
 	app.Start()
 
-	// Graceful shutdown on SIGINT/SIGTERM
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
@@ -51,6 +51,7 @@ func Run(logger *log.Logger) error {
 func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, error) {
 	templateStore, err := template.Load("template")
 	if err != nil {
+		logger.Printf("Loading templates: %v", err)
 		return nil, err
 	}
 
