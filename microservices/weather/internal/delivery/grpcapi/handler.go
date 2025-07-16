@@ -12,17 +12,17 @@ type weatherService interface {
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
-type Server struct {
+type Handler struct {
 	weatherpb.UnimplementedWeatherServiceServer
-	service weatherService
+	ws weatherService
 }
 
-func NewHandler(s weatherService) *Server {
-	return &Server{service: s}
+func NewHandler(s weatherService) *Handler {
+	return &Handler{ws: s}
 }
 
-func (s *Server) GetWeather(ctx context.Context, req *weatherpb.WeatherRequest) (*weatherpb.WeatherResponse, error) {
-	report, err := s.service.GetWeather(ctx, req.City)
+func (s *Handler) GetWeather(ctx context.Context, req *weatherpb.WeatherRequest) (*weatherpb.WeatherResponse, error) {
+	report, err := s.ws.GetWeather(ctx, req.City)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +33,8 @@ func (s *Server) GetWeather(ctx context.Context, req *weatherpb.WeatherRequest) 
 	}, nil
 }
 
-func (s *Server) ValidateCity(ctx context.Context, req *weatherpb.ValidateRequest) (*weatherpb.ValidateResponse, error) {
-	ok, err := s.service.CityIsValid(ctx, req.City)
+func (s *Handler) ValidateCity(ctx context.Context, req *weatherpb.ValidateRequest) (*weatherpb.ValidateResponse, error) {
+	ok, err := s.ws.CityIsValid(ctx, req.City)
 	if err != nil {
 		return nil, err
 	}

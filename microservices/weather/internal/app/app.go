@@ -103,7 +103,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 
 	// HTTP
 	mux := http.NewServeMux()
-	weatherHandler := httpapi.NewWeatherHandler(weatherService)
+	weatherHandler := httpapi.NewHandler(weatherService)
 	httpapi.RegisterRoutes(mux, weatherHandler)
 
 	httpLis, err := net.Listen("tcp", ":"+cfg.Port)

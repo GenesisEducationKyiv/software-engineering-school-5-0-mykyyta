@@ -6,31 +6,30 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-
 	"weather/internal/domain"
 )
 
-type WeatherService interface {
+type weatherService interface {
 	GetWeather(ctx context.Context, city string) (domain.Report, error)
 	CityIsValid(ctx context.Context, city string) (bool, error)
 }
 
-type WeatherHandler struct {
-	service WeatherService
+type Handler struct {
+	ws weatherService
 }
 
-func NewWeatherHandler(service WeatherService) *WeatherHandler {
-	return &WeatherHandler{service: service}
+func NewHandler(ws weatherService) *Handler {
+	return &Handler{ws: ws}
 }
 
-func (h *WeatherHandler) GetWeather(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 	city, err := getQueryParam(r, "city")
 	if err != nil {
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
 
-	report, err := h.service.GetWeather(r.Context(), city)
+	report, err := h.ws.GetWeather(r.Context(), city)
 	if err != nil {
 		if errors.Is(err, domain.ErrCityNotFound) {
 			http.Error(w, `{"error":"city not found"}`, http.StatusNotFound)
@@ -51,14 +50,14 @@ func (h *WeatherHandler) GetWeather(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *WeatherHandler) ValidateCity(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ValidateCity(w http.ResponseWriter, r *http.Request) {
 	city, err := getQueryParam(r, "city")
 	if err != nil {
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
 
-	valid, err := h.service.CityIsValid(r.Context(), city)
+	valid, err := h.ws.CityIsValid(r.Context(), city)
 	if err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
