@@ -1,12 +1,13 @@
 package app
 
 import (
-	"api-gateway/internal/adapter/subscription"
-	"api-gateway/internal/config"
-	"api-gateway/internal/delivery"
 	"context"
 	"errors"
 	"fmt"
+	"gateway/internal/adapter/subscription"
+	"gateway/internal/config"
+	"gateway/internal/delivery"
+	"gateway/internal/service"
 	"log"
 	"net/http"
 	"os"
@@ -25,8 +26,12 @@ func NewApp(cfg *config.Config, logger *log.Logger) *App {
 		cfg.SubscriptionServiceAddr,
 		cfg.RequestTimeout,
 	)
+	validator := service.NewSecurityValidator()
+	gatewayService := service.NewService(subscriptionClient, validator, logger)
+	responseWriter := delivery.NewResponseWriter(logger)
+	handler := delivery.NewSubscriptionHandler(gatewayService, responseWriter, logger)
 
-	mux := delivery.SetupRoutes(subscriptionClient, logger)
+	mux := delivery.SetupRoutes(handler, logger)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,

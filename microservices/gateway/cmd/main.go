@@ -1,8 +1,8 @@
 package main
 
 import (
-	"api-gateway/internal/app"
-	"api-gateway/internal/infra"
+	"gateway/internal/app"
+	"gateway/internal/infra"
 )
 
 func main() {

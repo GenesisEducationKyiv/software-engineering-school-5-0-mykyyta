@@ -1,9 +1,9 @@
 package delivery
 
 import (
-	"api-gateway/internal/adapter/subscription"
 	"context"
 	"encoding/json"
+	"gateway/internal/adapter/subscription"
 	"net/http"
 	"strings"
 )
@@ -15,7 +15,7 @@ type SubscriptionService interface {
 	GetWeather(ctx context.Context, city string) (*subscription.WeatherResponse, error)
 }
 
-type ResponseWriter interface {
+type responseWriter interface {
 	WriteError(w http.ResponseWriter, statusCode int, error, message string)
 	WriteSuccess(w http.ResponseWriter, data interface{})
 }
@@ -26,13 +26,13 @@ type Logger interface {
 
 type SubscriptionHandler struct {
 	subscriptionService SubscriptionService
-	responseWriter      ResponseWriter
+	responseWriter      responseWriter
 	logger              Logger
 }
 
 func NewSubscriptionHandler(
 	subscriptionService SubscriptionService,
-	responseWriter ResponseWriter,
+	responseWriter responseWriter,
 	logger Logger,
 ) *SubscriptionHandler {
 	return &SubscriptionHandler{

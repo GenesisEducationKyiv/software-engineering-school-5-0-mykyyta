@@ -1,9 +1,10 @@
 package service
 
 import (
-	"api-gateway/internal/adapter/subscription"
 	"context"
 	"fmt"
+	"gateway/internal/adapter/subscription"
+	"log"
 )
 
 type SecurityValidator interface {
@@ -19,20 +20,16 @@ type SubscriptionClient interface {
 	GetWeather(ctx context.Context, city string) (*subscription.WeatherResponse, error)
 }
 
-type Logger interface {
-	Printf(format string, v ...interface{})
-}
-
 type Service struct {
 	subscriptionClient SubscriptionClient
 	securityValidator  SecurityValidator
-	logger             Logger
+	logger             *log.Logger
 }
 
 func NewService(
 	subscriptionClient SubscriptionClient,
 	securityValidator SecurityValidator,
-	logger Logger,
+	logger *log.Logger,
 ) *Service {
 	return &Service{
 		subscriptionClient: subscriptionClient,

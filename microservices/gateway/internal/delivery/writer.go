@@ -1,4 +1,4 @@
-package response
+package delivery
 
 import (
 	"encoding/json"
@@ -6,27 +6,22 @@ import (
 	"net/http"
 )
 
-type HTTPResponseWriter interface {
-	WriteError(w http.ResponseWriter, statusCode int, error, message string)
-	WriteSuccess(w http.ResponseWriter, data interface{})
-}
-
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message,omitempty"`
 }
 
-type jsonResponseWriter struct {
+type ResponseWriter struct {
 	logger *log.Logger
 }
 
-func NewJSONResponseWriter(logger *log.Logger) HTTPResponseWriter {
-	return &jsonResponseWriter{
+func NewResponseWriter(logger *log.Logger) ResponseWriter {
+	return ResponseWriter{
 		logger: logger,
 	}
 }
 
-func (j *jsonResponseWriter) WriteError(w http.ResponseWriter, statusCode int, error, message string) {
+func (j ResponseWriter) WriteError(w http.ResponseWriter, statusCode int, error, message string) {
 	response := ErrorResponse{
 		Error:   error,
 		Message: message,
@@ -40,7 +35,7 @@ func (j *jsonResponseWriter) WriteError(w http.ResponseWriter, statusCode int, e
 	}
 }
 
-func (j *jsonResponseWriter) WriteSuccess(w http.ResponseWriter, data interface{}) {
+func (j ResponseWriter) WriteSuccess(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 

@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"api-gateway/internal/middleware"
+	"gateway/internal/middleware"
 )
 
 func SetupRoutes(handler *SubscriptionHandler, logger *log.Logger) http.Handler {
