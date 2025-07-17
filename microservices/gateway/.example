@@ -1,0 +1,15 @@
+# Server Configuration
+# Port for the API Gateway to listen on
+PORT=8080
+
+# External Services
+# Address of the subscription service
+SUBSCRIPTION_SERVICE_ADDR=http://localhost:8083
+
+# Timeouts
+# Maximum time for external service requests
+REQUEST_TIMEOUT=30s
+# Maximum time to read request headers
+READ_TIMEOUT=15s
+# Maximum time to write response
+WRITE_TIMEOUT=15s
