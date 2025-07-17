@@ -7,16 +7,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
-type SubscriptionClient struct {
+type Client struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
-func NewSubscriptionClient(baseURL string, timeout time.Duration) *SubscriptionClient {
-	return &SubscriptionClient{
+func NewClient(baseURL string, timeout time.Duration) *Client {
+	return &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: timeout,
@@ -32,38 +33,79 @@ type SubscribeRequest struct {
 
 type SubscribeResponse struct {
 	Message string `json:"message"`
+	Token   string `json:"token,omitempty"`
 }
 
-type ConfirmRequest struct {
-	Token string `json:"token"`
+type ConfirmResponse struct {
+	Message string `json:"message"`
+	Status  string `json:"status"`
 }
 
-type UnsubscribeRequest struct {
-	Token string `json:"token"`
+type UnsubscribeResponse struct {
+	Message string `json:"message"`
+	Status  string `json:"status"`
 }
 
-func (c *SubscriptionClient) Subscribe(ctx context.Context, req SubscribeRequest) (*SubscribeResponse, error) {
-	return c.post(ctx, "/api/subscription", req, &SubscribeResponse{})
+type WeatherResponse struct {
+	City        string  `json:"city"`
+	Temperature float64 `json:"temperature"`
+	Description string  `json:"description"`
+	Humidity    int     `json:"humidity"`
+	WindSpeed   float64 `json:"wind_speed"`
 }
 
-func (c *SubscriptionClient) Confirm(ctx context.Context, req ConfirmRequest) (*SubscribeResponse, error) {
-	return c.post(ctx, "/api/subscription/confirm", req, &SubscribeResponse{})
+func (c *Client) Subscribe(ctx context.Context, req SubscribeRequest) (*SubscribeResponse, error) {
+	var resp SubscribeResponse
+	err := c.postJSON(ctx, "/api/subscribe", req, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
 
-func (c *SubscriptionClient) Unsubscribe(ctx context.Context, req UnsubscribeRequest) (*SubscribeResponse, error) {
-	return c.post(ctx, "/api/subscription/unsubscribe", req, &SubscribeResponse{})
+func (c *Client) Confirm(ctx context.Context, token string) (*ConfirmResponse, error) {
+	endpoint := fmt.Sprintf("/api/confirm/%s", url.PathEscape(token))
+	var resp ConfirmResponse
+	err := c.get(ctx, endpoint, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
 
-func (c *SubscriptionClient) post(ctx context.Context, endpoint string, reqBody interface{}, respBody interface{}) (*SubscribeResponse, error) {
+func (c *Client) Unsubscribe(ctx context.Context, token string) (*UnsubscribeResponse, error) {
+	endpoint := fmt.Sprintf("/api/unsubscribe/%s", url.PathEscape(token))
+	var resp UnsubscribeResponse
+	err := c.get(ctx, endpoint, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) GetWeather(ctx context.Context, city string) (*WeatherResponse, error) {
+	endpoint := "/api/weather"
+	if city != "" {
+		endpoint += "?city=" + url.QueryEscape(city)
+	}
+	var resp WeatherResponse
+	err := c.get(ctx, endpoint, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) postJSON(ctx context.Context, endpoint string, reqBody interface{}, respBody interface{}) error {
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
+		return fmt.Errorf("marshal request: %w", err)
 	}
 
-	url := c.baseURL + endpoint
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
+	fullURL := c.baseURL + endpoint
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
+		return fmt.Errorf("create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -71,24 +113,51 @@ func (c *SubscriptionClient) post(ctx context.Context, endpoint string, reqBody 
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return fmt.Errorf("request failed: %w", err)
 	}
 	defer c.closeBody(resp.Body)
 
-	// Детальна обробка статусів
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(respBody); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
+		return fmt.Errorf("decode response: %w", err)
 	}
 
-	return respBody.(*SubscribeResponse), nil
+	return nil
 }
 
-func (c *SubscriptionClient) closeBody(body io.Closer) {
+func (c *Client) get(ctx context.Context, endpoint string, respBody interface{}) error {
+	fullURL := c.baseURL + endpoint
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "api-gateway/1.0.0")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer c.closeBody(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(respBody); err != nil {
+		return fmt.Errorf("decode response: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Client) closeBody(body io.Closer) {
 	if err := body.Close(); err != nil {
 		fmt.Printf("Failed to close response body: %v\n", err)
 	}

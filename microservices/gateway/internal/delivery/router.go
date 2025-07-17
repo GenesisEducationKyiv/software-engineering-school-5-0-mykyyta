@@ -1,24 +1,20 @@
-// internal/router/router.go
 package delivery
 
 import (
-	"api-gateway/internal/adapter/subscription"
 	"log"
 	"net/http"
 
 	"api-gateway/internal/middleware"
 )
 
-func SetupRoutes(subscriptionClient *subscription.SubscriptionClient, logger *log.Logger) http.Handler {
+func SetupRoutes(handler *SubscriptionHandler, logger *log.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", HealthCheck)
-
-	subscriptionHandler := NewSubscriptionHandler(subscriptionClient, logger)
-
-	mux.HandleFunc("/api/subscription/subscribe", subscriptionHandler.Subscribe)
-	mux.HandleFunc("/api/subscription/confirm", subscriptionHandler.Confirm)
-	mux.HandleFunc("/api/subscription/unsubscribe", subscriptionHandler.Unsubscribe)
+	mux.HandleFunc("/api/subscribe", handler.Subscribe)
+	mux.HandleFunc("/api/confirm/", handler.Confirm)
+	mux.HandleFunc("/api/unsubscribe/", handler.Unsubscribe)
+	mux.HandleFunc("/api/weather", handler.GetWeather)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -28,16 +24,23 @@ func SetupRoutes(subscriptionClient *subscription.SubscriptionClient, logger *lo
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
-            "service": "api-gateway",
-            "version": "1.0.0",
-            "endpoints": {
-                "health": "GET /health",
-                "subscribe": "POST /api/subscription/subscribe",
-                "confirm": "POST /api/subscription/confirm",
-                "unsubscribe": "POST /api/subscription/unsubscribe"
-            }
-        }`))
+
+		apiInfo := []byte(`{
+		"service": "api-gateway",
+		"version": "1.0.0",
+		"endpoints": {
+			"health": "GET /health",
+			"subscribe": "POST /api/subscribe",
+			"confirm": "GET /api/confirm/:token",
+			"unsubscribe": "GET /api/unsubscribe/:token",
+			"weather": "GET /api/weather?city=<city>"
+			}
+		}`)
+
+		if _, err := w.Write(apiInfo); err != nil {
+			logger.Printf("Failed to write API info response: %v", err)
+		}
+
 	})
 
 	var finalHandler http.Handler = mux

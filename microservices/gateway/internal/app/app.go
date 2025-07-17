@@ -2,8 +2,10 @@ package app
 
 import (
 	"api-gateway/internal/adapter/subscription"
+	"api-gateway/internal/config"
 	"api-gateway/internal/delivery"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,8 +13,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	"api-gateway/internal/config"
 )
 
 type App struct {
@@ -20,10 +20,8 @@ type App struct {
 	logger *log.Logger
 }
 
-func NewApp(cfg *config.Config) (*App, error) {
-	logger := log.New(os.Stdout, "[API-GATEWAY] ", log.LstdFlags)
-
-	subscriptionClient := subscription.NewSubscriptionClient(
+func NewApp(cfg *config.Config, logger *log.Logger) *App {
+	subscriptionClient := subscription.NewClient(
 		cfg.SubscriptionServiceAddr,
 		cfg.RequestTimeout,
 	)
@@ -40,13 +38,13 @@ func NewApp(cfg *config.Config) (*App, error) {
 	return &App{
 		server: server,
 		logger: logger,
-	}, nil
+	}
 }
 
 func (a *App) Start() error {
 	go func() {
 		a.logger.Printf("API Gateway starting on %s", a.server.Addr)
-		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := a.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.logger.Printf("Server error: %v", err)
 		}
 	}()
@@ -66,4 +64,14 @@ func (a *App) Start() error {
 
 	a.logger.Println("Server exited gracefully")
 	return nil
+}
+
+func Run(logger *log.Logger) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	app := NewApp(cfg, logger)
+	return app.Start()
 }

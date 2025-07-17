@@ -14,14 +14,16 @@ type Config struct {
 	WriteTimeout            time.Duration `env:"WRITE_TIMEOUT"`
 }
 
-func LoadConfig() *Config {
-	return &Config{
+func Load() (*Config, error) {
+	cfg := &Config{
 		Port:                    getEnv("PORT", "8080"),
 		SubscriptionServiceAddr: getEnv("SUBSCRIPTION_SERVICE_ADDR", "http://localhost:8083"),
 		RequestTimeout:          parseDuration(getEnv("REQUEST_TIMEOUT", "30s")),
 		ReadTimeout:             parseDuration(getEnv("READ_TIMEOUT", "15s")),
 		WriteTimeout:            parseDuration(getEnv("WRITE_TIMEOUT", "15s")),
 	}
+
+	return cfg, nil
 }
 
 func getEnv(key, defaultValue string) string {
