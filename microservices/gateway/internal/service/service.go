@@ -3,8 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	"gateway/internal/adapter/subscription"
 	"log"
+
+	"gateway/internal/adapter/subscription"
 )
 
 type SecurityValidator interface {

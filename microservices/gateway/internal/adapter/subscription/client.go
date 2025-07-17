@@ -33,7 +33,7 @@ type SubscribeRequest struct {
 
 type SubscribeResponse struct {
 	Message string `json:"message"`
-	Token   string `json:"token,omitempty"`
+	Status  string `json:"status"`
 }
 
 type ConfirmResponse struct {
@@ -47,11 +47,9 @@ type UnsubscribeResponse struct {
 }
 
 type WeatherResponse struct {
-	City        string  `json:"city"`
 	Temperature float64 `json:"temperature"`
 	Description string  `json:"description"`
 	Humidity    int     `json:"humidity"`
-	WindSpeed   float64 `json:"wind_speed"`
 }
 
 func (c *Client) Subscribe(ctx context.Context, req SubscribeRequest) (*SubscribeResponse, error) {

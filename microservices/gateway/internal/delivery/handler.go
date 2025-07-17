@@ -3,9 +3,10 @@ package delivery
 import (
 	"context"
 	"encoding/json"
-	"gateway/internal/adapter/subscription"
 	"net/http"
 	"strings"
+
+	"gateway/internal/adapter/subscription"
 )
 
 type SubscriptionService interface {

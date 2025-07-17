@@ -40,7 +40,6 @@ func SetupRoutes(handler *SubscriptionHandler, logger *log.Logger) http.Handler 
 		if _, err := w.Write(apiInfo); err != nil {
 			logger.Printf("Failed to write API info response: %v", err)
 		}
-
 	})
 
 	var finalHandler http.Handler = mux

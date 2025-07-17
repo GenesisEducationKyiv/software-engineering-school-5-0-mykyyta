@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gateway/internal/adapter/subscription"
-	"gateway/internal/config"
-	"gateway/internal/delivery"
-	"gateway/internal/service"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"gateway/internal/adapter/subscription"
+	"gateway/internal/config"
+	"gateway/internal/delivery"
+	"gateway/internal/service"
 )
 
 type App struct {
