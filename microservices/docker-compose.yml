@@ -32,7 +32,6 @@ services:
       
   rabbitmq:
     image: rabbitmq:3.13-management
-    container_name: rabbitmq
     restart: always
     ports:
       - "5672:5672"
@@ -123,6 +122,11 @@ services:
       - ./subscription/.env
     volumes:
       - ./subscription/logs:/app/logs
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8080/health" ]
+      interval: 3s
+      timeout: 5s
+      retries: 5
 
   prometheus:
     image: prom/prometheus:latest
