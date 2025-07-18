@@ -29,6 +29,22 @@ services:
       --save ""
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
+      
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   migrate:
     image: migrate/migrate:v4.16.2
@@ -54,6 +70,8 @@ services:
     restart: on-failure
     depends_on:
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     ports:
       - "8081:8081"
@@ -96,6 +114,8 @@ services:
       email:
         condition: service_healthy
       weather:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     ports:
       - "8080:8080"
