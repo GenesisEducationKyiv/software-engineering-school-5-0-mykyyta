@@ -6,15 +6,18 @@ import (
 	"net/http"
 
 	"email/internal/domain"
-	"email/internal/email"
 )
 
+type sender interface {
+	Send(req domain.SendEmailRequest) error
+}
+
 type EmailHandler struct {
-	sender email.Sender
+	sender sender
 	logger *log.Logger
 }
 
-func NewEmailHandler(sender email.Sender, logger *log.Logger) *EmailHandler {
+func NewEmailHandler(sender sender, logger *log.Logger) *EmailHandler {
 	return &EmailHandler{
 		sender: sender,
 		logger: logger,

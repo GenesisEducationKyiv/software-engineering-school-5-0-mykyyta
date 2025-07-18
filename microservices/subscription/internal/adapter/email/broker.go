@@ -27,7 +27,7 @@ func NewAsyncClient(ch *amqp.Channel, exchange string, logger *log.Logger) *Asyn
 }
 
 type Message struct {
-	IdKey    string            `json:"id_key"`
+	IdKey    string            `json:"idKey"`
 	To       string            `json:"to"`
 	Template string            `json:"template"`
 	Data     map[string]string `json:"data"`
