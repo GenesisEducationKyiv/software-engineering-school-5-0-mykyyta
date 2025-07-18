@@ -27,8 +27,8 @@ type repo interface {
 }
 
 type emailClient interface {
-	SendConfirmationEmail(ctx context.Context, email, token string) error
-	SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string) error
+	SendConfirmationEmail(ctx context.Context, email, token string, idKey string) error
+	SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string, idKey string) error
 }
 
 type WeatherClient interface {
@@ -111,7 +111,8 @@ func (s Service) Subscribe(ctx context.Context, email, city string, frequency do
 		}
 	}
 
-	if err := s.emailService.SendConfirmationEmail(ctx, email, token); err != nil {
+	idKey := fmt.Sprintf("confirm:%s:%s", email, token)
+	if err := s.emailService.SendConfirmationEmail(ctx, email, token, idKey); err != nil {
 		fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
 	}
 
@@ -193,7 +194,9 @@ func (s Service) ProcessWeatherReportTask(ctx context.Context, task job.Task) er
 		return fmt.Errorf("get weather for %s: %w", task.City, err)
 	}
 
-	if err := s.emailService.SendWeatherReport(ctx, task.Email, report, task.City, task.Token); err != nil {
+	nowHour := time.Now().UTC().Format("2006-01-02T15")
+	idKey := fmt.Sprintf("report:%s:%s", task.Email, nowHour)
+	if err := s.emailService.SendWeatherReport(ctx, task.Email, report, task.City, task.Token, idKey); err != nil {
 		return fmt.Errorf("send email to %s: %w", task.Email, err)
 	}
 
