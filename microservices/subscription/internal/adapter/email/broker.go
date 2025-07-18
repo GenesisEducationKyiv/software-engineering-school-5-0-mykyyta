@@ -18,7 +18,7 @@ type AsyncClient struct {
 	logger   *log.Logger
 }
 
-func NewAsyncClientFromRabbit(ch *amqp.Channel, exchange string, logger *log.Logger) *AsyncClient {
+func NewAsyncClient(ch *amqp.Channel, exchange string, logger *log.Logger) *AsyncClient {
 	return &AsyncClient{
 		channel:  ch,
 		exchange: exchange,
@@ -26,7 +26,7 @@ func NewAsyncClientFromRabbit(ch *amqp.Channel, exchange string, logger *log.Log
 	}
 }
 
-type EmailMessage struct {
+type Message struct {
 	IdKey    string            `json:"id_key"`
 	To       string            `json:"to"`
 	Template string            `json:"template"`
@@ -34,7 +34,7 @@ type EmailMessage struct {
 }
 
 func (c *AsyncClient) SendConfirmationEmail(ctx context.Context, email, token, idKey string) error {
-	msg := EmailMessage{
+	msg := Message{
 		IdKey:    idKey,
 		To:       email,
 		Template: "confirmation",
@@ -46,7 +46,7 @@ func (c *AsyncClient) SendConfirmationEmail(ctx context.Context, email, token, i
 }
 
 func (c *AsyncClient) SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token, idKey string) error {
-	msg := EmailMessage{
+	msg := Message{
 		IdKey:    idKey,
 		To:       email,
 		Template: "weather_report",
@@ -61,7 +61,7 @@ func (c *AsyncClient) SendWeatherReport(ctx context.Context, email string, weath
 	return c.publish(ctx, "email.weather_report", msg)
 }
 
-func (c *AsyncClient) publish(ctx context.Context, routingKey string, msg EmailMessage) error {
+func (c *AsyncClient) publish(ctx context.Context, routingKey string, msg Message) error {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("marshal error: %w", err)
