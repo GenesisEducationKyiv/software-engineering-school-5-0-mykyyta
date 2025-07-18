@@ -1,23 +1,24 @@
 package infra
 
 import (
+	"fmt"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func NewRabbitConn(url string) *amqp.Connection {
+func NewRabbitConn(url string) (*amqp.Connection, error) {
 	conn, err := amqp.Dial(url)
 	if err != nil {
-		log.Fatalf("failed to connect to RabbitMQ: %v", err)
+		return nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
 	}
-	return conn
+	return conn, nil
 }
 
-func NewRabbitChannel(conn *amqp.Connection, exchange string) *amqp.Channel {
+func NewRabbitChannel(conn *amqp.Connection, exchange string) (*amqp.Channel, error) {
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalf("failed to open a channel: %v", err)
+		return nil, fmt.Errorf("failed to open a channel: %w", err)
 	}
 
 	err = ch.ExchangeDeclare(
@@ -30,8 +31,11 @@ func NewRabbitChannel(conn *amqp.Connection, exchange string) *amqp.Channel {
 		nil,      // arguments
 	)
 	if err != nil {
-		log.Fatalf("failed to declare exchange: %v", err)
+		if closeErr := ch.Close(); closeErr != nil {
+			log.Printf("Failed to close channel after exchange declare error: %v", closeErr)
+		}
+		return nil, fmt.Errorf("failed to declare exchange: %w", err)
 	}
 
-	return ch
+	return ch, nil
 }
