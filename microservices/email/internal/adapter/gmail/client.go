@@ -21,7 +21,7 @@ func New(username, password string) *Gmail {
 	}
 }
 
-func (g *Gmail) Send(to, subject, html string) error {
+func (g *Gmail) Send(to, subject, _ string, html string) error {
 	addr := g.host + ":" + g.port
 
 	auth := smtp.PlainAuth("", g.username, g.password, g.host)
