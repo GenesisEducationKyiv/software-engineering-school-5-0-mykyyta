@@ -28,7 +28,7 @@ type Logger interface {
 }
 
 type EmailUseCase interface {
-	Send(ctx context.Context, req domain.SendEmailRequest) error
+	Send(req domain.SendEmailRequest) error
 }
 type Consumer struct {
 	source      MessageSource
@@ -115,7 +115,7 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 	}
 
 	defer func() {
-		clearCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		clearCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
 		if clearErr := c.idempotency.ClearProcessing(clearCtx, messageID); clearErr != nil {
@@ -130,7 +130,7 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 
 	c.logger.Printf("Processing message [%s] to %s (template: %s)", req.IdKey, req.To, req.Template)
 
-	if err := c.useCase.Send(ctx, req); err != nil {
+	if err := c.useCase.Send(req); err != nil {
 		return fmt.Errorf("use case handle failed: %w", err)
 	}
 
