@@ -12,9 +12,10 @@ import (
 	"syscall"
 	"time"
 
+	http2 "subscription/internal/adapter/email"
+
 	weathergrpc "subscription/internal/adapter/weahtergrpc"
 
-	"subscription/internal/adapter/email"
 	"subscription/internal/adapter/gorm"
 	"subscription/internal/adapter/weatherhttp"
 	"subscription/internal/app/di"
@@ -78,7 +79,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	}
 
 	// Adapters
-	emailClient := email.NewClient(cfg.EmailAPIBaseURL, logger, nil)
+	emailClient := http2.NewClient(cfg.EmailAPIBaseURL, logger, nil)
 
 	var weatherClient subscription.WeatherClient
 	var weatherCloser io.Closer

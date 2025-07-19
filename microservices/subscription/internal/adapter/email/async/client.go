@@ -1,8 +1,9 @@
-package email
+package async
 
 import (
 	"context"
 	"fmt"
+
 	"subscription/internal/domain"
 )
 
