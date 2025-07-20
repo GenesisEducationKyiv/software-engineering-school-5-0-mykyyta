@@ -16,11 +16,15 @@ type RabbitPublisher struct {
 	logger   *log.Logger
 }
 
+type IdKeyGetter interface {
+	GetIdKey() string
+}
+
 func NewRabbitPublisher(ch *amqp.Channel, exchange string, logger *log.Logger) *RabbitPublisher {
 	return &RabbitPublisher{channel: ch, exchange: exchange, logger: logger}
 }
 
-func (p *RabbitPublisher) Publish(ctx context.Context, routingKey string, msg any) error {
+func (p *RabbitPublisher) Publish(ctx context.Context, routingKey string, msg IdKeyGetter) error {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("marshal error: %w", err)
@@ -31,10 +35,7 @@ func (p *RabbitPublisher) Publish(ctx context.Context, routingKey string, msg an
 		Body:         body,
 		Timestamp:    time.Now(),
 		DeliveryMode: amqp.Persistent,
-	}
-
-	if withId, ok := msg.(interface{ GetIdKey() string }); ok {
-		pub.MessageId = withId.GetIdKey()
+		MessageId:    msg.GetIdKey(),
 	}
 
 	if err := p.channel.PublishWithContext(ctx, p.exchange, routingKey, false, false, pub); err != nil {

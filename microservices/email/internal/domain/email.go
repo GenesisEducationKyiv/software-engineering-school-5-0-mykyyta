@@ -8,7 +8,6 @@ const (
 )
 
 type SendEmailRequest struct {
-	IdKey    string
 	To       string
 	Template TemplateName
 	Data     map[string]string

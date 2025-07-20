@@ -11,25 +11,25 @@ type Publisher interface {
 	Publish(ctx context.Context, routingKey string, msg any) error
 }
 
-type AsyncClient struct {
+type Client struct {
 	publisher Publisher
 }
 
-func NewAsyncClient(publisher Publisher) *AsyncClient {
-	return &AsyncClient{publisher: publisher}
+func NewAsyncClient(publisher Publisher) *Client {
+	return &Client{publisher: publisher}
 }
 
-type Message struct {
-	IdKey    string            `json:"idKey"`
+type EmailMessage struct {
+	IdKey    string            `json:"-"`
 	To       string            `json:"to"`
 	Template string            `json:"template"`
 	Data     map[string]string `json:"data"`
 }
 
-func (m Message) GetIdKey() string { return m.IdKey }
+func (m EmailMessage) GetIdKey() string { return m.IdKey }
 
-func (c *AsyncClient) SendConfirmationEmail(ctx context.Context, email, token, idKey string) error {
-	msg := Message{
+func (c *Client) SendConfirmationEmail(ctx context.Context, email, token, idKey string) error {
+	msg := EmailMessage{
 		IdKey:    idKey,
 		To:       email,
 		Template: "confirmation",
@@ -38,8 +38,8 @@ func (c *AsyncClient) SendConfirmationEmail(ctx context.Context, email, token, i
 	return c.publisher.Publish(ctx, "email.confirmation", msg)
 }
 
-func (c *AsyncClient) SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token, idKey string) error {
-	msg := Message{
+func (c *Client) SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token, idKey string) error {
+	msg := EmailMessage{
 		IdKey:    idKey,
 		To:       email,
 		Template: "weather_report",

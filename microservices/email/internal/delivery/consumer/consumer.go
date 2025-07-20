@@ -128,7 +128,7 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 		return fmt.Errorf("invalid message format: %w", err)
 	}
 
-	c.logger.Printf("Processing message [%s] to %s (template: %s)", req.IdKey, req.To, req.Template)
+	c.logger.Printf("Processing message [%s] to %s (template: %s)", messageID, req.To, req.Template)
 
 	if err := c.useCase.Send(req); err != nil {
 		return fmt.Errorf("use case handle failed: %w", err)

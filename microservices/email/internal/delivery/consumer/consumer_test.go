@@ -95,7 +95,6 @@ func TestConsumer_Handle_Success(t *testing.T) {
 	defer close(msgCh)
 
 	req := domain.SendEmailRequest{
-		IdKey:    "123",
 		To:       "test@example.com",
 		Template: "confirmation",
 	}
@@ -215,7 +214,7 @@ func TestConsumer_SendFails(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := domain.SendEmailRequest{IdKey: "123", To: "a@b.com", Template: "welcome"}
+	req := domain.SendEmailRequest{To: "a@b.com", Template: "welcome"}
 	body, _ := json.Marshal(req)
 
 	ack := new(MockAcknowledger)
@@ -260,9 +259,9 @@ func TestConsumer_ConcurrentProcessing(t *testing.T) {
 	defer close(msgCh)
 
 	requests := []domain.SendEmailRequest{
-		{IdKey: "id1", To: "a@example.com", Template: "t1"},
-		{IdKey: "id2", To: "b@example.com", Template: "t2"},
-		{IdKey: "id3", To: "c@example.com", Template: "t3"},
+		{To: "a@example.com", Template: "t1"},
+		{To: "b@example.com", Template: "t2"},
+		{To: "c@example.com", Template: "t3"},
 	}
 
 	for i, req := range requests {
