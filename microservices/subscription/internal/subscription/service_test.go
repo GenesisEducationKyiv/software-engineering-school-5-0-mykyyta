@@ -311,24 +311,6 @@ func TestConfirm_ValidToken_Success(t *testing.T) {
 	d.repo.AssertExpectations(t)
 }
 
-func TestListConfirmedByFrequency(t *testing.T) {
-	d := createTestService()
-	ctx := context.Background()
-	frequency := "weekly"
-	subs := []domain.Subscription{
-		{Email: "a@example.com", IsConfirmed: true},
-		{Email: "b@example.com", IsConfirmed: true},
-	}
-
-	d.repo.On("GetConfirmedByFrequency", ctx, frequency).Return(subs, nil)
-
-	result, err := d.service.ListConfirmedByFrequency(ctx, frequency)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(result))
-	d.repo.AssertExpectations(t)
-}
-
 func TestConfirm_SubscriptionNotFound(t *testing.T) {
 	d := createTestService()
 	ctx := context.Background()

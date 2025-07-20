@@ -89,7 +89,7 @@ func (s Service) Subscribe(ctx context.Context, email, city string, frequency do
 		return err
 	}
 
-	idKey := fmt.Sprintf("confirm:%s:%s", email, token)
+	idKey := s.generateIdempotencyKey(email, token)
 	if err := s.emailService.SendConfirmationEmail(ctx, email, token, idKey); err != nil {
 		fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
 	}
@@ -146,7 +146,7 @@ func (s Service) Unsubscribe(ctx context.Context, token string) error {
 }
 
 func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency string) ([]job.Task, error) {
-	subs, err := s.ListConfirmedByFrequency(ctx, frequency)
+	subs, err := s.listConfirmedByFrequency(ctx, frequency)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency strin
 	return tasks, nil
 }
 
-func (s Service) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error) {
+func (s Service) listConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error) {
 	return s.repo.GetConfirmedByFrequency(ctx, frequency)
 }
 
@@ -215,4 +215,8 @@ func (s Service) createOrUpdateSubscription(ctx context.Context, existing *domai
 	}
 
 	return nil
+}
+
+func (s Service) generateIdempotencyKey(email, token string) string {
+	return fmt.Sprintf("confirm:%s:%s", email, token)
 }
