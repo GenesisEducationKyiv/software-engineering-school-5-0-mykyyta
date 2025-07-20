@@ -85,30 +85,8 @@ func (s Service) Subscribe(ctx context.Context, email, city string, frequency do
 		return fmt.Errorf("could not generate token: %w", err)
 	}
 
-	if existing != nil {
-		existing.City = city
-		existing.Frequency = frequency
-		existing.Token = token
-		existing.CreatedAt = time.Now()
-		existing.IsConfirmed = false
-		existing.IsUnsubscribed = false
-		if err := s.repo.Update(ctx, existing); err != nil {
-			return fmt.Errorf("failed to update subscription: %w", err)
-		}
-	} else {
-		sub := &domain.Subscription{
-			ID:             uuid.New().String(),
-			Email:          email,
-			City:           city,
-			Frequency:      frequency,
-			Token:          token,
-			IsConfirmed:    false,
-			IsUnsubscribed: false,
-			CreatedAt:      time.Now(),
-		}
-		if err := s.repo.Create(ctx, sub); err != nil {
-			return fmt.Errorf("failed to create subscription: %w", err)
-		}
+	if err := s.createOrUpdateSubscription(ctx, existing, email, city, frequency, token); err != nil {
+		return err
 	}
 
 	idKey := fmt.Sprintf("confirm:%s:%s", email, token)
@@ -198,6 +176,42 @@ func (s Service) ProcessWeatherReportTask(ctx context.Context, task job.Task) er
 	idKey := fmt.Sprintf("report:%s:%s", task.Email, nowHour)
 	if err := s.emailService.SendWeatherReport(ctx, task.Email, report, task.City, task.Token, idKey); err != nil {
 		return fmt.Errorf("send email to %s: %w", task.Email, err)
+	}
+
+	return nil
+}
+
+func (s Service) createOrUpdateSubscription(ctx context.Context, existing *domain.Subscription, email, city string, frequency domain.Frequency, token string) error {
+	now := time.Now()
+
+	if existing != nil {
+		updatedSub := &domain.Subscription{
+			ID:             existing.ID,
+			Email:          existing.Email,
+			City:           city,
+			Frequency:      frequency,
+			Token:          token,
+			IsConfirmed:    false,
+			IsUnsubscribed: false,
+			CreatedAt:      now,
+		}
+		if err := s.repo.Update(ctx, updatedSub); err != nil {
+			return fmt.Errorf("failed to update subscription: %w", err)
+		}
+	} else {
+		sub := &domain.Subscription{
+			ID:             uuid.New().String(),
+			Email:          email,
+			City:           city,
+			Frequency:      frequency,
+			Token:          token,
+			IsConfirmed:    false,
+			IsUnsubscribed: false,
+			CreatedAt:      now,
+		}
+		if err := s.repo.Create(ctx, sub); err != nil {
+			return fmt.Errorf("failed to create subscription: %w", err)
+		}
 	}
 
 	return nil
