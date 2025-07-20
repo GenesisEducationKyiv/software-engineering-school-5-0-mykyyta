@@ -32,7 +32,7 @@ func NewApp(cfg *config.Config, logger *log.Logger) *App {
 	responseWriter := delivery.NewResponseWriter(logger)
 	handler := delivery.NewSubscriptionHandler(gatewayService, responseWriter, logger)
 
-	mux := delivery.SetupRoutes(handler, logger)
+	mux := delivery.SetupRoutes(handler, logger, cfg)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,

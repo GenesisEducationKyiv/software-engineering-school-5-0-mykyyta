@@ -1,6 +1,7 @@
 package config
 
 import (
+	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"time"
@@ -12,6 +13,19 @@ type Config struct {
 	RequestTimeout          time.Duration `env:"REQUEST_TIMEOUT"`
 	ReadTimeout             time.Duration `env:"READ_TIMEOUT"`
 	WriteTimeout            time.Duration `env:"WRITE_TIMEOUT"`
+
+	Service string  `yaml:"service"`
+	Version string  `yaml:"version"`
+	Routes  []Route `yaml:"routes"`
+}
+
+type Route struct {
+	Path         string `yaml:"path"`
+	Method       string `yaml:"method"`
+	Handler      string `yaml:"handler"`
+	AuthRequired bool   `yaml:"auth_required"`
+	RateLimit    int    `yaml:"rate_limit,omitempty"`
+	Cache        bool   `yaml:"cache,omitempty"`
 }
 
 func Load() (*Config, error) {
@@ -21,6 +35,11 @@ func Load() (*Config, error) {
 		RequestTimeout:          parseDuration(getEnv("REQUEST_TIMEOUT", "30s")),
 		ReadTimeout:             parseDuration(getEnv("READ_TIMEOUT", "15s")),
 		WriteTimeout:            parseDuration(getEnv("WRITE_TIMEOUT", "15s")),
+	}
+
+	yamlFile := getEnv("ROUTES_CONFIG_PATH", "config.yaml")
+	if err := loadRoutesFromYAML(cfg, yamlFile); err != nil {
+		return nil, err
 	}
 
 	return cfg, nil
@@ -40,4 +59,26 @@ func parseDuration(s string) time.Duration {
 		return 30 * time.Second
 	}
 	return d
+}
+
+func loadRoutesFromYAML(cfg *Config, path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		log.Printf("Failed to open routes config file: %v", err)
+		return err
+	}
+
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Printf("Failed to close routes config file: %v", err)
+		}
+	}()
+
+	decoder := yaml.NewDecoder(f)
+	if err := decoder.Decode(cfg); err != nil {
+		log.Printf("Failed to decode YAML config: %v", err)
+		return err
+	}
+
+	return nil
 }

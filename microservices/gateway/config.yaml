@@ -1,0 +1,18 @@
+service: api-gateway
+version: 1.0.0
+routes:
+  - path: "/api/subscribe"
+    method: "POST"
+    handler: "Subscribe"
+
+  - path: "/api/confirm"
+    method: "GET"
+    handler: "Confirm"
+
+  - path: "/api/unsubscribe"
+    method: "GET"
+    handler: "Unsubscribe"
+
+  - path: "/api/weather"
+    method: "GET"
+    handler: "GetWeather"
