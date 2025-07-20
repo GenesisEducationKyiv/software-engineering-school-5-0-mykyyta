@@ -37,6 +37,7 @@ test-weather:
 	cd microservices/weather && gotestsum -- -count=1 ./...
 
 lint-micro: lint-sub lint-email lint-weather
+test-micro: test-sub test-email test-weather
 
 # === Monolith ===
 
@@ -44,7 +45,7 @@ lint-monolith:
 	golangci-lint run --fix ./monolith/...
 
 test-monolith:
-	gotestsum -- -count=1 ./monolith/...
+	cd monolith && gotestsum -- -count=1 ./...
 
 # === End-to-End ===
 

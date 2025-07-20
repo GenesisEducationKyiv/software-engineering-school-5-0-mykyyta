@@ -1,16 +1,13 @@
-(outdated)
-**Run tests (unit + integration)**
+**Microservices testing**
 
-make test
+make test-micro # test all microservices
 
-**Run only unit tests**
+make test-sub # test subscription service
 
-make test-unit
+make test-email # test email service
 
-**Run only integration tests**
+make test-weather # test weather service
 
-make test-integration
+**Monolith testing**
 
-**Run e2e**
-
-make e2e
+make test-monolith # test monolith
