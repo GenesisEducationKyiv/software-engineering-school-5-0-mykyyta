@@ -21,17 +21,17 @@ type QueueModule struct {
 }
 
 func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, redisClient *redis.Client, logger *log.Logger) (*QueueModule, error) {
-	rmqConn, err := rabbitmq.NewConnection("amqp://guest:guest@localhost:5672/")
+	rmqConn, err := rabbitmq.NewConnection("amqp://guest:guest@rabbitmq:5672/")
 	if err != nil {
 		return nil, err
 	}
 
 	err = rabbitmq.Setup(
 		rmqConn.Channel(),
-		"email_exchange",
+		"email.exchange",
 		[]rabbitmq.QueueConfig{
 			{
-				QueueName:   "email_queue",
+				QueueName:   "email.queue",
 				RoutingKeys: []string{"email.confirmation", "email.weather_report"},
 			},
 		},
@@ -40,7 +40,7 @@ func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, 
 		return nil, err
 	}
 
-	source := rabbitmq.NewSource(rmqConn, "email_queue")
+	source := rabbitmq.NewSource(rmqConn, "email.queue")
 	store := idempotency.NewRedisStore(redisClient, 24*time.Hour)
 	cons := consumer.NewConsumer(source, svc, store, logger)
 

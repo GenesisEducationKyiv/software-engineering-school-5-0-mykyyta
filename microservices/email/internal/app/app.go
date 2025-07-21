@@ -10,6 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"email/internal/app/di"
+	"email/internal/delivery/consumer"
+	infra "email/internal/infra/redis"
+
 	"github.com/pkg/errors"
 
 	"email/internal/adapter/sendgrid"
@@ -20,8 +24,10 @@ import (
 )
 
 type App struct {
-	Server *http.Server
-	Logger *log.Logger
+	Server        *http.Server
+	Logger        *log.Logger
+	QueueConsumer *consumer.Consumer
+	ShutdownFunc  func() error
 }
 
 func Run(logger *log.Logger) error {
@@ -35,7 +41,7 @@ func Run(logger *log.Logger) error {
 		return fmt.Errorf("creating application: %w", err)
 	}
 
-	if err := app.Start(); err != nil {
+	if err := app.Start(ctx); err != nil {
 		return fmt.Errorf("starting server: %w", err)
 	}
 
@@ -67,6 +73,17 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	emailProvider := sendgrid.New(cfg.SendGridKey, cfg.EmailFrom)
 	emailService := email.NewService(emailProvider, templateStore)
 
+	redisClient, err := infra.NewRedisClient(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("redis error: %w", err)
+	}
+
+	queueModule, err := di.NewQueueModule(ctx, cfg, emailService, redisClient, logger)
+	if err != nil {
+		logger.Printf("Failed to init queue module: %v", err)
+		return nil, err
+	}
+
 	handler := delivery.NewEmailHandler(emailService, logger)
 
 	mux := http.NewServeMux()
@@ -78,16 +95,25 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 	}
 
 	return &App{
-		Server: server,
-		Logger: logger,
+		Server:        server,
+		Logger:        logger,
+		QueueConsumer: queueModule.Consumer,
+		ShutdownFunc:  queueModule.ShutdownFunc,
 	}, nil
 }
 
-func (a *App) Start() error {
+func (a *App) Start(ctx context.Context) error {
 	go func() {
 		a.Logger.Printf("Email service running at %s", a.Server.Addr)
 		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.Logger.Printf("Server error: %v", err)
+		}
+	}()
+
+	go func() {
+		a.Logger.Println("Starting async consumer...")
+		if err := a.QueueConsumer.Start(ctx); err != nil {
+			a.Logger.Printf("Consumer error: %v", err)
 		}
 	}()
 

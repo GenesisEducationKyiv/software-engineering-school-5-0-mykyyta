@@ -11,7 +11,7 @@ import (
 )
 
 func NewRedisClient(ctx context.Context, cfg *config.Config) (*redis.Client, error) {
-	opts, err := redis.ParseURL("cfg.RedisURL") // add url here
+	opts, err := redis.ParseURL(cfg.RedisURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Redis URL: %w", err)
 	}

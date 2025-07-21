@@ -11,6 +11,7 @@ type Config struct {
 	SendGridKey string
 	EmailFrom   string
 	BaseURL     string
+	RedisURL    string
 }
 
 func LoadConfig() *Config {
@@ -20,6 +21,7 @@ func LoadConfig() *Config {
 		Port:        getEnv("PORT", "8081"),
 		SendGridKey: mustGet("SENDGRID_API_KEY"),
 		EmailFrom:   mustGet("EMAIL_FROM"),
+		RedisURL:    getEnv("REDIS_URL", "redis://redis:6379/1"),
 	}
 }
 
