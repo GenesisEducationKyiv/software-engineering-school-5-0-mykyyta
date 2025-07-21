@@ -12,16 +12,15 @@ import (
 	"syscall"
 	"time"
 
-	http2 "subscription/internal/adapter/email"
-
-	weathergrpc "subscription/internal/adapter/weahtergrpc"
-
+	"subscription/internal/adapter/email/async"
 	"subscription/internal/adapter/gorm"
+	"subscription/internal/adapter/weathergrpc"
 	"subscription/internal/adapter/weatherhttp"
 	"subscription/internal/app/di"
 	"subscription/internal/config"
 	"subscription/internal/delivery"
 	"subscription/internal/infra"
+	"subscription/internal/infra/rabbitmq"
 	"subscription/internal/subscription"
 	"subscription/internal/token/jwt"
 
@@ -34,6 +33,7 @@ type App struct {
 	Logger        *log.Logger
 	Scheduler     *di.WeatherScheduler
 	WeatherClient io.Closer
+	RabbitMQConn  *rabbitmq.Connection
 }
 
 func Run(logger *log.Logger) error {
@@ -78,9 +78,18 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 		return nil, fmt.Errorf("DB error: %w", err)
 	}
 
-	// Adapters
-	emailClient := http2.NewClient(cfg.EmailAPIBaseURL, logger, nil)
+	// Async email client
+	rmqConn, err := rabbitmq.NewConnection(cfg.RabbitMQUrl)
+	if err != nil {
+		return nil, fmt.Errorf("connection to RabbitMQ: %w", err)
+	}
+	if err := rabbitmq.VerifyExchange(rmqConn.Channel(), cfg.RabbitMQExchange, "topic"); err != nil {
+		return nil, fmt.Errorf("exchange verification: %w", err)
+	}
+	rabbitPublisher := async.NewRabbitPublisher(rmqConn.Channel(), cfg.RabbitMQExchange, logger)
+	emailClient := async.NewAsyncClient(rabbitPublisher)
 
+	// Weather client
 	var weatherClient subscription.WeatherClient
 	var weatherCloser io.Closer
 
@@ -98,6 +107,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 		logger.Println("Using HTTP weather client")
 	}
 
+	// Adapters
 	tokenProvider := jwt.NewJWT(cfg.JWTSecret)
 	subscriptionRepo := gorm.NewRepo(db.Gorm)
 
@@ -125,6 +135,7 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 		Logger:        logger,
 		Scheduler:     scheduler,
 		WeatherClient: weatherCloser,
+		RabbitMQConn:  rmqConn,
 	}, nil
 }
 
@@ -148,6 +159,10 @@ func (a *App) Shutdown(ctx context.Context) error {
 	}
 
 	a.Scheduler.Stop()
+
+	if err := a.RabbitMQConn.Close(); err != nil {
+		a.Logger.Printf("Failed to close RabbitMQ connection: %v", err)
+	}
 
 	if a.WeatherClient != nil {
 		if err := a.WeatherClient.Close(); err != nil {

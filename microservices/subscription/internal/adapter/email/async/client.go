@@ -8,7 +8,7 @@ import (
 )
 
 type Publisher interface {
-	Publish(ctx context.Context, routingKey string, msg any) error
+	Publish(ctx context.Context, routingKey string, msg IdKeyGetter) error
 }
 
 type Client struct {

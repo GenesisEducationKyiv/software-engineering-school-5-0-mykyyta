@@ -162,10 +162,6 @@ func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency strin
 	return tasks, nil
 }
 
-func (s Service) listConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error) {
-	return s.repo.GetConfirmedByFrequency(ctx, frequency)
-}
-
 func (s Service) ProcessWeatherReportTask(ctx context.Context, task job.Task) error {
 	report, err := s.weatherService.GetWeather(ctx, task.City)
 	if err != nil {
@@ -179,6 +175,10 @@ func (s Service) ProcessWeatherReportTask(ctx context.Context, task job.Task) er
 	}
 
 	return nil
+}
+
+func (s Service) listConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error) {
+	return s.repo.GetConfirmedByFrequency(ctx, frequency)
 }
 
 func (s Service) createOrUpdateSubscription(ctx context.Context, existing *domain.Subscription, email, city string, frequency domain.Frequency, token string) error {
