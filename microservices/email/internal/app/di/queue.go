@@ -42,7 +42,8 @@ func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, 
 
 	source := rabbitmq.NewSource(rmqConn, "email.queue")
 	store := idempotency.NewRedisStore(redisClient, 24*time.Hour)
-	cons := consumer.NewConsumer(source, svc, store, logger)
+	breaker := consumer.NewDefaultCB()
+	cons := consumer.NewConsumer(source, svc, store, logger, breaker)
 
 	return &QueueModule{
 		Consumer:   cons,

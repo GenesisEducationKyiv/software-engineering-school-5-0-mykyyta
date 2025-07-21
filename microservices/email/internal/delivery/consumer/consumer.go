@@ -22,6 +22,12 @@ type IdempotencyStore interface {
 	ClearProcessing(ctx context.Context, messageID string) error
 }
 
+type CircuitBreaker interface {
+	CanExecute() bool
+	RecordSuccess()
+	RecordFailure()
+}
+
 type Logger interface {
 	Printf(format string, v ...interface{})
 	Println(v ...interface{})
@@ -35,14 +41,16 @@ type Consumer struct {
 	useCase     EmailUseCase
 	idempotency IdempotencyStore
 	logger      Logger
+	breaker     CircuitBreaker
 }
 
-func NewConsumer(source MessageSource, useCase EmailUseCase, idempotency IdempotencyStore, logger Logger) *Consumer {
+func NewConsumer(source MessageSource, useCase EmailUseCase, idempotency IdempotencyStore, logger Logger, breaker CircuitBreaker) *Consumer {
 	return &Consumer{
 		source:      source,
 		useCase:     useCase,
 		idempotency: idempotency,
 		logger:      logger,
+		breaker:     breaker,
 	}
 }
 
@@ -72,23 +80,28 @@ func (c *Consumer) Start(ctx context.Context) error {
 }
 
 func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
-	messageID := msg.MessageId
-	if messageID == "" {
-		c.logger.Printf("Skipping message without ID: %s", string(msg.Body))
-		if err := msg.Nack(false, false); err != nil {
-			c.logger.Printf("Failed to nack message: %v", err)
-		}
+	id := msg.MessageId
+	if id == "" {
+		c.logger.Printf("Skipping message without ID, rk=%s", msg.RoutingKey)
+		_ = msg.Nack(false, false)
 		return
 	}
 
-	err := c.processIdempotently(ctx, messageID, msg)
-	if err != nil {
-		c.logger.Printf("Failed to process message [%s]: %v", messageID, err)
-		if err := msg.Nack(false, true); err != nil {
-			c.logger.Printf("Failed to nack message: %v", err)
-		}
+	if !c.breaker.CanExecute() {
+		c.logger.Printf("Circuit breaker is open, rejecting message: %s", id)
+		_ = msg.Nack(false, true) // Повідомлення повертається в чергу
 		return
 	}
+
+	err := c.processIdempotently(ctx, id, msg)
+	if err != nil {
+		c.breaker.RecordFailure()
+		c.logger.Printf("Failed to process message [%s]: %v", id, err)
+		_ = msg.Nack(false, true)
+		return
+	}
+
+	c.breaker.RecordSuccess()
 
 	if err := msg.Ack(false); err != nil {
 		c.logger.Printf("Failed to ack message: %v", err)

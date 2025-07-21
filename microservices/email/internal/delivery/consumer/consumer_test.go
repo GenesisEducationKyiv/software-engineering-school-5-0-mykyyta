@@ -87,6 +87,23 @@ func (m *MockAcknowledger) Reject(tag uint64, requeue bool) error {
 	return args.Error(0)
 }
 
+type mockBreaker struct {
+	mock.Mock
+}
+
+func (m *mockBreaker) CanExecute() bool {
+	args := m.Called()
+	return args.Bool(0)
+}
+
+func (m *mockBreaker) RecordSuccess() {
+	m.Called()
+}
+
+func (m *mockBreaker) RecordFailure() {
+	m.Called()
+}
+
 func TestConsumer_Handle_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -126,7 +143,12 @@ func TestConsumer_Handle_Success(t *testing.T) {
 	logger.On("Println", mock.Anything).Maybe()
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger)
+	breaker := new(mockBreaker)
+	breaker.On("CanExecute").Return(true)
+	breaker.On("RecordSuccess").Return()
+	breaker.On("RecordFailure").Return()
+
+	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
 
 	go func() {
 		_ = c.Start(ctx)
@@ -166,7 +188,12 @@ func TestConsumer_AlreadyProcessed(t *testing.T) {
 	logger.On("Println", mock.Anything).Maybe()
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger)
+	breaker := new(mockBreaker)
+	breaker.On("CanExecute").Return(true)
+	breaker.On("RecordSuccess").Return()
+	breaker.On("RecordFailure").Return()
+
+	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
 	go func() { _ = c.Start(ctx) }()
 	time.Sleep(50 * time.Millisecond)
 
@@ -203,7 +230,12 @@ func TestConsumer_InvalidJSON(t *testing.T) {
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
 	logger.On("Println", mock.Anything).Maybe()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger)
+	breaker := new(mockBreaker)
+	breaker.On("CanExecute").Return(true)
+	breaker.On("RecordSuccess").Return()
+	breaker.On("RecordFailure").Return()
+
+	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
 	go func() { _ = c.Start(ctx) }()
 	time.Sleep(50 * time.Millisecond)
 
@@ -244,7 +276,12 @@ func TestConsumer_SendFails(t *testing.T) {
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
 	logger.On("Println", mock.Anything).Maybe()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger)
+	breaker := new(mockBreaker)
+	breaker.On("CanExecute").Return(true)
+	breaker.On("RecordSuccess").Return()
+	breaker.On("RecordFailure").Return()
+
+	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
 	go func() { _ = c.Start(ctx) }()
 	time.Sleep(50 * time.Millisecond)
 
@@ -300,7 +337,12 @@ func TestConsumer_ConcurrentProcessing(t *testing.T) {
 	logger.On("Println", mock.Anything).Maybe()
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger)
+	breaker := new(mockBreaker)
+	breaker.On("CanExecute").Return(true)
+	breaker.On("RecordSuccess").Return()
+	breaker.On("RecordFailure").Return()
+
+	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
 
 	go func() {
 		_ = c.Start(ctx)
