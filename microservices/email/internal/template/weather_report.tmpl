@@ -1,0 +1,20 @@
+{{define "subject"}}Оновлення погоди для {{.city}}{{end}}
+
+{{define "plain"}}
+Поточна погода в {{.city}}:
+Температура: {{.temperature}}°C
+Вологість: {{.humidity}}%
+Опис: {{.description}}
+
+Відписатися: {{.unsubscribe_url}}
+{{end}}
+
+{{define "html"}}
+<h2>Погода в {{.city}}</h2>
+<p><strong>Температура:</strong> {{.temperature}}°C</p>
+<p><strong>Вологість:</strong> {{.humidity}}%</p>
+<p><strong>Опис:</strong> {{.description}}</p>
+<hr>
+<p style="font-size:small">Не хочете більше отримувати ці листи?
+<a href="{{.unsubscribe_url}}">Відписатися</a></p>
+{{end}}
