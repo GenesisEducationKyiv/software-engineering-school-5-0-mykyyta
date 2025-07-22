@@ -52,7 +52,7 @@ func (s *CronEventSource) Start(ctx context.Context) {
 		}
 	})
 	if err != nil {
-		log.Printf("[Scheduler] Failed to schedule daily: %w", err)
+		log.Printf("[Scheduler] Failed to schedule daily: %v", err)
 		return
 	}
 
