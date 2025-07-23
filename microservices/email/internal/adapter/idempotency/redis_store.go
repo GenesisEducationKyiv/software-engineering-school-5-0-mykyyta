@@ -46,7 +46,7 @@ func (r *RedisStore) IsProcessed(ctx context.Context, messageID string) (bool, e
 }
 
 func (r *RedisStore) MarkAsProcessing(ctx context.Context, messageID string) (bool, error) {
-	ok, err := r.client.SetNX(ctx, r.key(messageID), statusProcessing, r.ttl).Result()
+	ok, err := r.client.SetNX(ctx, r.key(messageID), string(statusProcessing), r.ttl).Result()
 	if err != nil {
 		return false, fmt.Errorf("setnx: %w", err)
 	}
@@ -54,7 +54,7 @@ func (r *RedisStore) MarkAsProcessing(ctx context.Context, messageID string) (bo
 }
 
 func (r *RedisStore) MarkAsProcessed(ctx context.Context, messageID string) error {
-	if err := r.client.Set(ctx, r.key(messageID), statusDone, r.ttl).Err(); err != nil {
+	if err := r.client.Set(ctx, r.key(messageID), string(statusDone), r.ttl).Err(); err != nil {
 		return fmt.Errorf("set done: %w", err)
 	}
 	return nil

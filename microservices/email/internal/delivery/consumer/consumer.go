@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"email/internal/domain"
@@ -89,7 +90,9 @@ func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
 
 	if !c.breaker.CanExecute() {
 		c.logger.Printf("Circuit breaker is open, rejecting message: %s", id)
-		_ = msg.Nack(false, true) // Повідомлення повертається в чергу
+		delay := time.Duration(500+rand.Intn(500)) * time.Millisecond
+		time.Sleep(delay)
+		_ = msg.Nack(false, true)
 		return
 	}
 
