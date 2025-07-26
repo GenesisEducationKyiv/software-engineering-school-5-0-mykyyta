@@ -11,7 +11,7 @@ func RegisterRoutes(mux *http.ServeMux, h *Handler) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	mux.HandleFunc("api/weather", h.GetWeather)
-	mux.HandleFunc("api/weather/validate", h.ValidateCity)
+	mux.Handle("/api/weather", loggingMiddleware(http.HandlerFunc(h.GetWeather)))
+	mux.Handle("/api/weather/validate", loggingMiddleware(http.HandlerFunc(h.ValidateCity)))
 	mux.Handle("/metrics", promhttp.Handler())
 }
