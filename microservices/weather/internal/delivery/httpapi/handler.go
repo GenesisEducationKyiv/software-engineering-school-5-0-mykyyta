@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"weather/internal/domain"
+	loggerCtx "weather/pkg/logger"
 )
 
 type weatherService interface {
@@ -26,6 +27,7 @@ func NewHandler(ws weatherService) *Handler {
 func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 	city, err := getQueryParam(r, "city")
 	if err != nil {
+		loggerCtx.From(r.Context()).Errorw("missing city query parameter", "error", err)
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
@@ -33,10 +35,11 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 	report, err := h.ws.GetWeather(r.Context(), city)
 	if err != nil {
 		if errors.Is(err, domain.ErrCityNotFound) {
+			loggerCtx.From(r.Context()).Warnw("city not found", "city", city)
 			http.Error(w, `{"error":"city not found"}`, http.StatusNotFound)
 			return
 		}
-
+		loggerCtx.From(r.Context()).Errorw("failed to get weather", "city", city, "error", err)
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
@@ -54,12 +57,19 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ValidateCity(w http.ResponseWriter, r *http.Request) {
 	city, err := getQueryParam(r, "city")
 	if err != nil {
+		loggerCtx.From(r.Context()).Errorw("missing city query parameter", "error", err)
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
 
 	valid, err := h.ws.CityIsValid(r.Context(), city)
 	if err != nil {
+		if errors.Is(err, domain.ErrCityNotFound) {
+			loggerCtx.From(r.Context()).Warnw("city not found", "city", city)
+			http.Error(w, `{"error":"city not found"}`, http.StatusNotFound)
+			return
+		}
+		loggerCtx.From(r.Context()).Errorw("failed to validate city", "city", city, "error", err)
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
