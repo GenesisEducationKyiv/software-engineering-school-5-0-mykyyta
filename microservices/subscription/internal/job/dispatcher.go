@@ -2,7 +2,8 @@ package job
 
 import (
 	"context"
-	"log"
+
+	"subscription/pkg/logger"
 )
 
 type eventSource interface {
@@ -32,18 +33,19 @@ func NewEmailDispatcher(subService subservice, taskQueue taskQueue, eventSource 
 }
 
 func (d *EmailDispatcher) Start(ctx context.Context) {
+	lg := logger.From(ctx)
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Println("[Dispatcher] Context cancelled. Stopping dispatcher.")
+				lg.Info("Dispatcher context cancelled, stopping")
 				return
 			case freq, ok := <-d.EventSource.Events():
 				if !ok {
-					log.Println("[Dispatcher] Event source closed. Exiting.")
+					lg.Info("Event source closed, dispatcher exiting")
 					return
 				}
-				log.Printf("[Dispatcher] Received event: %s", freq)
+				lg.Infof("Event received: %s", freq)
 				d.DispatchScheduledEmails(ctx, freq)
 			}
 		}
@@ -51,16 +53,17 @@ func (d *EmailDispatcher) Start(ctx context.Context) {
 }
 
 func (d *EmailDispatcher) DispatchScheduledEmails(ctx context.Context, freq string) {
+	lg := logger.From(ctx)
 	tasks, err := d.SubService.GenerateWeatherReportTasks(ctx, freq)
 	if err != nil {
-		log.Printf("[Dispatcher] Failed to generate tasks: %v", err)
+		lg.Errorf("Failed to generate tasks: %v", err)
 		return
 	}
 
 	for _, task := range tasks {
-		log.Printf("[Dispatcher] Enqueueing task for %q", task.Email)
+		lg.Infof("Enqueuing task for %q", task.Email)
 		if err := d.TaskQueue.Enqueue(ctx, task); err != nil {
-			log.Printf("[Dispatcher] Failed to enqueue: %v", err)
+			lg.Errorf("Failed to enqueue: %v", err)
 		}
 	}
 }

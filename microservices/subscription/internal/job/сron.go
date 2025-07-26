@@ -2,7 +2,8 @@ package job
 
 import (
 	"context"
-	"log"
+
+	"subscription/pkg/logger"
 
 	"github.com/robfig/cron/v3"
 )
@@ -20,39 +21,39 @@ func NewCronEventSource() *CronEventSource {
 }
 
 func (s *CronEventSource) Start(ctx context.Context) {
-	log.Println("[Scheduler] Starting cron scheduler...")
+	lg := logger.From(ctx)
 
 	_, err := s.cron.AddFunc("0 * * * *", func() {
 		if ctx.Err() != nil {
-			log.Println("[Scheduler] Skipping hourly task due to canceled context")
+			lg.Info("Hourly cron skipped: context canceled")
 			return
 		}
-		log.Println("[Scheduler] Trigger: hourly")
+		lg.Info("Hourly cron triggered")
 		select {
 		case s.events <- "hourly":
 		case <-ctx.Done():
-			log.Println("[Scheduler] Context canceled while sending hourly event")
+			lg.Info("Hourly cron event send canceled")
 		}
 	})
 	if err != nil {
-		log.Printf("[Scheduler] Failed to schedule hourly: %v", err)
+		lg.Errorf("Failed to schedule hourly cron: %v", err)
 		return
 	}
 
 	_, err = s.cron.AddFunc("0 12 * * *", func() {
 		if ctx.Err() != nil {
-			log.Println("[Scheduler] Skipping daily task due to canceled context")
+			lg.Info("Daily cron skipped: context canceled")
 			return
 		}
-		log.Println("[Scheduler] Trigger: daily")
+		lg.Info("Daily cron triggered")
 		select {
 		case s.events <- "daily":
 		case <-ctx.Done():
-			log.Println("[Scheduler] Context canceled while sending daily event")
+			lg.Info("Daily cron event send canceled")
 		}
 	})
 	if err != nil {
-		log.Printf("[Scheduler] Failed to schedule daily: %v", err)
+		lg.Errorf("Failed to schedule daily cron: %v", err)
 		return
 	}
 
@@ -60,8 +61,7 @@ func (s *CronEventSource) Start(ctx context.Context) {
 
 	go func() {
 		<-ctx.Done()
-		log.Println("[Scheduler] Context done, stopping scheduler...")
-		s.Stop()
+		s.Stop(ctx)
 	}()
 }
 
@@ -69,8 +69,9 @@ func (s *CronEventSource) Events() <-chan string {
 	return s.events
 }
 
-func (s *CronEventSource) Stop() {
-	log.Println("[Scheduler] Stopping cron scheduler...")
+func (s *CronEventSource) Stop(ctx context.Context) {
+	lg := logger.From(ctx)
+	lg.Info("Cron scheduler stopped")
 	s.cron.Stop()
 	close(s.events)
 }

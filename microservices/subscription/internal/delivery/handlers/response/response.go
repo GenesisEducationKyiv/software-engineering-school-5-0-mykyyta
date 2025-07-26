@@ -1,14 +1,16 @@
 package response
 
 import (
-	"log"
 	"net/http"
+
+	"subscription/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SendError(c *gin.Context, code int, msg string) {
-	log.Printf("error: %s", msg) // або прибрати лог, якщо не потрібно
+	lg := logger.From(c.Request.Context())
+	lg.Errorw("handler error", "msg", msg, "code", code)
 	c.JSON(code, gin.H{"error": msg})
 }
 

@@ -1,14 +1,27 @@
 package main
 
 import (
+	"os"
+
 	"subscription/internal/app"
-	"subscription/internal/infra"
+	"subscription/pkg/logger"
 )
 
 func main() {
-	logg := infra.NewLogger("logs/app.log")
+	env := os.Getenv("ENV")
+	lg, err := logger.New("subscription", env)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		if err := lg.Sync(); err != nil {
+			lg.Errorw("logger sync failed", "err", err)
+		}
+	}()
 
-	if err := app.Run(logg); err != nil {
-		logg.Fatalf("Application failed: %v", err)
+	lg.Infow("starting service", "env", env)
+
+	if err := app.Run(lg); err != nil {
+		lg.Fatalw("service crashed", "err", err)
 	}
 }

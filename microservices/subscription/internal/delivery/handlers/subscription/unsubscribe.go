@@ -7,6 +7,7 @@ import (
 
 	"subscription/internal/delivery/handlers/response"
 	"subscription/internal/subscription"
+	"subscription/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,9 +25,11 @@ func NewUnsubscribe(service unsubscribe) Unsubscribe {
 }
 
 func (h Unsubscribe) Handle(c *gin.Context) {
+	lg := logger.From(c.Request.Context())
 	token := c.Param("token")
 
 	if err := h.service.Unsubscribe(c.Request.Context(), token); err != nil {
+		lg.Warnw("unsubscribe failed", "token", token, "err", err)
 		switch {
 		case errors.Is(err, subscription.ErrInvalidToken):
 			response.SendError(c, http.StatusBadRequest, "Invalid token")
@@ -38,5 +41,6 @@ func (h Unsubscribe) Handle(c *gin.Context) {
 		return
 	}
 
+	lg.Infow("unsubscribed successfully", "token", token)
 	response.SendSuccess(c, "Unsubscribed successfully")
 }

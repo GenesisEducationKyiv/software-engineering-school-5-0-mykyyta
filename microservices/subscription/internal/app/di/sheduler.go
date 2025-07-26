@@ -2,11 +2,11 @@ package di
 
 import (
 	"context"
-	"log"
 	"sync"
 
 	"subscription/internal/job"
 	"subscription/internal/subscription"
+	"subscription/pkg/logger"
 )
 
 type WeatherScheduler struct {
@@ -38,29 +38,30 @@ func (s *WeatherScheduler) Start(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	s.cancel = cancel
 
-	log.Println("[Scheduler] Starting scheduler...")
-
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-		s.worker.Start(ctx)
+		wLogger := logger.From(ctx).With("module", "scheduler")
+		s.worker.Start(logger.With(ctx, wLogger))
 	}()
 
-	s.dispatcher.Start(ctx)
-	s.cron.Start(ctx)
+	dLogger := logger.From(ctx).With("module", "scheduler")
+	s.dispatcher.Start(logger.With(ctx, dLogger))
+
+	cLogger := logger.From(ctx).With("module", "scheduler")
+	s.cron.Start(logger.With(ctx, cLogger))
 }
 
-func (s *WeatherScheduler) Stop() {
-	log.Println("[Scheduler] Stopping scheduler...")
-
+func (s *WeatherScheduler) Stop(ctx context.Context) {
 	if s.cancel != nil {
 		s.cancel()
 	}
 
 	s.wg.Wait()
 
-	s.cron.Stop()
-	s.queue.Close()
+	cLogger := logger.From(ctx).With("module", "scheduler")
+	s.cron.Stop(logger.With(ctx, cLogger))
 
-	log.Println("[Scheduler] Scheduler stopped.")
+	qLogger := logger.From(ctx).With("module", "scheduler")
+	s.queue.Close(logger.With(ctx, qLogger))
 }
