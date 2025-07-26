@@ -124,7 +124,9 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("listen gRPC: %w", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(grpcapi.LoggingUnaryServerInterceptor()),
+	)
 	grpcHandler := grpcapi.NewHandler(weatherService)
 	weatherpb.RegisterWeatherServiceServer(grpcServer, grpcHandler)
 
