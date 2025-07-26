@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,25 +12,28 @@ import (
 	"gateway/internal/adapter/subscription"
 	"gateway/internal/config"
 	"gateway/internal/delivery"
+	"gateway/internal/middleware"
 	"gateway/internal/service"
+	loggerCtx "gateway/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type App struct {
 	server *http.Server
-	logger *log.Logger
 }
 
-func NewApp(cfg *config.Config, logger *log.Logger) *App {
+func NewApp(cfg *config.Config, lg *zap.SugaredLogger) *App {
 	subscriptionClient := subscription.NewClient(
 		cfg.SubscriptionServiceAddr,
 		cfg.RequestTimeout,
 	)
 	validator := service.NewSecurityValidator()
-	gatewayService := service.NewService(subscriptionClient, validator, logger)
-	responseWriter := delivery.NewResponseWriter(logger)
-	handler := delivery.NewSubscriptionHandler(gatewayService, responseWriter, logger)
+	gatewayService := service.NewService(subscriptionClient, validator)
+	responseWriter := delivery.NewResponseWriter()
+	handler := delivery.NewSubscriptionHandler(gatewayService, responseWriter)
 
-	mux := delivery.SetupRoutes(handler, logger, cfg)
+	mux := delivery.SetupRoutes(handler, cfg)
+	mux = middleware.WithLogger(lg)(mux)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -43,15 +44,15 @@ func NewApp(cfg *config.Config, logger *log.Logger) *App {
 
 	return &App{
 		server: server,
-		logger: logger,
 	}
 }
 
-func (a *App) Start() error {
+func (a *App) Start(ctx context.Context) error {
+	lg := loggerCtx.From(ctx)
 	go func() {
-		a.logger.Printf("API Gateway starting on %s", a.server.Addr)
+		lg.Infof("API Gateway starting on %s", a.server.Addr)
 		if err := a.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			a.logger.Printf("Server error: %v", err)
+			lg.Errorf("Server error: %v", err)
 		}
 	}()
 
@@ -59,25 +60,19 @@ func (a *App) Start() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	a.logger.Println("Shutdown signal received")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	lg.Info("Shutting down API Gateway...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	if err := a.server.Shutdown(ctx); err != nil {
-		return fmt.Errorf("server shutdown error: %w", err)
-	}
-
-	a.logger.Println("Server exited gracefully")
-	return nil
+	return a.server.Shutdown(shutdownCtx)
 }
 
-func Run(logger *log.Logger) error {
+func Run(lg *zap.SugaredLogger) error {
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		lg.Errorf("failed to load config: %v", err)
+		return err
 	}
-
-	app := NewApp(cfg, logger)
-	return app.Start()
+	app := NewApp(cfg, lg)
+	ctx := loggerCtx.With(context.Background(), lg)
+	return app.Start(ctx)
 }

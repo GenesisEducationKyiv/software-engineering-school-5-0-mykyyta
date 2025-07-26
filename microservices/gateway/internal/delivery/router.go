@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 
@@ -10,7 +9,7 @@ import (
 	"gateway/internal/middleware"
 )
 
-func SetupRoutes(handler *SubscriptionHandler, logger *log.Logger, cfg *config.Config) http.Handler {
+func SetupRoutes(handler *SubscriptionHandler, cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", HealthCheck)
@@ -25,7 +24,6 @@ func SetupRoutes(handler *SubscriptionHandler, logger *log.Logger, cfg *config.C
 	for _, rt := range cfg.Routes {
 		hf, ok := handlers[rt.Handler]
 		if !ok {
-			logger.Printf("unknown handler: %s – skipping", rt.Handler)
 			continue
 		}
 		mux.HandleFunc(rt.Path, hf)
@@ -41,14 +39,15 @@ func SetupRoutes(handler *SubscriptionHandler, logger *log.Logger, cfg *config.C
 		w.WriteHeader(http.StatusOK)
 
 		if err := json.NewEncoder(w).Encode(generateAPIDocs(cfg)); err != nil {
-			logger.Printf("Failed to write API docs: %v", err)
+			// logger.Printf("Failed to write API docs: %v", err)
 		}
 	})
 
 	// middleware
 	var finalHandler http.Handler = mux
 	finalHandler = middleware.CORS()(finalHandler)
-	finalHandler = middleware.Logging(logger)(finalHandler)
+	finalHandler = middleware.RequestID()(finalHandler)
+	finalHandler = middleware.Logging()(finalHandler)
 
 	return finalHandler
 }
