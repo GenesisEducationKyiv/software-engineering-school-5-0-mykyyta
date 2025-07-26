@@ -15,7 +15,6 @@ import (
 	"gateway/internal/middleware"
 	"gateway/internal/service"
 	loggerCtx "gateway/pkg/logger"
-
 	"go.uber.org/zap"
 )
 
