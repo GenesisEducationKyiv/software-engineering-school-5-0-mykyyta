@@ -1,14 +1,27 @@
 package main
 
 import (
+	"os"
+
 	"weather/internal/app"
-	"weather/internal/infra"
+	"weather/pkg/logger"
 )
 
 func main() {
-	logg := infra.NewLogger("logs/app.log")
+	env := os.Getenv("ENV")
+	lg, err := logger.New("weather", env)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		if err := lg.Sync(); err != nil {
+			lg.Errorw("logger sync failed", "err", err)
+		}
+	}()
 
-	if err := app.Run(logg); err != nil {
-		logg.Fatalf("weather service failed: %v", err)
+	lg.Infow("starting service", "env", env)
+
+	if err := app.Run(lg); err != nil {
+		lg.Fatalw("service crashed", "err", err)
 	}
 }
