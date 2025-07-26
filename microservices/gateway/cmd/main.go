@@ -2,7 +2,6 @@ package main
 
 import (
 	"gateway/internal/app"
-	"gateway/internal/infra"
 	"gateway/pkg/logger"
 	"os"
 )
@@ -14,7 +13,9 @@ func main() {
 		panic(err)
 	}
 	defer func() {
-		_ = lg.Sync()
+		if err := lg.Sync(); err != nil {
+			lg.Errorw("logger sync failed", "err", err)
+		}
 	}()
 
 	if err := app.Run(lg); err != nil {
