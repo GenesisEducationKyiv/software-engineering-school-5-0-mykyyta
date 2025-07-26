@@ -11,6 +11,7 @@ import (
 
 	subscription2 "subscription/internal/delivery/handlers/subscription"
 	handlers2 "subscription/internal/delivery/handlers/weather"
+	"subscription/internal/delivery/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,6 +22,9 @@ type weatherService interface {
 
 func SetupRoutes(subService subscription.Service, weatherClient weatherService) *gin.Engine {
 	router := gin.Default()
+
+	router.Use(middleware.RequestIDMiddleware())
+	router.Use(middleware.LoggingMiddleware())
 
 	subscribeHandler := subscription2.NewSubscribe(subService)
 	confirmHandler := subscription2.NewConfirm(subService)

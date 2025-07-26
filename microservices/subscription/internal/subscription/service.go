@@ -8,6 +8,7 @@ import (
 
 	"subscription/internal/domain"
 	"subscription/internal/job"
+	"subscription/pkg/logger"
 
 	"github.com/google/uuid"
 )
@@ -91,7 +92,8 @@ func (s Service) Subscribe(ctx context.Context, email, city string, frequency do
 
 	idKey := s.generateIdempotencyKey(email, token)
 	if err := s.emailService.SendConfirmationEmail(ctx, email, token, idKey); err != nil {
-		fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
+		lg := logger.From(ctx)
+		lg.Errorf("Failed to send confirmation email to %s: %v", email, err)
 	}
 
 	return nil

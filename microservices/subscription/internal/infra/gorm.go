@@ -1,8 +1,10 @@
 package infra
 
 import (
+	"context"
 	"fmt"
-	"log"
+
+	"subscription/pkg/logger"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -20,12 +22,13 @@ func NewGorm(dsn string) (*Gorm, error) {
 	return &Gorm{Gorm: db}, nil
 }
 
-func (db *Gorm) Close() {
+func (db *Gorm) Close(ctx context.Context) {
+	lg := logger.From(ctx)
 	if sqlDB, err := db.Gorm.DB(); err != nil {
-		log.Printf("failed to get sql.DB: %v", err)
+		lg.Errorf("failed to get sql.DB: %v", err)
 	} else if err := sqlDB.Close(); err != nil {
-		log.Printf("failed to close DB: %v", err)
+		lg.Errorf("failed to close DB: %v", err)
 	} else {
-		log.Println("DB connection closed")
+		lg.Info("DB connection closed")
 	}
 }

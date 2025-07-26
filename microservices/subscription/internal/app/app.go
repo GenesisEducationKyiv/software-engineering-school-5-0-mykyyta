@@ -51,7 +51,7 @@ func Run(lg *zap.SugaredLogger) error {
 		return fmt.Errorf("failed to build app: %w", err)
 	}
 	lg.Infow("subscription service started")
-	defer app.DB.Close()
+	defer app.DB.Close(ctx)
 
 	if err := app.StartServer(ctx); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
@@ -194,7 +194,7 @@ func (a *App) Shutdown(ctx context.Context, lg *zap.SugaredLogger) error {
 		}
 	}
 
-	a.DB.Close()
+	a.DB.Close(ctx)
 	lg.Info("Database connection closed")
 
 	lg.Info("Shutdown complete")

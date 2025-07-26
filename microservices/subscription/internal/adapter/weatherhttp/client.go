@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"subscription/internal/domain"
+	"subscription/pkg/logger"
 )
 
 var ErrCityNotFound = domain.ErrCityNotFound
@@ -42,7 +43,7 @@ func (c *Client) GetWeather(ctx context.Context, city string) (domain.Report, er
 	if err != nil {
 		return domain.Report{}, fmt.Errorf("weather request failed: %w", err)
 	}
-	defer c.closeBody(resp.Body, "GetWeather")
+	defer c.closeBody(ctx, resp.Body, "GetWeather")
 
 	if resp.StatusCode == http.StatusNotFound {
 		return domain.Report{}, ErrCityNotFound
@@ -71,7 +72,7 @@ func (c *Client) CityIsValid(ctx context.Context, city string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("city validation request failed: %w", err)
 	}
-	defer c.closeBody(resp.Body, "CityIsValid")
+	defer c.closeBody(ctx, resp.Body, "CityIsValid")
 
 	if resp.StatusCode != http.StatusOK {
 		return false, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, resp.Status)
@@ -102,8 +103,9 @@ func (c *Client) doRequest(ctx context.Context, method, url string) (*http.Respo
 	return resp, nil
 }
 
-func (c *Client) closeBody(body io.Closer, operation string) {
+func (c *Client) closeBody(ctx context.Context, body io.Closer, operation string) {
+	lg := logger.From(ctx)
 	if err := body.Close(); err != nil {
-		fmt.Printf("[WARN] Failed to close response body in %s: %v\n", operation, err)
+		lg.Warnf("Failed to close response body in %s: %v", operation, err)
 	}
 }
