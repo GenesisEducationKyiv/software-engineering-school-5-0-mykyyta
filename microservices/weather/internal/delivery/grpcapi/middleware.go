@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// LoggingUnaryServerInterceptor logs gRPC requests with method, status, and duration.
 func LoggingUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
