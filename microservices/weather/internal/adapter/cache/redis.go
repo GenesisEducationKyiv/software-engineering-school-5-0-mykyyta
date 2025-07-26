@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"weather/internal/domain"
+	loggerCtx "weather/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -46,10 +47,12 @@ func (r RedisCache) Set(ctx context.Context, city, provider string, report domai
 
 	data, err := json.Marshal(report)
 	if err != nil {
+		loggerCtx.From(ctx).Errorw("failed to marshal report for cache", "city", city, "provider", provider, "error", err)
 		return fmt.Errorf("failed to marshal report: %w", err)
 	}
 
 	if err := r.client.Set(ctx, key, data, ttl).Err(); err != nil {
+		loggerCtx.From(ctx).Errorw("redis set error", "city", city, "provider", provider, "error", err)
 		return fmt.Errorf("redis set error: %w", err)
 	}
 	return nil
@@ -59,15 +62,19 @@ func (r RedisCache) Get(ctx context.Context, city, provider string) (domain.Repo
 	key := r.key(city, provider)
 
 	data, err := r.client.Get(ctx, key).Result()
+
 	if errors.Is(err, redis.Nil) {
+		loggerCtx.From(ctx).Infow("cache miss", "city", city, "provider", provider)
 		return domain.Report{}, ErrCacheMiss
 	}
 	if err != nil {
+		loggerCtx.From(ctx).Errorw("redis get error", "city", city, "provider", provider, "error", err)
 		return domain.Report{}, fmt.Errorf("redis get error: %w", err)
 	}
 
 	var rep domain.Report
 	if err := json.Unmarshal([]byte(data), &rep); err != nil {
+		loggerCtx.From(ctx).Errorw("failed to unmarshal report from cache", "city", city, "provider", provider, "error", err)
 		return domain.Report{}, fmt.Errorf("failed to unmarshal report: %w", err)
 	}
 	return rep, nil
@@ -75,16 +82,22 @@ func (r RedisCache) Get(ctx context.Context, city, provider string) (domain.Repo
 
 func (r RedisCache) SetCityNotFound(ctx context.Context, city, provider string, ttl time.Duration) error {
 	key := r.notFoundKey(city, provider)
-	return r.client.Set(ctx, key, "1", ttl).Err()
+	err := r.client.Set(ctx, key, "1", ttl).Err()
+	if err != nil {
+		loggerCtx.From(ctx).Errorw("redis set notfound error", "city", city, "provider", provider, "error", err)
+	}
+	return err
 }
 
 func (r RedisCache) GetCityNotFound(ctx context.Context, city, provider string) (bool, error) {
 	key := r.notFoundKey(city, provider)
 	val, err := r.client.Get(ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
+		loggerCtx.From(ctx).Infow("cache notfound miss", "city", city, "provider", provider)
 		return false, nil
 	}
 	if err != nil {
+		loggerCtx.From(ctx).Errorw("redis get notfound error", "city", city, "provider", provider, "error", err)
 		return false, err
 	}
 	return val == "1", nil
