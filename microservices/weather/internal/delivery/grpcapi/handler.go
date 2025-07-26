@@ -3,6 +3,7 @@ package grpcapi
 import (
 	"context"
 	"errors"
+
 	"weather/internal/domain"
 	weatherpb "weather/internal/proto"
 	loggerCtx "weather/pkg/logger"

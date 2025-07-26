@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"email/internal/adapter/sendgrid"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"email/internal/adapter/sendgrid"
 
 	"email/internal/app/di"
 	"email/internal/delivery/consumer"

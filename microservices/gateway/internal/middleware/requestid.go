@@ -7,8 +7,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const RequestIDKey = "requestID"
-const RequestIDHeader = "X-Request-ID"
+const (
+	RequestIDKey    = "requestID"
+	RequestIDHeader = "X-Request-ID"
+)
 
 func RequestID() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

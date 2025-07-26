@@ -1,9 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"gateway/internal/app"
 	"gateway/pkg/logger"
-	"os"
 )
 
 func main() {
