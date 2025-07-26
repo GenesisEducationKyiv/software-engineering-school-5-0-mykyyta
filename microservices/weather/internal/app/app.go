@@ -98,7 +98,6 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 		weatherProvider = di.BuildProviders(di.ProviderDeps{
 			Cfg:         cfg,
-			Logger:      lg,
 			RedisClient: redisClient,
 			HttpClient:  httpClient,
 			Metrics:     metrics,
