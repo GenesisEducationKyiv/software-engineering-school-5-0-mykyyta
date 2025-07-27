@@ -41,7 +41,7 @@ func LoadConfig() *Config {
 func loadCacheConfig() CacheConfig {
 	return CacheConfig{
 		Enabled:       getBoolEnv("CACHE_ENABLED", true),
-		RedisURL:      getEnv("REDIS_URL", "redis://localhost:6379/0"),
+		RedisURL:      getEnv("REDIS_URL", "redis://redis:6379/0"),
 		WeatherApiTTL: getDurationEnv("CACHE_TTL_WEATHERAPI", 15*time.Minute),
 		TomorrowIoTTL: getDurationEnv("CACHE_TTL_TOMORROWIO", 2*time.Minute),
 		NotFoundTTL:   getDurationEnv("CACHE_TTL_NOTFOUND", 1*time.Minute),

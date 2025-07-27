@@ -2,10 +2,6 @@ package email
 
 import "email/internal/domain"
 
-type Sender interface {
-	Send(req domain.SendEmailRequest) error
-}
-
 type Provider interface {
 	Send(to, subject, plain, html string) error
 }
@@ -19,14 +15,14 @@ type Service struct {
 	templateStore TemplateRenderer
 }
 
-func NewService(provider Provider, templateStore TemplateRenderer) Sender {
-	return &Service{
+func NewService(provider Provider, templateStore TemplateRenderer) Service {
+	return Service{
 		provider:      provider,
 		templateStore: templateStore,
 	}
 }
 
-func (s *Service) Send(req domain.SendEmailRequest) error {
+func (s Service) Send(req domain.SendEmailRequest) error {
 	subject, plain, html, err := s.templateStore.Render(req.Template, req.Data)
 	if err != nil {
 		return err

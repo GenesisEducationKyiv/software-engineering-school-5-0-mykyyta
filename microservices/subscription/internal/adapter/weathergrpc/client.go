@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	weatherpb2 "subscription/internal/adapter/weahtergrpc/pb"
+	weatherpb2 "subscription/internal/adapter/weathergrpc/pb"
 	"subscription/internal/domain"
 
 	"google.golang.org/grpc/credentials/insecure"

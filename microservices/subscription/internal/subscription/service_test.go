@@ -52,11 +52,11 @@ func (m *mockTokenService) Parse(token string) (string, error) {
 
 type mockEmailService struct{ mock.Mock }
 
-func (m *mockEmailService) SendConfirmationEmail(ctx context.Context, email, token string) error {
+func (m *mockEmailService) SendConfirmationEmail(ctx context.Context, email, token string, _ string) error {
 	return m.Called(email, token).Error(0)
 }
 
-func (m *mockEmailService) SendWeatherReport(ctx context.Context, email string, weatherReport domain.Report, city, token string) error {
+func (m *mockEmailService) SendWeatherReport(ctx context.Context, email string, weatherReport domain.Report, city, token string, _ string) error {
 	return m.Called(email, weatherReport, city, token).Error(0)
 }
 
@@ -308,24 +308,6 @@ func TestConfirm_ValidToken_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	d.tokens.AssertExpectations(t)
-	d.repo.AssertExpectations(t)
-}
-
-func TestListConfirmedByFrequency(t *testing.T) {
-	d := createTestService()
-	ctx := context.Background()
-	frequency := "weekly"
-	subs := []domain.Subscription{
-		{Email: "a@example.com", IsConfirmed: true},
-		{Email: "b@example.com", IsConfirmed: true},
-	}
-
-	d.repo.On("GetConfirmedByFrequency", ctx, frequency).Return(subs, nil)
-
-	result, err := d.service.ListConfirmedByFrequency(ctx, frequency)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(result))
 	d.repo.AssertExpectations(t)
 }
 

@@ -30,7 +30,7 @@ func NewClient(baseURL string, logger *log.Logger, client *http.Client) *Client 
 	}
 }
 
-func (e *Client) SendConfirmationEmail(ctx context.Context, email, token string) error {
+func (e *Client) SendConfirmationEmail(ctx context.Context, email, token string, _ string) error {
 	return e.send(ctx, Request{
 		To:       email,
 		Template: "confirmation",
@@ -40,7 +40,7 @@ func (e *Client) SendConfirmationEmail(ctx context.Context, email, token string)
 	})
 }
 
-func (e *Client) SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string) error {
+func (e *Client) SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string, _ string) error {
 	return e.send(ctx, Request{
 		To:       email,
 		Template: "weather_report",

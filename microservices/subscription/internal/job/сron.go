@@ -35,7 +35,8 @@ func (s *CronEventSource) Start(ctx context.Context) {
 		}
 	})
 	if err != nil {
-		log.Fatalf("[Scheduler] Failed to schedule hourly: %v", err)
+		log.Printf("[Scheduler] Failed to schedule hourly: %v", err)
+		return
 	}
 
 	_, err = s.cron.AddFunc("0 12 * * *", func() {
@@ -51,7 +52,8 @@ func (s *CronEventSource) Start(ctx context.Context) {
 		}
 	})
 	if err != nil {
-		log.Fatalf("[Scheduler] Failed to schedule daily: %v", err)
+		log.Printf("[Scheduler] Failed to schedule daily: %v", err)
+		return
 	}
 
 	s.cron.Start()

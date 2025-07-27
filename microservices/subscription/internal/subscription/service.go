@@ -27,8 +27,8 @@ type repo interface {
 }
 
 type emailClient interface {
-	SendConfirmationEmail(ctx context.Context, email, token string) error
-	SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string) error
+	SendConfirmationEmail(ctx context.Context, email, token string, idKey string) error
+	SendWeatherReport(ctx context.Context, email string, weather domain.Report, city, token string, idKey string) error
 }
 
 type WeatherClient interface {
@@ -85,33 +85,12 @@ func (s Service) Subscribe(ctx context.Context, email, city string, frequency do
 		return fmt.Errorf("could not generate token: %w", err)
 	}
 
-	if existing != nil {
-		existing.City = city
-		existing.Frequency = frequency
-		existing.Token = token
-		existing.CreatedAt = time.Now()
-		existing.IsConfirmed = false
-		existing.IsUnsubscribed = false
-		if err := s.repo.Update(ctx, existing); err != nil {
-			return fmt.Errorf("failed to update subscription: %w", err)
-		}
-	} else {
-		sub := &domain.Subscription{
-			ID:             uuid.New().String(),
-			Email:          email,
-			City:           city,
-			Frequency:      frequency,
-			Token:          token,
-			IsConfirmed:    false,
-			IsUnsubscribed: false,
-			CreatedAt:      time.Now(),
-		}
-		if err := s.repo.Create(ctx, sub); err != nil {
-			return fmt.Errorf("failed to create subscription: %w", err)
-		}
+	if err := s.createOrUpdateSubscription(ctx, existing, email, city, frequency, token); err != nil {
+		return err
 	}
 
-	if err := s.emailService.SendConfirmationEmail(ctx, email, token); err != nil {
+	idKey := s.generateIdempotencyKey(email, token)
+	if err := s.emailService.SendConfirmationEmail(ctx, email, token, idKey); err != nil {
 		fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
 	}
 
@@ -167,7 +146,7 @@ func (s Service) Unsubscribe(ctx context.Context, token string) error {
 }
 
 func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency string) ([]job.Task, error) {
-	subs, err := s.ListConfirmedByFrequency(ctx, frequency)
+	subs, err := s.listConfirmedByFrequency(ctx, frequency)
 	if err != nil {
 		return nil, err
 	}
@@ -183,19 +162,61 @@ func (s Service) GenerateWeatherReportTasks(ctx context.Context, frequency strin
 	return tasks, nil
 }
 
-func (s Service) ListConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error) {
-	return s.repo.GetConfirmedByFrequency(ctx, frequency)
-}
-
 func (s Service) ProcessWeatherReportTask(ctx context.Context, task job.Task) error {
 	report, err := s.weatherService.GetWeather(ctx, task.City)
 	if err != nil {
 		return fmt.Errorf("get weather for %s: %w", task.City, err)
 	}
 
-	if err := s.emailService.SendWeatherReport(ctx, task.Email, report, task.City, task.Token); err != nil {
+	nowHour := time.Now().UTC().Format("2006-01-02T15")
+	idKey := fmt.Sprintf("report:%s:%s", task.Email, nowHour)
+	if err := s.emailService.SendWeatherReport(ctx, task.Email, report, task.City, task.Token, idKey); err != nil {
 		return fmt.Errorf("send email to %s: %w", task.Email, err)
 	}
 
 	return nil
+}
+
+func (s Service) listConfirmedByFrequency(ctx context.Context, frequency string) ([]domain.Subscription, error) {
+	return s.repo.GetConfirmedByFrequency(ctx, frequency)
+}
+
+func (s Service) createOrUpdateSubscription(ctx context.Context, existing *domain.Subscription, email, city string, frequency domain.Frequency, token string) error {
+	now := time.Now()
+
+	if existing != nil {
+		updatedSub := &domain.Subscription{
+			ID:             existing.ID,
+			Email:          existing.Email,
+			City:           city,
+			Frequency:      frequency,
+			Token:          token,
+			IsConfirmed:    false,
+			IsUnsubscribed: false,
+			CreatedAt:      now,
+		}
+		if err := s.repo.Update(ctx, updatedSub); err != nil {
+			return fmt.Errorf("failed to update subscription: %w", err)
+		}
+	} else {
+		sub := &domain.Subscription{
+			ID:             uuid.New().String(),
+			Email:          email,
+			City:           city,
+			Frequency:      frequency,
+			Token:          token,
+			IsConfirmed:    false,
+			IsUnsubscribed: false,
+			CreatedAt:      now,
+		}
+		if err := s.repo.Create(ctx, sub); err != nil {
+			return fmt.Errorf("failed to create subscription: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s Service) generateIdempotencyKey(email, token string) string {
+	return fmt.Sprintf("confirm:%s:%s", email, token)
 }
