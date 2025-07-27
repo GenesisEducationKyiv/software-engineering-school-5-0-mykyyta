@@ -58,7 +58,7 @@ func LoggingUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 		} else if duration > 1000*time.Millisecond {
 			logger.Warnw("slow grpc request", logFields...)
 		} else {
-			logger.Debugw("grpc request", logFields...)
+			logger.Infow("grpc request", logFields...)
 		}
 
 		return resp, err

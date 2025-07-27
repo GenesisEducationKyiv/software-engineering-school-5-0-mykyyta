@@ -42,7 +42,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		} else if duration > 1000*time.Millisecond {
 			logger.Warnw("slow http request", logFields...)
 		} else {
-			logger.Debugw("http request", logFields...)
+			logger.Infow("http request", logFields...)
 		}
 	})
 }
