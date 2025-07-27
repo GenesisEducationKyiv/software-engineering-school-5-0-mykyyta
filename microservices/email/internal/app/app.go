@@ -33,6 +33,8 @@ type App struct {
 }
 
 func Run(lg *zap.SugaredLogger) error {
+	lg.Infow("Starting email service application")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ctx = logger.With(ctx, lg)
@@ -41,12 +43,16 @@ func Run(lg *zap.SugaredLogger) error {
 
 	app, err := NewApp(ctx, cfg)
 	if err != nil {
+		lg.Errorw("Failed to create application", "err", err)
 		return fmt.Errorf("creating application: %w", err)
 	}
 
 	if err := app.Start(ctx); err != nil {
+		lg.Errorw("Failed to start application", "err", err)
 		return fmt.Errorf("starting server: %w", err)
 	}
+
+	lg.Infow("Email service started successfully", "http_port", cfg.Port)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
@@ -57,6 +63,7 @@ func Run(lg *zap.SugaredLogger) error {
 	defer cancel()
 
 	if err := app.Shutdown(shutdownCtx); err != nil {
+		lg.Errorw("Shutdown failed", "err", err)
 		return fmt.Errorf("shutdown error: %w", err)
 	}
 
@@ -67,7 +74,7 @@ func Run(lg *zap.SugaredLogger) error {
 func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	templateStore, err := template.Load("template")
 	if err != nil {
-		logger.From(ctx).Errorw("Loading templates", "err", err)
+		logger.From(ctx).Errorw("Failed to load email templates", "template_dir", "template", "err", err)
 		return nil, err
 	}
 
@@ -76,6 +83,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	redisClient, err := infra.NewRedisClient(ctx, cfg)
 	if err != nil {
+		logger.From(ctx).Errorw("Failed to connect to Redis", "redis_url", cfg.RedisURL, "err", err)
 		return nil, fmt.Errorf("redis error: %w", err)
 	}
 
@@ -127,9 +135,17 @@ func (a *App) Shutdown(ctx context.Context) error {
 	logg.Infow("Shutting down email service...")
 
 	if err := a.Server.Shutdown(ctx); err != nil {
+		logg.Errorw("HTTP server shutdown failed", "err", err)
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	logg.Infow("Shutdown complete")
+	if a.ShutdownFunc != nil {
+		if err := a.ShutdownFunc(); err != nil {
+			logg.Errorw("Resource cleanup failed", "err", err)
+			// Не повертаємо помилку, щоб не блокувати shutdown
+		}
+	}
+
+	logg.Infow("Email service shutdown completed")
 	return nil
 }

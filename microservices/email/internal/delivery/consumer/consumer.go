@@ -31,7 +31,7 @@ type CircuitBreaker interface {
 }
 
 type EmailUseCase interface {
-	Send(req domain.SendEmailRequest) error
+	Send(ctx context.Context, req domain.SendEmailRequest) error
 }
 type Consumer struct {
 	source      MessageSource
@@ -152,7 +152,7 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 
 	logger.From(ctx).Infow("Starting email processing", "to", req.To, "template", req.Template)
 
-	if err := c.useCase.Send(req); err != nil {
+	if err := c.useCase.Send(ctx, req); err != nil {
 		return fmt.Errorf("email sending failed: %w", err)
 	}
 

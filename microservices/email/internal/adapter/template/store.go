@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"email/internal/domain"
+	"email/pkg/logger"
 )
 
 type templateParts struct {
@@ -62,23 +64,38 @@ func Load(path string) (*Store, error) {
 	return store, nil
 }
 
-func (s *Store) Render(templateName domain.TemplateName, data map[string]string) (subject, plain, html string, err error) {
+func (s *Store) Render(ctx context.Context, templateName domain.TemplateName, data map[string]string) (subject, plain, html string, err error) {
 	tmpl, ok := s.templates[templateName]
 	if !ok {
+		logger.From(ctx).Errorw("Template not found", "template", templateName)
 		return "", "", "", fmt.Errorf("template %s not found", templateName)
 	}
+
+	logger.From(ctx).Debugw("Rendering template", "template", templateName, "data_keys", getMapKeys(data))
 
 	var subjectBuf, plainBuf, htmlBuf bytes.Buffer
 
 	if err := tmpl.Subject.Execute(&subjectBuf, data); err != nil {
+		logger.From(ctx).Errorw("Failed to render subject", "template", templateName, "err", err)
 		return "", "", "", fmt.Errorf("render subject: %w", err)
 	}
 	if err := tmpl.Plain.Execute(&plainBuf, data); err != nil {
+		logger.From(ctx).Errorw("Failed to render plain text", "template", templateName, "err", err)
 		return "", "", "", fmt.Errorf("render plain: %w", err)
 	}
 	if err := tmpl.HTML.Execute(&htmlBuf, data); err != nil {
+		logger.From(ctx).Errorw("Failed to render HTML", "template", templateName, "err", err)
 		return "", "", "", fmt.Errorf("render html: %w", err)
 	}
 
+	logger.From(ctx).Debugw("Template rendered successfully", "template", templateName)
 	return subjectBuf.String(), plainBuf.String(), htmlBuf.String(), nil
+}
+
+func getMapKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }

@@ -51,8 +51,8 @@ type mockUseCase struct {
 	mock.Mock
 }
 
-func (m *mockUseCase) Send(req domain.SendEmailRequest) error {
-	args := m.Called(req)
+func (m *mockUseCase) Send(ctx context.Context, req domain.SendEmailRequest) error {
+	args := m.Called(ctx, req)
 	return args.Error(0)
 }
 
@@ -137,7 +137,7 @@ func TestConsumer_Handle_Success(t *testing.T) {
 	idem.On("ClearProcessing", mock.Anything, "msg-1").Return(nil)
 
 	useCase := new(mockUseCase)
-	useCase.On("Send", req).Return(nil)
+	useCase.On("Send", mock.Anything, req).Return(nil)
 
 	logger := new(mockLogger)
 	logger.On("Println", mock.Anything).Maybe()
@@ -270,7 +270,7 @@ func TestConsumer_SendFails(t *testing.T) {
 	idem.On("ClearProcessing", mock.Anything, "msg-3").Return(nil)
 
 	useCase := new(mockUseCase)
-	useCase.On("Send", req).Return(fmt.Errorf("failed"))
+	useCase.On("Send", mock.Anything, req).Return(fmt.Errorf("failed"))
 
 	logger := new(mockLogger)
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
@@ -330,7 +330,7 @@ func TestConsumer_ConcurrentProcessing(t *testing.T) {
 
 	useCase := new(mockUseCase)
 	for _, req := range requests {
-		useCase.On("Send", req).Return(nil)
+		useCase.On("Send", mock.Anything, req).Return(nil)
 	}
 
 	logger := new(mockLogger)
