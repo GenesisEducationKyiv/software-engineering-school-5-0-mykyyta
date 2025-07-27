@@ -14,17 +14,17 @@ import (
 	"subscription/internal/delivery/middleware"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type weatherService interface {
 	GetWeather(ctx context.Context, city string) (domain.Report, error)
 }
 
-func SetupRoutes(subService subscription.Service, weatherClient weatherService) *gin.Engine {
+func SetupRoutes(subService subscription.Service, weatherClient weatherService, logger *zap.SugaredLogger) *gin.Engine {
 	router := gin.Default()
 
-	router.Use(middleware.RequestIDMiddleware())
-	router.Use(middleware.LoggingMiddleware())
+	router.Use(middleware.RequestLoggingMiddleware(logger))
 
 	subscribeHandler := subscription2.NewSubscribe(subService)
 	confirmHandler := subscription2.NewConfirm(subService)

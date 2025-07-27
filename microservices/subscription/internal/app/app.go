@@ -135,7 +135,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	scheduler := di.NewScheduler(subService)
 
 	// HTTP server
-	router := delivery.SetupRoutes(subService, weatherClient)
+	router := delivery.SetupRoutes(subService, weatherClient, logger)
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: router,

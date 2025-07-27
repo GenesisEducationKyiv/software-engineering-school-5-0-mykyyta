@@ -4,6 +4,7 @@ go 1.24.3
 
 require (
 	github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger v0.0.0
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/redis/go-redis/v9 v9.11.0
