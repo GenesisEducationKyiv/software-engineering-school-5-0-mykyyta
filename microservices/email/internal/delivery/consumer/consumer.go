@@ -114,7 +114,8 @@ func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
 func (c *Consumer) processIdempotently(ctx context.Context, messageID string, msg amqp.Delivery) error {
 	processed, err := c.idempotency.IsProcessed(ctx, messageID)
 	if err != nil {
-		return fmt.Errorf("idempotency check: %w", err)
+		c.logger.Printf("[WARN] Idempotency check failed for message %s: %v. Proceeding anyway.", messageID, err)
+		processed = false
 	}
 	if processed {
 		c.logger.Printf("Message already processed: %s", messageID)
@@ -123,7 +124,8 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 
 	canProcess, err := c.idempotency.MarkAsProcessing(ctx, messageID)
 	if err != nil {
-		return fmt.Errorf("mark as processing: %w", err)
+		c.logger.Printf("[WARN] Mark as processing failed for message %s: %v. Proceeding anyway.", messageID, err)
+		canProcess = true // allow processing if store is unavailable
 	}
 	if !canProcess {
 		c.logger.Printf("Message %s is being processed elsewhere", messageID)
@@ -151,7 +153,7 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 	}
 
 	if err := c.idempotency.MarkAsProcessed(ctx, messageID); err != nil {
-		return fmt.Errorf("mark as processed: %w", err)
+		c.logger.Printf("[WARN] Mark as processed failed for message %s: %v. Proceeding anyway.", messageID, err)
 	}
 
 	c.logger.Printf("Message [%s] processed successfully", messageID)
