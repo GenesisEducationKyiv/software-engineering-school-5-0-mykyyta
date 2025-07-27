@@ -23,7 +23,7 @@ import (
 	"email/internal/config"
 	"email/internal/delivery"
 	"email/internal/email"
-	"email/pkg/logger"
+	loggerPkg "email/pkg/logger"
 )
 
 type App struct {
@@ -37,7 +37,7 @@ func Run(lg *zap.SugaredLogger) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	ctx = logger.With(ctx, lg)
+	ctx = loggerPkg.With(ctx, lg)
 
 	cfg := config.LoadConfig()
 
@@ -74,7 +74,7 @@ func Run(lg *zap.SugaredLogger) error {
 func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	templateStore, err := template.Load("template")
 	if err != nil {
-		logger.From(ctx).Errorw("Failed to load email templates", "template_dir", "template", "err", err)
+		loggerPkg.From(ctx).Errorw("Failed to load email templates", "template_dir", "template", "err", err)
 		return nil, err
 	}
 
@@ -83,13 +83,13 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	redisClient, err := infra.NewRedisClient(ctx, cfg)
 	if err != nil {
-		logger.From(ctx).Errorw("Failed to connect to Redis", "redis_url", cfg.RedisURL, "err", err)
+		loggerPkg.From(ctx).Errorw("Failed to connect to Redis", "redis_url", cfg.RedisURL, "err", err)
 		return nil, fmt.Errorf("redis error: %w", err)
 	}
 
 	queueModule, err := di.NewQueueModule(ctx, cfg, emailService, redisClient)
 	if err != nil {
-		logger.From(ctx).Errorw("Failed to init queue module", "err", err)
+		loggerPkg.From(ctx).Errorw("Failed to init queue module", "err", err)
 		return nil, err
 	}
 
@@ -111,18 +111,18 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 }
 
 func (a *App) Start(ctx context.Context) error {
-	logg := logger.From(ctx)
+	logger := loggerPkg.From(ctx)
 	go func() {
-		logg.Infow("Email service running", "addr", a.Server.Addr)
+		logger.Infow("Email service running", "addr", a.Server.Addr)
 		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logg.Errorw("Server error", "err", err)
+			logger.Errorw("Server error", "err", err)
 		}
 	}()
 
 	go func() {
-		logg.Infow("Starting async consumer...")
+		logger.Infow("Starting async consumer...")
 		if err := a.QueueConsumer.Start(ctx); err != nil {
-			logg.Errorw("Consumer error", "err", err)
+			logger.Errorw("Consumer error", "err", err)
 		}
 	}()
 
@@ -131,20 +131,20 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
-	logg := logger.From(ctx)
-	logg.Infow("Shutting down email service...")
+	logger := loggerPkg.From(ctx)
+	logger.Infow("Shutting down email service...")
 
 	if err := a.Server.Shutdown(ctx); err != nil {
-		logg.Errorw("HTTP server shutdown failed", "err", err)
+		logger.Errorw("HTTP server shutdown failed", "err", err)
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
 	if a.ShutdownFunc != nil {
 		if err := a.ShutdownFunc(); err != nil {
-			logg.Errorw("Resource cleanup failed", "err", err)
+			logger.Errorw("Resource cleanup failed", "err", err)
 		}
 	}
 
-	logg.Infow("Email service shutdown completed")
+	logger.Infow("Email service shutdown completed")
 	return nil
 }

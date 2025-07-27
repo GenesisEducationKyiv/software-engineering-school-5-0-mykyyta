@@ -1,20 +1,16 @@
 package delivery
 
 import (
-	"context"
 	"net/http"
 	"time"
 
-	"email/pkg/logger"
+	loggerPkg "email/pkg/logger"
 
 	"github.com/google/uuid"
 )
 
-type contextKey string
-
 const (
-	requestIDKey    contextKey = "requestID"
-	requestIDHeader string     = "X-Request-ID"
+	requestIDHeader string = "X-Request-ID"
 )
 
 type responseWriter struct {
@@ -34,8 +30,8 @@ func RequestMiddleware(next http.Handler) http.Handler {
 			reqID = uuid.NewString()
 		}
 
-		log := logger.From(r.Context()).With("request_id", reqID)
-		ctx := logger.With(r.Context(), log)
+		logger := loggerPkg.From(r.Context()).With("request_id", reqID)
+		ctx := loggerPkg.With(r.Context(), logger)
 
 		w.Header().Set(requestIDHeader, reqID)
 
@@ -45,7 +41,7 @@ func RequestMiddleware(next http.Handler) http.Handler {
 		dur := time.Since(start)
 
 		if ww.status >= 500 {
-			logger.From(ctx).Errorw(
+			loggerPkg.From(ctx).Errorw(
 				"http request",
 				"method", r.Method,
 				"path", r.URL.Path,
@@ -53,7 +49,7 @@ func RequestMiddleware(next http.Handler) http.Handler {
 				"duration_ms", dur.Milliseconds(),
 			)
 		} else {
-			logger.From(ctx).Infow(
+			loggerPkg.From(ctx).Infow(
 				"http request",
 				"method", r.Method,
 				"path", r.URL.Path,
@@ -62,13 +58,4 @@ func RequestMiddleware(next http.Handler) http.Handler {
 			)
 		}
 	})
-}
-
-func GetRequestID(ctx context.Context) string {
-	if v := ctx.Value(requestIDKey); v != nil {
-		if s, ok := v.(string); ok {
-			return s
-		}
-	}
-	return ""
 }
