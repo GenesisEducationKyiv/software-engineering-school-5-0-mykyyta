@@ -3,9 +3,11 @@
 # Script to check compilation of all microservices
 echo "🔍 Checking compilation of all microservices..."
 echo
+cd ".."
 
 MICROSERVICES=("weather" "subscription" "email" "gateway")
 FAILED=0
+
 
 for service in "${MICROSERVICES[@]}"; do
     echo "📦 Checking $service microservice..."
