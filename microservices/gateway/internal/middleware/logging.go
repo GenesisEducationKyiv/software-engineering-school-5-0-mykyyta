@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	loggerCtx "gateway/pkg/logger"
+	loggerPkg "gateway/pkg/logger"
 
 	"go.uber.org/zap"
 )
@@ -12,7 +12,7 @@ import (
 func WithLogger(lg *zap.SugaredLogger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := loggerCtx.With(r.Context(), lg)
+			ctx := loggerPkg.With(r.Context(), lg)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -27,7 +27,8 @@ func Logging() func(http.Handler) http.Handler {
 
 			dur := time.Since(start)
 			requestID := GetRequestID(r.Context())
-			loggerCtx.From(r.Context()).Infow(
+			logger := loggerPkg.From(r.Context())
+			logger.Infow(
 				"http request",
 				"method", r.Method,
 				"path", r.URL.Path,

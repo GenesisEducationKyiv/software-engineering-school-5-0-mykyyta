@@ -14,7 +14,7 @@ import (
 	"gateway/internal/delivery"
 	"gateway/internal/middleware"
 	"gateway/internal/service"
-	loggerCtx "gateway/pkg/logger"
+	loggerPkg "gateway/pkg/logger"
 
 	"go.uber.org/zap"
 )
@@ -49,11 +49,11 @@ func NewApp(cfg *config.Config, lg *zap.SugaredLogger) *App {
 }
 
 func (a *App) Start(ctx context.Context) error {
-	lg := loggerCtx.From(ctx)
+	logger := loggerPkg.From(ctx)
 	go func() {
-		lg.Infof("API Gateway starting on %s", a.server.Addr)
+		logger.Infof("API Gateway starting on %s", a.server.Addr)
 		if err := a.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			lg.Errorf("Server error: %v", err)
+			logger.Errorf("Server error: %v", err)
 		}
 	}()
 
@@ -61,7 +61,7 @@ func (a *App) Start(ctx context.Context) error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	lg.Info("Shutting down API Gateway...")
+	logger.Info("Shutting down API Gateway...")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return a.server.Shutdown(shutdownCtx)
@@ -74,6 +74,6 @@ func Run(lg *zap.SugaredLogger) error {
 		return err
 	}
 	app := NewApp(cfg, lg)
-	ctx := loggerCtx.With(context.Background(), lg)
+	ctx := loggerPkg.With(context.Background(), lg)
 	return app.Start(ctx)
 }

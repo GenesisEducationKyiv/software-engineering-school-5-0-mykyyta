@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	loggerCtx "gateway/pkg/logger"
+	loggerPkg "gateway/pkg/logger"
 )
 
 type ErrorResponse struct {
@@ -23,7 +23,8 @@ func (j ResponseWriter) WriteError(w http.ResponseWriter, statusCode int, error,
 		Error:   error,
 		Message: message,
 	}
-	loggerCtx.From(r.Context()).Errorw("HTTP error response", "status", statusCode, "error", error, "message", message)
+	logger := loggerPkg.From(r.Context())
+	logger.Errorw("HTTP error response", "status", statusCode, "error", error, "message", message)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	_ = json.NewEncoder(w).Encode(response)
