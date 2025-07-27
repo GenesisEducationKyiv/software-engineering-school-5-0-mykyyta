@@ -3,7 +3,7 @@ package middleware
 import (
 	"time"
 
-	"subscription/pkg/logger"
+	loggerPkg "subscription/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,8 +13,8 @@ func LoggingMiddleware() gin.HandlerFunc {
 		start := time.Now()
 		c.Next()
 		dur := time.Since(start)
-		lg := logger.From(c.Request.Context())
-		lg.Infow(
+		logger := loggerPkg.From(c.Request.Context())
+		logger.Infow(
 			"http request",
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,

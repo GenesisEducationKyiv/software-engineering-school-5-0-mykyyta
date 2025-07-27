@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"subscription/internal/domain"
-	"subscription/pkg/logger"
+	loggerPkg "subscription/pkg/logger"
 )
 
 type Client struct {
@@ -52,7 +52,7 @@ func (e *Client) SendWeatherReport(ctx context.Context, email string, weather do
 }
 
 func (e *Client) send(ctx context.Context, req Request) error {
-	lg := logger.From(ctx)
+	logger := loggerPkg.From(ctx)
 	body, err := json.Marshal(req)
 	if err != nil {
 		return fmt.Errorf("failed to marshal email request: %w", err)
@@ -69,13 +69,13 @@ func (e *Client) send(ctx context.Context, req Request) error {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			lg.Warnf("error closing response body: %v", err)
+			logger.Warnf("error closing response body: %v", err)
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("email service returned status %d", resp.StatusCode)
 	}
-	lg.Infof("Email sent to %s with template %s", req.To, req.Template)
+	logger.Infof("Email sent to %s with template %s", req.To, req.Template)
 	return nil
 }
 

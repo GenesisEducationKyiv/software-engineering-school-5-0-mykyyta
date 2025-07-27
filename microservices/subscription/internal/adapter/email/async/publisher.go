@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"subscription/pkg/logger"
+	loggerPkg "subscription/pkg/logger"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -42,7 +42,7 @@ func (p *RabbitPublisher) Publish(ctx context.Context, routingKey string, msg Id
 		return fmt.Errorf("rabbitmq publish error: %w", err)
 	}
 
-	lg := logger.From(ctx)
-	lg.Infow("Published message", "routingKey", routingKey, "msgId", msg.GetIdKey())
+	logger := loggerPkg.From(ctx)
+	logger.Infow("Published message", "routingKey", routingKey, "msgId", msg.GetIdKey())
 	return nil
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"subscription/pkg/logger"
+	loggerPkg "subscription/pkg/logger"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -23,12 +23,12 @@ func NewGorm(dsn string) (*Gorm, error) {
 }
 
 func (db *Gorm) Close(ctx context.Context) {
-	lg := logger.From(ctx)
+	logger := loggerPkg.From(ctx)
 	if sqlDB, err := db.Gorm.DB(); err != nil {
-		lg.Errorf("failed to get sql.DB: %v", err)
+		logger.Errorf("failed to get sql.DB: %v", err)
 	} else if err := sqlDB.Close(); err != nil {
-		lg.Errorf("failed to close DB: %v", err)
+		logger.Errorf("failed to close DB: %v", err)
 	} else {
-		lg.Info("DB connection closed")
+		logger.Info("DB connection closed")
 	}
 }

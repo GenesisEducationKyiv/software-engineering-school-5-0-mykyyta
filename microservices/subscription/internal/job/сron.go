@@ -3,7 +3,7 @@ package job
 import (
 	"context"
 
-	"subscription/pkg/logger"
+	loggerPkg "subscription/pkg/logger"
 
 	"github.com/robfig/cron/v3"
 )
@@ -21,39 +21,39 @@ func NewCronEventSource() *CronEventSource {
 }
 
 func (s *CronEventSource) Start(ctx context.Context) {
-	lg := logger.From(ctx)
+	logger := loggerPkg.From(ctx)
 
 	_, err := s.cron.AddFunc("0 * * * *", func() {
 		if ctx.Err() != nil {
-			lg.Info("Hourly cron skipped: context canceled")
+			logger.Info("Hourly cron skipped: context canceled")
 			return
 		}
-		lg.Info("Hourly cron triggered")
+		logger.Info("Hourly cron triggered")
 		select {
 		case s.events <- "hourly":
 		case <-ctx.Done():
-			lg.Info("Hourly cron event send canceled")
+			logger.Info("Hourly cron event send canceled")
 		}
 	})
 	if err != nil {
-		lg.Errorf("Failed to schedule hourly cron: %v", err)
+		logger.Errorf("Failed to schedule hourly cron: %v", err)
 		return
 	}
 
 	_, err = s.cron.AddFunc("0 12 * * *", func() {
 		if ctx.Err() != nil {
-			lg.Info("Daily cron skipped: context canceled")
+			logger.Info("Daily cron skipped: context canceled")
 			return
 		}
-		lg.Info("Daily cron triggered")
+		logger.Info("Daily cron triggered")
 		select {
 		case s.events <- "daily":
 		case <-ctx.Done():
-			lg.Info("Daily cron event send canceled")
+			logger.Info("Daily cron event send canceled")
 		}
 	})
 	if err != nil {
-		lg.Errorf("Failed to schedule daily cron: %v", err)
+		logger.Errorf("Failed to schedule daily cron: %v", err)
 		return
 	}
 
@@ -70,8 +70,8 @@ func (s *CronEventSource) Events() <-chan string {
 }
 
 func (s *CronEventSource) Stop(ctx context.Context) {
-	lg := logger.From(ctx)
-	lg.Info("Cron scheduler stopped")
+	logger := loggerPkg.From(ctx)
+	logger.Info("Cron scheduler stopped")
 	s.cron.Stop()
 	close(s.events)
 }

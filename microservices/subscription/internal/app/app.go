@@ -26,7 +26,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	lgCtx "subscription/pkg/logger"
+	loggerPkg "subscription/pkg/logger"
 )
 
 type App struct {
@@ -37,20 +37,20 @@ type App struct {
 	RabbitMQConn  *rabbitmq.Connection
 }
 
-func Run(lg *zap.SugaredLogger) error {
+func Run(logger *zap.SugaredLogger) error {
 	cfg := config.LoadConfig()
 	gin.SetMode(cfg.GinMode)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ctx = lgCtx.With(ctx, lg)
+	ctx = loggerPkg.With(ctx, logger)
 
 	app, err := NewApp(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to build app: %w", err)
 	}
-	lg.Infow("subscription service started")
+	logger.Infow("subscription service started")
 	defer app.DB.Close(ctx)
 
 	if err := app.StartServer(ctx); err != nil {
@@ -60,43 +60,43 @@ func Run(lg *zap.SugaredLogger) error {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	lg.Infow("subscription service shutdown signal received")
+	logger.Infow("subscription service shutdown signal received")
 
 	cancel()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := app.Shutdown(shutdownCtx, lg); err != nil {
+	if err := app.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("App shutdown: %w", err)
 	}
 
-	lg.Infow("subscription service stopped")
+	logger.Infow("subscription service stopped")
 	return nil
 }
 
 func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
-	lg := lgCtx.From(ctx)
+	logger := loggerPkg.From(ctx)
 	// DB
 	db, err := infra.NewGorm(cfg.DBUrl)
 	if err != nil {
-		lg.Errorw("Failed to connect to database", "err", err)
+		logger.Errorw("Failed to connect to database", "err", err)
 		return nil, fmt.Errorf("DB error: %w", err)
 	}
-	lg.Info("Connected to database")
+	logger.Info("Connected to database")
 
 	// Async email client
 	rmqConn, err := rabbitmq.NewConnection(cfg.RabbitMQUrl)
 	if err != nil {
-		lg.Errorw("Failed to connect to RabbitMQ", "err", err)
+		logger.Errorw("Failed to connect to RabbitMQ", "err", err)
 		return nil, fmt.Errorf("connection to RabbitMQ: %w", err)
 	}
-	lg.Info("Connected to RabbitMQ")
+	logger.Info("Connected to RabbitMQ")
 	if err := rabbitmq.VerifyExchange(rmqConn.Channel(), cfg.RabbitMQExchange, "topic"); err != nil {
-		lg.Errorw("Failed to verify RabbitMQ exchange", "err", err)
+		logger.Errorw("Failed to verify RabbitMQ exchange", "err", err)
 		return nil, fmt.Errorf("exchange verification: %w", err)
 	}
-	lg.Info("Verified RabbitMQ exchange")
+	logger.Info("Verified RabbitMQ exchange")
 	rabbitPublisher := async.NewRabbitPublisher(rmqConn.Channel(), cfg.RabbitMQExchange)
 	emailClient := async.NewAsyncClient(rabbitPublisher)
 
@@ -107,16 +107,16 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	if cfg.UseGRPC {
 		client, err := weathergrpc.NewClient(ctx, cfg.WeatherGRPCAddr)
 		if err != nil {
-			lg.Errorw("Failed to connect to weather via gRPC", "err", err)
+			logger.Errorw("Failed to connect to weather via gRPC", "err", err)
 			return nil, fmt.Errorf("failed to connect to weather via gRPC: %w", err)
 		}
 		weatherClient = client
 		weatherCloser = client
-		lg.Info("Using gRPC weather client")
+		logger.Info("Using gRPC weather client")
 	} else {
 		httpClient := weatherhttp.NewClient(cfg.WeatherHTTPAddr)
 		weatherClient = httpClient
-		lg.Info("Using HTTP weather client")
+		logger.Info("Using HTTP weather client")
 	}
 
 	// Adapters
@@ -141,7 +141,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		Handler: router,
 	}
 
-	lg.Info("App is ready to serve requests")
+	logger.Info("App is ready to serve requests")
 
 	return &App{
 		Server:        server,
@@ -153,50 +153,51 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 }
 
 func (a *App) StartServer(ctx context.Context) error {
-	lg := lgCtx.From(ctx)
+	logger := loggerPkg.From(ctx)
 	go func() {
-		lg.Info("Starting scheduler")
+		logger.Info("Starting scheduler")
 		a.Scheduler.Start(ctx)
-		lg.Info("Scheduler stopped")
+		logger.Info("Scheduler stopped")
 	}()
 
 	go func() {
-		lg.Infof("Server listening on %s", a.Server.Addr)
+		logger.Infof("Server listening on %s", a.Server.Addr)
 		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			lg.Errorf("Server error: %v", err)
+			logger.Errorf("Server error: %v", err)
 		}
-		lg.Info("HTTP server stopped")
+		logger.Info("HTTP server stopped")
 	}()
 	return nil
 }
 
-func (a *App) Shutdown(ctx context.Context, lg *zap.SugaredLogger) error {
-	lg.Info("Shutting down application...")
+func (a *App) Shutdown(ctx context.Context) error {
+	logger := loggerPkg.From(ctx)
+	logger.Info("Shutting down application...")
 
 	if err := a.Server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
 	a.Scheduler.Stop(ctx)
-	lg.Info("Scheduler stopped")
+	logger.Info("Scheduler stopped")
 
 	if err := a.RabbitMQConn.Close(); err != nil {
-		lg.Errorf("Failed to close RabbitMQ connection: %v", err)
+		logger.Errorf("Failed to close RabbitMQ connection: %v", err)
 	} else {
-		lg.Info("RabbitMQ connection closed")
+		logger.Info("RabbitMQ connection closed")
 	}
 
 	if a.WeatherClient != nil {
 		if err := a.WeatherClient.Close(); err != nil {
-			lg.Errorf("Weather client close error: %v", err)
+			logger.Errorf("Weather client close error: %v", err)
 		} else {
-			lg.Info("Weather client closed")
+			logger.Info("Weather client closed")
 		}
 	}
 
 	a.DB.Close(ctx)
-	lg.Info("Database connection closed")
+	logger.Info("Database connection closed")
 
-	lg.Info("Shutdown complete")
+	logger.Info("Shutdown complete")
 	return nil
 }

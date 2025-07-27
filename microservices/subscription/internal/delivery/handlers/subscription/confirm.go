@@ -5,9 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"subscription/internal/delivery/handlers/response"
 	"subscription/internal/subscription"
-	"subscription/pkg/logger"
+
+	"subscription/internal/delivery/handlers/response"
+	loggerPkg "subscription/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,11 +28,11 @@ func NewConfirm(service confirm) Confirm {
 }
 
 func (h Confirm) Handle(c *gin.Context) {
-	lg := logger.From(c.Request.Context())
+	logger := loggerPkg.From(c.Request.Context())
 	token := c.Param("token")
 
 	if err := h.service.Confirm(c.Request.Context(), token); err != nil {
-		lg.Warnw("confirm failed", "token", token, "err", err)
+		logger.Warnw("confirm failed", "token", token, "err", err)
 		switch {
 		case errors.Is(err, subscription.ErrInvalidToken):
 			response.SendError(c, http.StatusBadRequest, "Invalid token")
@@ -43,6 +44,6 @@ func (h Confirm) Handle(c *gin.Context) {
 		return
 	}
 
-	lg.Infow("subscription confirmed", "token", token)
+	logger.Infow("subscription confirmed", "token", token)
 	response.SendSuccess(c, "Subscription confirmed successfully")
 }

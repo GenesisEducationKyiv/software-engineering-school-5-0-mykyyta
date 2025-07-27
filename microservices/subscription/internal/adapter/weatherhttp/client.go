@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"subscription/internal/domain"
-	"subscription/pkg/logger"
+	loggerPkg "subscription/pkg/logger"
 )
 
 var ErrCityNotFound = domain.ErrCityNotFound
@@ -104,8 +104,8 @@ func (c *Client) doRequest(ctx context.Context, method, url string) (*http.Respo
 }
 
 func (c *Client) closeBody(ctx context.Context, body io.Closer, operation string) {
-	lg := logger.From(ctx)
+	logger := loggerPkg.From(ctx)
 	if err := body.Close(); err != nil {
-		lg.Warnf("Failed to close response body in %s: %v", operation, err)
+		logger.Warnf("Failed to close response body in %s: %v", operation, err)
 	}
 }

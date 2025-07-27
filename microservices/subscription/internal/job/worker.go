@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"subscription/pkg/logger"
+	loggerPkg "subscription/pkg/logger"
 )
 
 type Task struct {
@@ -36,26 +36,26 @@ func NewWorker(queue taskSource, subservice taskService) *Worker {
 }
 
 func (w *Worker) Start(ctx context.Context) {
-	lg := logger.From(ctx)
+	logger := loggerPkg.From(ctx)
 
 	for {
 		task, err := w.queue.Dequeue(ctx)
 		if err != nil {
 			switch {
 			case errors.Is(err, context.Canceled):
-				lg.Info("Worker shutdown signal received")
+				logger.Info("Worker shutdown signal received")
 				return
 			case errors.Is(err, io.EOF):
-				lg.Info("Queue closed, worker exiting")
+				logger.Info("Queue closed, worker exiting")
 				return
 			default:
-				lg.Errorf("Failed to dequeue task: %v", err)
+				logger.Errorf("Failed to dequeue task: %v", err)
 				continue
 			}
 		}
 
 		if task.Email == "" {
-			lg.Warn("Empty email in task, skipping")
+			logger.Warn("Empty email in task, skipping")
 			continue
 		}
 
@@ -64,16 +64,16 @@ func (w *Worker) Start(ctx context.Context) {
 			defer cancel()
 			defer func() {
 				if r := recover(); r != nil {
-					lg := logger.From(taskCtx)
-					lg.Errorf("Panic recovered while handling task for %s: %v", t.Email, r)
+					logger := loggerPkg.From(taskCtx)
+					logger.Errorf("Panic recovered while handling task for %s: %v", t.Email, r)
 				}
 			}()
-			lg := logger.From(taskCtx)
+			logger := loggerPkg.From(taskCtx)
 			err := w.subService.ProcessWeatherReportTask(taskCtx, t)
 			if err != nil {
-				lg.Errorf("Failed to process task for %s: %v", t.Email, err)
+				logger.Errorf("Failed to process task for %s: %v", t.Email, err)
 			} else {
-				lg.Infof("Task processed for %s", t.Email)
+				logger.Infof("Task processed for %s", t.Email)
 			}
 		}(ctx, task)
 	}
