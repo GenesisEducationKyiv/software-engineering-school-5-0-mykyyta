@@ -21,13 +21,13 @@ func NewSource(conn *Connection, queueName string) *MessageSource {
 
 func (r *MessageSource) Consume(ctx context.Context) (<-chan amqp.Delivery, error) {
 	msgs, err := r.channel.Consume(
-		r.queueName, // queue
-		"",          // consumer name
-		false,       // auto-ack
-		false,       // exclusive
-		false,       // no-local
-		false,       // no-wait
-		nil,         // args
+		r.queueName,
+		"",
+		false,
+		false,
+		false,
+		false,
+		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start consuming from queue %s: %w", r.queueName, err)

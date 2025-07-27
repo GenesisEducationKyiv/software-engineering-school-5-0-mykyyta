@@ -82,7 +82,6 @@ func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
 		return
 	}
 
-	// Додаємо message_id до логера в контексті
 	log := logger.From(ctx).With("message_id", id)
 	ctx = logger.With(ctx, log)
 
@@ -129,7 +128,7 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 	canProcess, err := c.idempotency.MarkAsProcessing(ctx, messageID)
 	if err != nil {
 		logger.From(ctx).Errorw("Failed to mark message as processing, proceeding anyway", "err", err)
-		canProcess = true // allow processing if store is unavailable
+		canProcess = true
 	}
 	if !canProcess {
 		logger.From(ctx).Infow("Message is being processed by another worker, skipping")

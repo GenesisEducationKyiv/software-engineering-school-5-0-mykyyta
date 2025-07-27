@@ -142,7 +142,6 @@ func (a *App) Shutdown(ctx context.Context) error {
 	if a.ShutdownFunc != nil {
 		if err := a.ShutdownFunc(); err != nil {
 			logg.Errorw("Resource cleanup failed", "err", err)
-			// Не повертаємо помилку, щоб не блокувати shutdown
 		}
 	}
 
