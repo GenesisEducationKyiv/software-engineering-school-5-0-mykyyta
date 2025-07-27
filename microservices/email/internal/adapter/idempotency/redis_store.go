@@ -3,7 +3,7 @@ package idempotency
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -20,13 +20,15 @@ type RedisStore struct {
 	client    *redis.Client
 	ttl       time.Duration
 	namespace string
+	logger    *log.Logger
 }
 
-func NewRedisStore(client *redis.Client, ttl time.Duration) *RedisStore {
+func NewRedisStore(client *redis.Client, ttl time.Duration, logger *log.Logger) *RedisStore {
 	return &RedisStore{
 		client:    client,
 		ttl:       ttl,
 		namespace: "idemp:",
+		logger:    logger,
 	}
 }
 
@@ -40,7 +42,8 @@ func (r *RedisStore) IsProcessed(ctx context.Context, messageID string) (bool, e
 		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("get key: %w", err)
+		r.logger.Printf("[WARN] Redis unavailable in IsProcessed: %v", err)
+		return false, nil
 	}
 	return Status(val) == statusDone, nil
 }
@@ -48,21 +51,24 @@ func (r *RedisStore) IsProcessed(ctx context.Context, messageID string) (bool, e
 func (r *RedisStore) MarkAsProcessing(ctx context.Context, messageID string) (bool, error) {
 	ok, err := r.client.SetNX(ctx, r.key(messageID), string(statusProcessing), r.ttl).Result()
 	if err != nil {
-		return false, fmt.Errorf("setnx: %w", err)
+		r.logger.Printf("[WARN] Redis unavailable in MarkAsProcessing: %v", err)
+		return true, nil
 	}
 	return ok, nil
 }
 
 func (r *RedisStore) MarkAsProcessed(ctx context.Context, messageID string) error {
 	if err := r.client.Set(ctx, r.key(messageID), string(statusDone), r.ttl).Err(); err != nil {
-		return fmt.Errorf("set done: %w", err)
+		r.logger.Printf("[WARN] Redis unavailable in MarkAsProcessed: %v", err)
+		return nil
 	}
 	return nil
 }
 
 func (r *RedisStore) ClearProcessing(ctx context.Context, messageID string) error {
 	if err := r.client.Del(ctx, r.key(messageID)).Err(); err != nil {
-		return fmt.Errorf("del key: %w", err)
+		r.logger.Printf("[WARN] Redis unavailable in ClearProcessing: %v", err)
+		return nil
 	}
 	return nil
 }
@@ -73,7 +79,8 @@ func (r *RedisStore) GetStatus(ctx context.Context, messageID string) (Status, e
 		return "", nil
 	}
 	if err != nil {
-		return "", fmt.Errorf("get status: %w", err)
+		r.logger.Printf("[WARN] Redis unavailable in GetStatus: %v", err)
+		return "", nil
 	}
 	return Status(val), nil
 }
