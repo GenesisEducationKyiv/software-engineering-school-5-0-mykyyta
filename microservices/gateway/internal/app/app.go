@@ -23,7 +23,7 @@ type App struct {
 	server *http.Server
 }
 
-func NewApp(cfg *config.Config, lg *zap.SugaredLogger) *App {
+func NewApp(cfg *config.Config, logger *zap.SugaredLogger) *App {
 	subscriptionClient := subscription.NewClient(
 		cfg.SubscriptionServiceAddr,
 		cfg.RequestTimeout,
@@ -34,7 +34,7 @@ func NewApp(cfg *config.Config, lg *zap.SugaredLogger) *App {
 	handler := delivery.NewSubscriptionHandler(gatewayService, responseWriter)
 
 	mux := delivery.SetupRoutes(handler, cfg)
-	mux = middleware.WithLogger(lg)(mux)
+	mux = middleware.WithLogger(logger)(mux)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -67,13 +67,13 @@ func (a *App) Start(ctx context.Context) error {
 	return a.server.Shutdown(shutdownCtx)
 }
 
-func Run(lg *zap.SugaredLogger) error {
+func Run(logger *zap.SugaredLogger) error {
 	cfg, err := config.Load()
 	if err != nil {
-		lg.Errorf("failed to load config: %v", err)
+		logger.Errorf("failed to load config: %v", err)
 		return err
 	}
-	app := NewApp(cfg, lg)
-	ctx := loggerPkg.With(context.Background(), lg)
+	app := NewApp(cfg, logger)
+	ctx := loggerPkg.With(context.Background(), logger)
 	return app.Start(ctx)
 }

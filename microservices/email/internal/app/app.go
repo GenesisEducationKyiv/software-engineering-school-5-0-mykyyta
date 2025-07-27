@@ -32,42 +32,42 @@ type App struct {
 	ShutdownFunc  func() error
 }
 
-func Run(lg *zap.SugaredLogger) error {
-	lg.Infow("Starting email service application")
+func Run(logger *zap.SugaredLogger) error {
+	logger.Infow("Starting email service application")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	ctx = loggerPkg.With(ctx, lg)
+	ctx = loggerPkg.With(ctx, logger)
 
 	cfg := config.LoadConfig()
 
 	app, err := NewApp(ctx, cfg)
 	if err != nil {
-		lg.Errorw("Failed to create application", "err", err)
+		logger.Errorw("Failed to create application", "err", err)
 		return fmt.Errorf("creating application: %w", err)
 	}
 
 	if err := app.Start(ctx); err != nil {
-		lg.Errorw("Failed to start application", "err", err)
+		logger.Errorw("Failed to start application", "err", err)
 		return fmt.Errorf("starting server: %w", err)
 	}
 
-	lg.Infow("Email service started successfully", "http_port", cfg.Port)
+	logger.Infow("Email service started successfully", "http_port", cfg.Port)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
-	lg.Infow("Shutdown signal received")
+	logger.Infow("Shutdown signal received")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := app.Shutdown(shutdownCtx); err != nil {
-		lg.Errorw("Shutdown failed", "err", err)
+		logger.Errorw("Shutdown failed", "err", err)
 		return fmt.Errorf("shutdown error: %w", err)
 	}
 
-	lg.Infow("Server exited gracefully")
+	logger.Infow("Server exited gracefully")
 	return nil
 }
 

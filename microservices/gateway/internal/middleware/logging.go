@@ -9,10 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
-func WithLogger(lg *zap.SugaredLogger) func(http.Handler) http.Handler {
+func WithLogger(logger *zap.SugaredLogger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := loggerPkg.With(r.Context(), lg)
+			ctx := loggerPkg.With(r.Context(), logger)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
