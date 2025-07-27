@@ -2,7 +2,6 @@ package di
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"email/internal/adapter/idempotency"
@@ -20,7 +19,7 @@ type QueueModule struct {
 	ShutdownFunc func() error
 }
 
-func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, redisClient *redis.Client, logger *log.Logger) (*QueueModule, error) {
+func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, redisClient *redis.Client) (*QueueModule, error) {
 	rmqConn, err := rabbitmq.NewConnection(cfg.RabbitMQURL)
 	if err != nil {
 		return nil, err
@@ -41,9 +40,9 @@ func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, 
 	}
 
 	source := rabbitmq.NewSource(rmqConn, "email.queue")
-	store := idempotency.NewRedisStore(redisClient, 24*time.Hour, logger)
+	store := idempotency.NewRedisStore(redisClient, 24*time.Hour)
 	breaker := consumer.NewDefaultCB()
-	cons := consumer.NewConsumer(source, svc, store, logger, breaker)
+	cons := consumer.NewConsumer(source, svc, store, breaker)
 
 	return &QueueModule{
 		Consumer:   cons,

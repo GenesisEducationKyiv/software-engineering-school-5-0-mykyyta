@@ -148,7 +148,7 @@ func TestConsumer_Handle_Success(t *testing.T) {
 	breaker.On("RecordSuccess").Return()
 	breaker.On("RecordFailure").Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 
 	go func() {
 		_ = c.Start(ctx)
@@ -193,7 +193,7 @@ func TestConsumer_AlreadyProcessed(t *testing.T) {
 	breaker.On("RecordSuccess").Return()
 	breaker.On("RecordFailure").Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 	go func() { _ = c.Start(ctx) }()
 	time.Sleep(50 * time.Millisecond)
 
@@ -235,7 +235,7 @@ func TestConsumer_InvalidJSON(t *testing.T) {
 	breaker.On("RecordSuccess").Return()
 	breaker.On("RecordFailure").Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 	go func() { _ = c.Start(ctx) }()
 	time.Sleep(50 * time.Millisecond)
 
@@ -281,7 +281,7 @@ func TestConsumer_SendFails(t *testing.T) {
 	breaker.On("RecordSuccess").Return()
 	breaker.On("RecordFailure").Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 	go func() { _ = c.Start(ctx) }()
 	time.Sleep(50 * time.Millisecond)
 
@@ -342,7 +342,7 @@ func TestConsumer_ConcurrentProcessing(t *testing.T) {
 	breaker.On("RecordSuccess").Return()
 	breaker.On("RecordFailure").Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 
 	go func() {
 		_ = c.Start(ctx)

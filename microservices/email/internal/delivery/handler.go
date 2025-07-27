@@ -2,10 +2,10 @@ package delivery
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"email/internal/domain"
+	"email/pkg/logger"
 )
 
 type sender interface {
@@ -14,17 +14,18 @@ type sender interface {
 
 type EmailHandler struct {
 	sender sender
-	logger *log.Logger
 }
 
-func NewEmailHandler(sender sender, logger *log.Logger) *EmailHandler {
+func NewEmailHandler(sender sender) *EmailHandler {
 	return &EmailHandler{
 		sender: sender,
-		logger: logger,
 	}
 }
 
 func (h *EmailHandler) Send(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logg := logger.From(ctx)
+
 	var req domain.SendEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
@@ -37,7 +38,7 @@ func (h *EmailHandler) Send(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.sender.Send(req); err != nil {
-		h.logger.Printf("failed to send email: %v", err)
+		logg.Errorw("failed to send email", "err", err)
 		http.Error(w, "failed to send email", http.StatusInternalServerError)
 		return
 	}
