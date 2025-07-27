@@ -10,9 +10,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type contextKey string
+
 const (
-	requestIDKey    = "requestID"
-	requestIDHeader = "X-Request-ID"
+	requestIDKey    contextKey = "requestID"
+	requestIDHeader string     = "X-Request-ID"
 )
 
 type responseWriter struct {
@@ -31,21 +33,34 @@ func RequestMiddleware(next http.Handler) http.Handler {
 		if reqID == "" {
 			reqID = uuid.NewString()
 		}
-		ctx := context.WithValue(r.Context(), requestIDKey, reqID)
+
+		log := logger.From(r.Context()).With("request_id", reqID)
+		ctx := logger.With(r.Context(), log)
+
 		w.Header().Set(requestIDHeader, reqID)
 
 		start := time.Now()
 		ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(ww, r.WithContext(ctx))
 		dur := time.Since(start)
-		logger.From(ctx).Infow(
-			"http request",
-			"method", r.Method,
-			"path", r.URL.Path,
-			"status", ww.status,
-			"duration_ms", dur.Milliseconds(),
-			"request_id", reqID,
-		)
+
+		if ww.status >= 500 {
+			logger.From(ctx).Errorw(
+				"http request",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"status", ww.status,
+				"duration_ms", dur.Milliseconds(),
+			)
+		} else {
+			logger.From(ctx).Infow(
+				"http request",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"status", ww.status,
+				"duration_ms", dur.Milliseconds(),
+			)
+		}
 	})
 }
 

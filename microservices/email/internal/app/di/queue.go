@@ -9,6 +9,7 @@ import (
 	"email/internal/delivery/consumer"
 	"email/internal/email"
 	"email/internal/infra/rabbitmq"
+	"email/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -22,6 +23,7 @@ type QueueModule struct {
 func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, redisClient *redis.Client) (*QueueModule, error) {
 	rmqConn, err := rabbitmq.NewConnection(cfg.RabbitMQURL)
 	if err != nil {
+		logger.From(ctx).Errorw("Failed to connect to RabbitMQ", "err", err)
 		return nil, err
 	}
 
@@ -36,6 +38,11 @@ func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, 
 		},
 	)
 	if err != nil {
+		logger.From(ctx).Errorw("Failed to setup RabbitMQ", "err", err)
+		err = rmqConn.Close()
+		if err != nil {
+			logger.From(ctx).Errorw("Error during RabbitMQ connection close", "err", err)
+		}
 		return nil, err
 	}
 
@@ -48,7 +55,11 @@ func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, 
 		Consumer:   cons,
 		RabbitConn: rmqConn,
 		ShutdownFunc: func() error {
-			return rmqConn.Close()
+			if err := rmqConn.Close(); err != nil {
+				logger.From(ctx).Errorw("Error during RabbitMQ connection close", "err", err)
+				return err
+			}
+			return nil
 		},
 	}, nil
 }

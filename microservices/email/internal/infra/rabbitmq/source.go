@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"context"
+	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -19,7 +20,7 @@ func NewSource(conn *Connection, queueName string) *MessageSource {
 }
 
 func (r *MessageSource) Consume(ctx context.Context) (<-chan amqp.Delivery, error) {
-	return r.channel.Consume(
+	msgs, err := r.channel.Consume(
 		r.queueName, // queue
 		"",          // consumer name
 		false,       // auto-ack
@@ -28,4 +29,8 @@ func (r *MessageSource) Consume(ctx context.Context) (<-chan amqp.Delivery, erro
 		false,       // no-wait
 		nil,         // args
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start consuming from queue %s: %w", r.queueName, err)
+	}
+	return msgs, nil
 }

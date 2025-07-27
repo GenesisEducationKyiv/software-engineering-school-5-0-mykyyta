@@ -25,14 +25,9 @@ type IdempotencyStore interface {
 }
 
 type CircuitBreaker interface {
-	CanExecute() bool
-	RecordSuccess()
-	RecordFailure()
-}
-
-type Logger interface {
-	Printf(format string, v ...interface{})
-	Println(v ...interface{})
+	CanExecute(ctx context.Context) bool
+	RecordSuccess(ctx context.Context)
+	RecordFailure(ctx context.Context)
 }
 
 type EmailUseCase interface {
@@ -82,28 +77,38 @@ func (c *Consumer) Start(ctx context.Context) error {
 func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
 	id := msg.MessageId
 	if id == "" {
-		logger.From(ctx).Warnw("Skipping message without ID", "rk", msg.RoutingKey)
+		logger.From(ctx).Warnw("Skipping message without ID", "routing_key", msg.RoutingKey)
 		_ = msg.Nack(false, false)
 		return
 	}
 
-	if !c.breaker.CanExecute() {
-		logger.From(ctx).Warnw("Circuit breaker is open, rejecting message", "id", id)
+	// Додаємо message_id до логера в контексті
+	log := logger.From(ctx).With("message_id", id)
+	ctx = logger.With(ctx, log)
+
+	logger.From(ctx).Infow("Message received", "routing_key", msg.RoutingKey, "body_size", len(msg.Body))
+
+	if !c.breaker.CanExecute(ctx) {
+		logger.From(ctx).Warnw("Circuit breaker is open, rejecting message")
 		delay := time.Duration(500+rand.Intn(500)) * time.Millisecond
 		time.Sleep(delay)
 		_ = msg.Nack(false, true)
 		return
 	}
 
+	start := time.Now()
 	err := c.processIdempotently(ctx, id, msg)
+	duration := time.Since(start)
+
 	if err != nil {
-		c.breaker.RecordFailure()
-		logger.From(ctx).Errorw("Failed to process message", "id", id, "err", err)
+		c.breaker.RecordFailure(ctx)
+		logger.From(ctx).Errorw("Message processing failed", "err", err, "duration_ms", duration.Milliseconds())
 		_ = msg.Nack(false, true)
 		return
 	}
 
-	c.breaker.RecordSuccess()
+	c.breaker.RecordSuccess(ctx)
+	logger.From(ctx).Infow("Message processed successfully", "duration_ms", duration.Milliseconds())
 
 	if err := msg.Ack(false); err != nil {
 		logger.From(ctx).Errorw("Failed to ack message", "err", err)
@@ -113,21 +118,21 @@ func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
 func (c *Consumer) processIdempotently(ctx context.Context, messageID string, msg amqp.Delivery) error {
 	processed, err := c.idempotency.IsProcessed(ctx, messageID)
 	if err != nil {
-		logger.From(ctx).Warnw("Idempotency check failed. Proceeding anyway.", "messageID", messageID, "err", err)
+		logger.From(ctx).Errorw("Idempotency check failed, proceeding with processing", "err", err)
 		processed = false
 	}
 	if processed {
-		logger.From(ctx).Infow("Message already processed", "messageID", messageID)
+		logger.From(ctx).Infow("Message already processed, skipping")
 		return nil
 	}
 
 	canProcess, err := c.idempotency.MarkAsProcessing(ctx, messageID)
 	if err != nil {
-		logger.From(ctx).Warnw("Mark as processing failed. Proceeding anyway.", "messageID", messageID, "err", err)
+		logger.From(ctx).Errorw("Failed to mark message as processing, proceeding anyway", "err", err)
 		canProcess = true // allow processing if store is unavailable
 	}
 	if !canProcess {
-		logger.From(ctx).Infow("Message is being processed elsewhere", "messageID", messageID)
+		logger.From(ctx).Infow("Message is being processed by another worker, skipping")
 		return nil
 	}
 
@@ -136,7 +141,7 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 		defer cancel()
 
 		if clearErr := c.idempotency.ClearProcessing(clearCtx, messageID); clearErr != nil {
-			logger.From(ctx).Warnw("Failed to clear processing lock", "err", clearErr)
+			logger.From(ctx).Errorw("Failed to clear processing lock", "err", clearErr)
 		}
 	}()
 
@@ -145,16 +150,16 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 		return fmt.Errorf("invalid message format: %w", err)
 	}
 
-	logger.From(ctx).Infow("Processing message", "messageID", messageID, "to", req.To, "template", req.Template)
+	logger.From(ctx).Infow("Starting email processing", "to", req.To, "template", req.Template)
 
 	if err := c.useCase.Send(req); err != nil {
-		return fmt.Errorf("use case handle failed: %w", err)
+		return fmt.Errorf("email sending failed: %w", err)
 	}
 
 	if err := c.idempotency.MarkAsProcessed(ctx, messageID); err != nil {
-		logger.From(ctx).Warnw("Mark as processed failed. Proceeding anyway.", "messageID", messageID, "err", err)
+		logger.From(ctx).Errorw("Failed to mark message as processed, email was sent successfully", "err", err)
 	}
 
-	logger.From(ctx).Infow("Message processed successfully", "messageID", messageID)
+	logger.From(ctx).Infow("Email sent successfully", "to", req.To, "template", req.Template)
 	return nil
 }

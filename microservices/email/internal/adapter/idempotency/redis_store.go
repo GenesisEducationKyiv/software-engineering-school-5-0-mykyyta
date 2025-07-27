@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"email/pkg/logger"
+
 	"github.com/redis/go-redis/v9"
 )
 
@@ -39,7 +41,8 @@ func (r *RedisStore) IsProcessed(ctx context.Context, messageID string) (bool, e
 		return false, nil
 	}
 	if err != nil {
-		return false, nil
+		logger.From(ctx).Errorw("Redis error checking if message is processed", "err", err)
+		return false, err
 	}
 	return Status(val) == statusDone, nil
 }
@@ -47,21 +50,24 @@ func (r *RedisStore) IsProcessed(ctx context.Context, messageID string) (bool, e
 func (r *RedisStore) MarkAsProcessing(ctx context.Context, messageID string) (bool, error) {
 	ok, err := r.client.SetNX(ctx, r.key(messageID), string(statusProcessing), r.ttl).Result()
 	if err != nil {
-		return true, nil
+		logger.From(ctx).Errorw("Redis error marking message as processing", "err", err)
+		return true, err
 	}
 	return ok, nil
 }
 
 func (r *RedisStore) MarkAsProcessed(ctx context.Context, messageID string) error {
 	if err := r.client.Set(ctx, r.key(messageID), string(statusDone), r.ttl).Err(); err != nil {
-		return nil
+		logger.From(ctx).Errorw("Redis error marking message as processed", "err", err)
+		return err
 	}
 	return nil
 }
 
 func (r *RedisStore) ClearProcessing(ctx context.Context, messageID string) error {
 	if err := r.client.Del(ctx, r.key(messageID)).Err(); err != nil {
-		return nil
+		logger.From(ctx).Errorw("Redis error clearing processing lock", "err", err)
+		return err
 	}
 	return nil
 }
