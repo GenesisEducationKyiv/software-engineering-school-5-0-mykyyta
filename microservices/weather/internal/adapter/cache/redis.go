@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"weather/internal/domain"
-	loggerPkg "weather/pkg/logger"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 )

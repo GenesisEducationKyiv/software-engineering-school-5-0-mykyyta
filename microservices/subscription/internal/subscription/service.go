@@ -8,7 +8,8 @@ import (
 
 	"subscription/internal/domain"
 	"subscription/internal/job"
-	loggerPkg "subscription/pkg/logger"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"github.com/google/uuid"
 )

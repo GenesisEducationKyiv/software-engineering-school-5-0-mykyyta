@@ -23,7 +23,8 @@ import (
 	"email/internal/config"
 	"email/internal/delivery"
 	"email/internal/email"
-	loggerPkg "email/pkg/logger"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type App struct {

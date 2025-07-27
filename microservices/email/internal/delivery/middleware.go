@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	loggerPkg "email/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"github.com/google/uuid"
 )

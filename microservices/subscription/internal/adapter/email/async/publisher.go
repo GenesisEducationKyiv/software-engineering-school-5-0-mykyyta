@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	loggerPkg "subscription/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )

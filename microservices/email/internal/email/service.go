@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"email/internal/domain"
-	"email/pkg/logger"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type Provider interface {

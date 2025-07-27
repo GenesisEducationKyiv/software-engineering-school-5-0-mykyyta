@@ -4,12 +4,16 @@ import (
 	"os"
 
 	"weather/internal/app"
-	loggerPkg "weather/pkg/logger"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 func main() {
 	env := os.Getenv("ENV")
-	logger, err := loggerPkg.New("weather", env)
+	logger, err := loggerPkg.New(loggerPkg.Config{
+		Service: "weather",
+		Env:     env,
+	})
 	if err != nil {
 		panic(err)
 	}

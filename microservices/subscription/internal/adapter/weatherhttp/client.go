@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"subscription/internal/domain"
-	loggerPkg "subscription/pkg/logger"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 var ErrCityNotFound = domain.ErrCityNotFound

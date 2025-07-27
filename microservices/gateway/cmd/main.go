@@ -4,12 +4,16 @@ import (
 	"os"
 
 	"gateway/internal/app"
-	loggerPkg "gateway/pkg/logger"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 func main() {
 	env := os.Getenv("ENV")
-	logger, err := loggerPkg.New("gateway", env)
+	logger, err := loggerPkg.New(loggerPkg.Config{
+		Service: "gateway",
+		Env:     env,
+	})
 	if err != nil {
 		panic(err)
 	}

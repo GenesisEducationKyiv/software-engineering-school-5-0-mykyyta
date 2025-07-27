@@ -3,6 +3,7 @@ module email
 go 1.24.3
 
 require (
+	github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1
@@ -24,3 +25,5 @@ require (
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger => ../pkg/logger

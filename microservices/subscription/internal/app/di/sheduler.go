@@ -6,7 +6,8 @@ import (
 
 	"subscription/internal/job"
 	"subscription/internal/subscription"
-	"subscription/pkg/logger"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type WeatherScheduler struct {

@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"email/internal/domain"
-	loggerPkg "email/pkg/logger"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )

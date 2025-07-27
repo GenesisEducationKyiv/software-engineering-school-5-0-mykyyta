@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"email/pkg/logger"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"

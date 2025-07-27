@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"email/pkg/logger"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 )

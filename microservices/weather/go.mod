@@ -3,6 +3,7 @@ module weather
 go 1.24.3
 
 require (
+	github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger v0.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/redis/go-redis/v9 v9.11.0
@@ -30,3 +31,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger => ../pkg/logger

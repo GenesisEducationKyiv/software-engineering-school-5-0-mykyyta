@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	loggerPkg "gateway/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type ErrorResponse struct {

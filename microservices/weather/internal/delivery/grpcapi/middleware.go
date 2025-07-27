@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	loggerPkg "weather/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"

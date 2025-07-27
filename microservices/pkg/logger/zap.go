@@ -6,14 +6,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Config holds logger configuration options
 type Config struct {
 	Service string
 	Env     string
 	Level   string
 }
 
-// New creates a new sugared logger instance with the specified configuration
 func New(cfg Config) (*zap.SugaredLogger, error) {
 	var core *zap.Logger
 	var err error
@@ -36,12 +34,4 @@ func New(cfg Config) (*zap.SugaredLogger, error) {
 	}
 
 	return core.Sugar().With("service", cfg.Service), nil
-}
-
-// NewSimple creates a logger with just service and environment (backward compatibility)
-func NewSimple(service, env string) (*zap.SugaredLogger, error) {
-	return New(Config{
-		Service: service,
-		Env:     env,
-	})
 }

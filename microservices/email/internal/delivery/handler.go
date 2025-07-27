@@ -6,7 +6,8 @@ import (
 	"net/http"
 
 	"email/internal/domain"
-	loggerPkg "email/pkg/logger"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type sender interface {
