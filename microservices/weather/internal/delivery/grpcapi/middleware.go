@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	loggerCtx "weather/pkg/logger"
+	loggerPkg "weather/pkg/logger"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -25,7 +25,8 @@ func LoggingUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 		if st != nil && st.Code().String() != "OK" {
 			code = st.Code().String()
 		}
-		loggerCtx.From(ctx).Infow(
+		logger := loggerPkg.From(ctx)
+		logger.Infow(
 			"grpc request",
 			"method", info.FullMethod,
 			"status", code,

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	loggerCtx "weather/pkg/logger"
+	loggerPkg "weather/pkg/logger"
 )
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -13,7 +13,8 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(ww, r)
 		dur := time.Since(start)
-		loggerCtx.From(r.Context()).Infow(
+		logger := loggerPkg.From(r.Context())
+		logger.Infow(
 			"http request",
 			"method", r.Method,
 			"path", r.URL.Path,

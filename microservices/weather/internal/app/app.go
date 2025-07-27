@@ -29,7 +29,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	lgCtx "weather/pkg/logger"
+	loggerPkg "weather/pkg/logger"
 )
 
 type App struct {
@@ -44,7 +44,7 @@ func Run(lg *zap.SugaredLogger) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ctx = lgCtx.With(ctx, lg)
+	ctx = loggerPkg.With(ctx, lg)
 
 	cfg := config.LoadConfig()
 
@@ -54,14 +54,16 @@ func Run(lg *zap.SugaredLogger) error {
 	}
 
 	if err := app.Start(ctx); err != nil {
-		lgCtx.From(ctx).Errorf("Starting application: %v", err)
+		logger := loggerPkg.From(ctx)
+		logger.Errorf("Starting application: %v", err)
 		return err
 	}
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
-	lgCtx.From(ctx).Info("Shutdown signal received")
+	logger := loggerPkg.From(ctx)
+	logger.Info("Shutdown signal received")
 	cancel()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -76,10 +78,10 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	var httpClient *http.Client
 	var weatherProvider weather.Provider
 
-	lg := lgCtx.From(ctx)
+	logger := loggerPkg.From(ctx)
 
 	if cfg.BenchmarkMode {
-		lg.Info(" Running in BENCHMARK MODE — skipping Redis and using BenchmarkProvider")
+		logger.Info(" Running in BENCHMARK MODE — skipping Redis and using BenchmarkProvider")
 		redisClient = nil
 		metrics = cache.NewNoopMetrics()
 		weatherProvider = benchmark.NewProvider()
@@ -130,7 +132,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	grpcHandler := grpcapi.NewHandler(weatherService)
 	weatherpb.RegisterWeatherServiceServer(grpcServer, grpcHandler)
 
-	lg.Infof("[INFO] Application initialized successfully")
+	logger.Infof("[INFO] Application initialized successfully")
 	return &App{
 		HttpServer: httpServer,
 		HttpLis:    httpLis,
@@ -141,13 +143,13 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 }
 
 func (a *App) Start(ctx context.Context) error {
-	lg := lgCtx.From(ctx)
-	lg.Infow("Starting HTTP and gRPC servers")
+	logger := loggerPkg.From(ctx)
+	logger.Infow("Starting HTTP and gRPC servers")
 
 	var g errgroup.Group
 
 	g.Go(func() error {
-		lg.Infow("HTTP server listening", "address", a.HttpLis.Addr().String())
+		logger.Infow("HTTP server listening", "address", a.HttpLis.Addr().String())
 		if err := a.HttpServer.Serve(a.HttpLis); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("HTTP server error: %w", err)
 		}
@@ -155,7 +157,7 @@ func (a *App) Start(ctx context.Context) error {
 	})
 
 	g.Go(func() error {
-		lg.Infow("gRPC server listening", "address", a.GrpcLis.Addr().String())
+		logger.Infow("gRPC server listening", "address", a.GrpcLis.Addr().String())
 		if err := a.GrpcServer.Serve(a.GrpcLis); err != nil {
 			return fmt.Errorf("gRPC server error: %w", err)
 		}
@@ -166,30 +168,30 @@ func (a *App) Start(ctx context.Context) error {
 
 	go func() {
 		if err := g.Wait(); err != nil {
-			lg.Errorw("Server exited with error", "error", err)
+			logger.Errorw("Server exited with error", "error", err)
 		}
 	}()
 
-	lg.Infow("All servers started successfully")
+	logger.Infow("All servers started successfully")
 	return nil
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
-	lg := lgCtx.From(ctx)
-	lg.Infow("Initiating graceful shutdown")
+	logger := loggerPkg.From(ctx)
+	logger.Infow("Initiating graceful shutdown")
 
 	if a.Redis != nil {
 		if err := a.Redis.Close(); err != nil {
-			lg.Errorw("Failed to close Redis connection", "error", err)
+			logger.Errorw("Failed to close Redis connection", "error", err)
 		} else {
-			lg.Infow("Redis connection closed")
+			logger.Infow("Redis connection closed")
 		}
 	}
 
 	if err := a.HttpServer.Shutdown(ctx); err != nil {
-		lg.Errorw("HTTP server shutdown error", "error", err)
+		logger.Errorw("HTTP server shutdown error", "error", err)
 	} else {
-		lg.Infow("HTTP server stopped")
+		logger.Infow("HTTP server stopped")
 	}
 
 	done := make(chan struct{})
@@ -200,12 +202,11 @@ func (a *App) Shutdown(ctx context.Context) error {
 
 	select {
 	case <-done:
-		lg.Infow("gRPC server stopped gracefully")
+		logger.Infow("gRPC server stopped")
 	case <-ctx.Done():
-		lg.Warnw("gRPC server force stopped due to timeout")
-		a.GrpcServer.Stop()
+		logger.Warnw("gRPC server stop timed out")
 	}
 
-	lg.Infow("Shutdown complete")
+	logger.Infow("Graceful shutdown completed")
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"weather/internal/weather"
-	loggerCtx "weather/pkg/logger"
+	loggerPkg "weather/pkg/logger"
 
 	"weather/internal/domain"
 )
@@ -30,7 +30,8 @@ func (p LogWrapper) GetWeather(ctx context.Context, city string) (domain.Report,
 	if err != nil {
 		status = err.Error()
 	}
-	loggerCtx.From(ctx).Infow(
+	logger := loggerPkg.From(ctx)
+	logger.Infow(
 		"provider call",
 		"provider", p.provider,
 		"method", "GetWeather",
@@ -49,7 +50,8 @@ func (p LogWrapper) CityIsValid(ctx context.Context, city string) (bool, error) 
 	if err != nil {
 		status = err.Error()
 	}
-	loggerCtx.From(ctx).Infow(
+	logger := loggerPkg.From(ctx)
+	logger.Infow(
 		"provider call",
 		"provider", p.provider,
 		"method", "CityIsValid",

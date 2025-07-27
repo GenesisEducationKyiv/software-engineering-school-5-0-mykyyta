@@ -6,7 +6,7 @@ import (
 
 	"weather/internal/domain"
 	weatherpb "weather/internal/proto"
-	loggerCtx "weather/pkg/logger"
+	loggerPkg "weather/pkg/logger"
 )
 
 type weatherService interface {
@@ -26,11 +26,12 @@ func NewHandler(s weatherService) *Handler {
 func (s *Handler) GetWeather(ctx context.Context, req *weatherpb.WeatherRequest) (*weatherpb.WeatherResponse, error) {
 	report, err := s.ws.GetWeather(ctx, req.City)
 	if err != nil {
+		logger := loggerPkg.From(ctx)
 		if errors.Is(err, domain.ErrCityNotFound) {
-			loggerCtx.From(ctx).Warnw("city not found (gRPC)", "city", req.City)
+			logger.Warnw("city not found (gRPC)", "city", req.City)
 			return nil, err
 		}
-		loggerCtx.From(ctx).Errorw("failed to get weather (gRPC)", "city", req.City, "error", err)
+		logger.Errorw("failed to get weather (gRPC)", "city", req.City, "error", err)
 		return nil, err
 	}
 	return &weatherpb.WeatherResponse{
@@ -43,11 +44,12 @@ func (s *Handler) GetWeather(ctx context.Context, req *weatherpb.WeatherRequest)
 func (s *Handler) ValidateCity(ctx context.Context, req *weatherpb.ValidateRequest) (*weatherpb.ValidateResponse, error) {
 	ok, err := s.ws.CityIsValid(ctx, req.City)
 	if err != nil {
+		logger := loggerPkg.From(ctx)
 		if errors.Is(err, domain.ErrCityNotFound) {
-			loggerCtx.From(ctx).Warnw("city not found (gRPC)", "city", req.City)
+			logger.Warnw("city not found (gRPC)", "city", req.City)
 			return nil, err
 		}
-		loggerCtx.From(ctx).Errorw("failed to validate city (gRPC)", "city", req.City, "error", err)
+		logger.Errorw("failed to validate city (gRPC)", "city", req.City, "error", err)
 		return nil, err
 	}
 	return &weatherpb.ValidateResponse{Valid: ok}, nil
