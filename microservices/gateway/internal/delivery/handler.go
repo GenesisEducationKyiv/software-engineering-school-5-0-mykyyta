@@ -47,19 +47,19 @@ func (h *SubscriptionHandler) Subscribe(w http.ResponseWriter, r *http.Request) 
 	var req subscription.SubscribeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logger := loggerPkg.From(r.Context())
-		logger.Errorw("Failed to decode subscribe request", "error", err)
+		logger.Warnw("Invalid JSON in request body", "err", err)
 		h.responseWriter.WriteError(w, http.StatusBadRequest, "Invalid JSON", "Request body must be valid JSON", r)
 		return
 	}
 
 	resp, err := h.subscriptionService.Subscribe(r.Context(), req)
 	if err != nil {
-		logger := loggerPkg.From(r.Context())
-		logger.Errorw("Subscribe service failed", "error", err)
 		h.handleServiceError(w, err, r)
 		return
 	}
 
+	logger := loggerPkg.From(r.Context())
+	logger.Debugw("Subscribe request completed successfully")
 	h.responseWriter.WriteSuccess(w, resp)
 }
 
@@ -77,12 +77,12 @@ func (h *SubscriptionHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.subscriptionService.Confirm(r.Context(), token)
 	if err != nil {
-		logger := loggerPkg.From(r.Context())
-		logger.Errorw("Confirm service failed", "error", err)
 		h.handleServiceError(w, err, r)
 		return
 	}
 
+	logger := loggerPkg.From(r.Context())
+	logger.Debugw("Confirm request completed successfully")
 	h.responseWriter.WriteSuccess(w, resp)
 }
 
@@ -100,12 +100,12 @@ func (h *SubscriptionHandler) Unsubscribe(w http.ResponseWriter, r *http.Request
 
 	resp, err := h.subscriptionService.Unsubscribe(r.Context(), token)
 	if err != nil {
-		logger := loggerPkg.From(r.Context())
-		logger.Errorw("Unsubscribe service failed", "error", err)
 		h.handleServiceError(w, err, r)
 		return
 	}
 
+	logger := loggerPkg.From(r.Context())
+	logger.Debugw("Unsubscribe request completed successfully")
 	h.responseWriter.WriteSuccess(w, resp)
 }
 
@@ -123,12 +123,12 @@ func (h *SubscriptionHandler) GetWeather(w http.ResponseWriter, r *http.Request)
 
 	resp, err := h.subscriptionService.GetWeather(r.Context(), city)
 	if err != nil {
-		logger := loggerPkg.From(r.Context())
-		logger.Errorw("GetWeather service failed", "error", err)
 		h.handleServiceError(w, err, r)
 		return
 	}
 
+	logger := loggerPkg.From(r.Context())
+	logger.Debugw("GetWeather request completed successfully", "city", city)
 	h.responseWriter.WriteSuccess(w, resp)
 }
 

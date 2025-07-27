@@ -1,15 +1,18 @@
 package delivery
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
 
 	"gateway/internal/config"
 	"gateway/internal/middleware"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
-func SetupRoutes(handler *SubscriptionHandler, cfg *config.Config) http.Handler {
+func SetupRoutes(handler *SubscriptionHandler, cfg *config.Config, ctx context.Context) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", HealthCheck)
@@ -39,15 +42,17 @@ func SetupRoutes(handler *SubscriptionHandler, cfg *config.Config) http.Handler 
 		w.WriteHeader(http.StatusOK)
 
 		if err := json.NewEncoder(w).Encode(generateAPIDocs(cfg)); err != nil {
-			// logger.Printf("Failed to write API docs: %v", err)
+			// Error handling could be added here if needed
 		}
 	})
 
-	// middleware
+	logger := loggerPkg.From(ctx)
+
 	var finalHandler http.Handler = mux
 	finalHandler = middleware.CORS()(finalHandler)
-	finalHandler = middleware.RequestID()(finalHandler)
 	finalHandler = middleware.Logging()(finalHandler)
+	finalHandler = middleware.WithLogger(logger)(finalHandler)
+	finalHandler = middleware.RequestID()(finalHandler)
 
 	return finalHandler
 }

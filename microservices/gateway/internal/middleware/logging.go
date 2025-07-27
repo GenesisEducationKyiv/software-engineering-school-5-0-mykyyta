@@ -18,23 +18,74 @@ func WithLogger(logger *zap.SugaredLogger) func(http.Handler) http.Handler {
 	}
 }
 
+type responseWriter struct {
+	http.ResponseWriter
+	status  int
+	written bool
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	if !rw.written {
+		rw.status = code
+		rw.written = true
+	}
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Write(data []byte) (int, error) {
+	if !rw.written {
+		rw.status = http.StatusOK
+		rw.written = true
+	}
+	return rw.ResponseWriter.Write(data)
+}
+
 func Logging() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
+			requestID := GetRequestID(r.Context())
 
-			next.ServeHTTP(w, r)
+			ww := &responseWriter{
+				ResponseWriter: w,
+				status:         http.StatusOK,
+				written:        false,
+			}
+
+			next.ServeHTTP(ww, r)
 
 			dur := time.Since(start)
-			requestID := GetRequestID(r.Context())
 			logger := loggerPkg.From(r.Context())
-			logger.Infow(
-				"http request",
-				"method", r.Method,
-				"path", r.URL.Path,
-				"duration_ms", dur.Milliseconds(),
-				"request_id", requestID,
-			)
+
+			if ww.status >= 500 {
+				logger.Errorw("HTTP request failed",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", ww.status,
+					"duration_ms", dur.Milliseconds(),
+					"request_id", requestID)
+			} else if ww.status >= 400 {
+				logger.Warnw("HTTP client error",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", ww.status,
+					"duration_ms", dur.Milliseconds(),
+					"request_id", requestID)
+			} else if dur > 1000*time.Millisecond {
+				logger.Warnw("Slow HTTP request",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", ww.status,
+					"duration_ms", dur.Milliseconds(),
+					"request_id", requestID)
+			} else {
+				logger.Debugw("HTTP request",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", ww.status,
+					"duration_ms", dur.Milliseconds(),
+					"request_id", requestID)
+			}
 		})
 	}
 }
