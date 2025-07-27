@@ -2,6 +2,8 @@ package logger
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 
 	"go.uber.org/zap"
 )
@@ -21,4 +23,13 @@ func From(ctx context.Context) *zap.SugaredLogger {
 		}
 	}
 	return zap.NewNop().Sugar()
+}
+
+// HashEmail creates a short hash of an email for logging (privacy-safe)
+func HashEmail(email string) string {
+	if email == "" {
+		return ""
+	}
+	hash := sha256.Sum256([]byte(email))
+	return fmt.Sprintf("user_%x", hash)[:12]
 }

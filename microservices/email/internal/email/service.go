@@ -2,10 +2,11 @@ package email
 
 import (
 	"context"
+	"fmt"
 
 	"email/internal/domain"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type Provider interface {
@@ -29,19 +30,29 @@ func NewService(provider Provider, templateStore TemplateRenderer) Service {
 }
 
 func (s Service) Send(ctx context.Context, req domain.SendEmailRequest) error {
-	logger.From(ctx).Infow("Starting email sending", "to", req.To, "template", req.Template)
+	logger := loggerPkg.From(ctx)
+	logger.Debugw("Starting email send operation",
+		"user", loggerPkg.HashEmail(req.To),
+		"template", string(req.Template),
+		"data_fields", len(req.Data))
 
 	subject, plain, html, err := s.templateStore.Render(ctx, req.Template, req.Data)
 	if err != nil {
-		logger.From(ctx).Errorw("Template rendering failed", "template", req.Template, "err", err)
-		return err
+		logger.Errorw("Template processing failed",
+			"user", loggerPkg.HashEmail(req.To),
+			"template", string(req.Template))
+		return fmt.Errorf("template processing failed: %w", err)
 	}
 
 	if err := s.provider.Send(ctx, req.To, subject, plain, html); err != nil {
-		logger.From(ctx).Errorw("Email provider failed", "to", req.To, "err", err)
-		return err
+		logger.Errorw("Email delivery failed",
+			"user", loggerPkg.HashEmail(req.To),
+			"template", string(req.Template))
+		return fmt.Errorf("email delivery failed: %w", err)
 	}
 
-	logger.From(ctx).Infow("Email sent successfully", "to", req.To, "template", req.Template)
+	logger.Debugw("Email sent successfully",
+		"user", loggerPkg.HashEmail(req.To),
+		"template", string(req.Template))
 	return nil
 }

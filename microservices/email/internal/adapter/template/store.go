@@ -11,7 +11,7 @@ import (
 
 	"email/internal/domain"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type templateParts struct {
@@ -66,37 +66,38 @@ func Load(path string) (*Store, error) {
 }
 
 func (s *Store) Render(ctx context.Context, templateName domain.TemplateName, data map[string]string) (subject, plain, html string, err error) {
+	logger := loggerPkg.From(ctx)
+
 	tmpl, ok := s.templates[templateName]
 	if !ok {
-		logger.From(ctx).Errorw("Template not found", "template", templateName)
+		logger.Errorw("Template not found",
+			"template", templateName,
+			"available", len(s.templates))
 		return "", "", "", fmt.Errorf("template %s not found", templateName)
 	}
 
-	logger.From(ctx).Debugw("Rendering template", "template", templateName, "data_keys", getMapKeys(data))
+	logger.Debugw("Rendering template", "template", templateName)
 
 	var subjectBuf, plainBuf, htmlBuf bytes.Buffer
 
 	if err := tmpl.Subject.Execute(&subjectBuf, data); err != nil {
-		logger.From(ctx).Errorw("Failed to render subject", "template", templateName, "err", err)
+		logger.Errorw("Template render failed",
+			"template", templateName,
+			"part", "subject")
 		return "", "", "", fmt.Errorf("render subject: %w", err)
 	}
 	if err := tmpl.Plain.Execute(&plainBuf, data); err != nil {
-		logger.From(ctx).Errorw("Failed to render plain text", "template", templateName, "err", err)
+		logger.Errorw("Template render failed",
+			"template", templateName,
+			"part", "plain")
 		return "", "", "", fmt.Errorf("render plain: %w", err)
 	}
 	if err := tmpl.HTML.Execute(&htmlBuf, data); err != nil {
-		logger.From(ctx).Errorw("Failed to render HTML", "template", templateName, "err", err)
+		logger.Errorw("Template render failed",
+			"template", templateName,
+			"part", "html")
 		return "", "", "", fmt.Errorf("render html: %w", err)
 	}
 
-	logger.From(ctx).Debugw("Template rendered successfully", "template", templateName)
 	return subjectBuf.String(), plainBuf.String(), htmlBuf.String(), nil
-}
-
-func getMapKeys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
 }

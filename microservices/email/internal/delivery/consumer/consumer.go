@@ -56,17 +56,18 @@ func (c *Consumer) Start(ctx context.Context) error {
 		return fmt.Errorf("consume: %w", err)
 	}
 
-	loggerPkg.From(ctx).Infow("Consumer started")
+	logger := loggerPkg.From(ctx)
+	logger.Infow("Consumer started")
 
 	for {
 		select {
 		case <-ctx.Done():
-			loggerPkg.From(ctx).Infow("Consumer stopped")
+			logger.Infow("Consumer stopped")
 			return ctx.Err()
 
 		case msg, ok := <-msgs:
 			if !ok {
-				loggerPkg.From(ctx).Infow("Message channel closed")
+				logger.Infow("Message channel closed")
 				return nil
 			}
 
@@ -76,20 +77,22 @@ func (c *Consumer) Start(ctx context.Context) error {
 }
 
 func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
+	logger := loggerPkg.From(ctx)
+
 	id := msg.MessageId
 	if id == "" {
-		loggerPkg.From(ctx).Warnw("Skipping message without ID", "routing_key", msg.RoutingKey)
+		logger.Warnw("Skipping message without ID", "routing_key", msg.RoutingKey)
 		_ = msg.Nack(false, false)
 		return
 	}
 
-	logger := loggerPkg.From(ctx).With("message_id", id)
-	ctx = loggerPkg.With(ctx, logger)
+	enrichedLogger := logger.With("message_id", id)
+	ctx = loggerPkg.With(ctx, enrichedLogger)
 
-	loggerPkg.From(ctx).Infow("Message received", "routing_key", msg.RoutingKey, "body_size", len(msg.Body))
+	enrichedLogger.Debugw("Message received", "routing_key", msg.RoutingKey)
 
 	if !c.breaker.CanExecute(ctx) {
-		loggerPkg.From(ctx).Warnw("Circuit breaker is open, rejecting message")
+		enrichedLogger.Warnw("Circuit breaker is open, rejecting message")
 		delay := time.Duration(500+rand.Intn(500)) * time.Millisecond
 		time.Sleep(delay)
 		_ = msg.Nack(false, true)
@@ -102,37 +105,44 @@ func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
 
 	if err != nil {
 		c.breaker.RecordFailure(ctx)
-		loggerPkg.From(ctx).Errorw("Message processing failed", "err", err, "duration_ms", duration.Milliseconds())
+		enrichedLogger.Errorw("Message processing failed",
+			"error_chain", err.Error(),
+			"routing_key", msg.RoutingKey,
+			"duration_ms", duration.Milliseconds())
 		_ = msg.Nack(false, true)
 		return
 	}
 
 	c.breaker.RecordSuccess(ctx)
-	loggerPkg.From(ctx).Infow("Message processed successfully", "duration_ms", duration.Milliseconds())
+	if duration > 5*time.Second {
+		enrichedLogger.Warnw("Slow message processing", "duration_ms", duration.Milliseconds())
+	}
 
 	if err := msg.Ack(false); err != nil {
-		loggerPkg.From(ctx).Errorw("Failed to ack message", "err", err)
+		enrichedLogger.Errorw("Failed to ack message", "err", err)
 	}
 }
 
 func (c *Consumer) processIdempotently(ctx context.Context, messageID string, msg amqp.Delivery) error {
+	logger := loggerPkg.From(ctx)
+
 	processed, err := c.idempotency.IsProcessed(ctx, messageID)
 	if err != nil {
-		loggerPkg.From(ctx).Errorw("Idempotency check failed, proceeding with processing", "err", err)
+		logger.Errorw("Idempotency check failed, proceeding with processing", "err", err)
 		processed = false
 	}
 	if processed {
-		loggerPkg.From(ctx).Infow("Message already processed, skipping")
+		logger.Debugw("Message already processed, skipping")
 		return nil
 	}
 
 	canProcess, err := c.idempotency.MarkAsProcessing(ctx, messageID)
 	if err != nil {
-		loggerPkg.From(ctx).Errorw("Failed to mark message as processing, proceeding anyway", "err", err)
+		logger.Errorw("Failed to mark message as processing, proceeding anyway", "err", err)
 		canProcess = true
 	}
 	if !canProcess {
-		loggerPkg.From(ctx).Infow("Message is being processed by another worker, skipping")
+		logger.Debugw("Message is being processed by another worker, skipping")
 		return nil
 	}
 
@@ -141,7 +151,7 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 		defer cancel()
 
 		if clearErr := c.idempotency.ClearProcessing(clearCtx, messageID); clearErr != nil {
-			loggerPkg.From(ctx).Errorw("Failed to clear processing lock", "err", clearErr)
+			logger.Errorw("Failed to clear processing lock", "err", clearErr)
 		}
 	}()
 
@@ -150,16 +160,13 @@ func (c *Consumer) processIdempotently(ctx context.Context, messageID string, ms
 		return fmt.Errorf("invalid message format: %w", err)
 	}
 
-	loggerPkg.From(ctx).Infow("Starting email processing", "to", req.To, "template", req.Template)
-
 	if err := c.useCase.Send(ctx, req); err != nil {
 		return fmt.Errorf("email sending failed: %w", err)
 	}
 
 	if err := c.idempotency.MarkAsProcessed(ctx, messageID); err != nil {
-		loggerPkg.From(ctx).Errorw("Failed to mark message as processed, email was sent successfully", "err", err)
+		logger.Errorw("Failed to mark message as processed, email was sent successfully", "err", err)
 	}
 
-	loggerPkg.From(ctx).Infow("Email sent successfully", "to", req.To, "template", req.Template)
 	return nil
 }
