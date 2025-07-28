@@ -47,7 +47,7 @@ func (h *SubscriptionHandler) Subscribe(w http.ResponseWriter, r *http.Request) 
 	var req subscription.SubscribeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logger := loggerPkg.From(r.Context())
-		logger.Warnw("Invalid JSON in request body", "err", err)
+		logger.Warn("Invalid JSON in request body", "err", err)
 		h.responseWriter.WriteError(w, http.StatusBadRequest, "Invalid JSON", "Request body must be valid JSON", r)
 		return
 	}
@@ -59,7 +59,7 @@ func (h *SubscriptionHandler) Subscribe(w http.ResponseWriter, r *http.Request) 
 	}
 
 	logger := loggerPkg.From(r.Context())
-	logger.Debugw("Subscribe request completed successfully")
+	logger.Debug("Subscribe request completed successfully")
 	h.responseWriter.WriteSuccess(w, resp)
 }
 
@@ -82,7 +82,7 @@ func (h *SubscriptionHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger := loggerPkg.From(r.Context())
-	logger.Debugw("Confirm request completed successfully")
+	logger.Debug("Confirm request completed successfully")
 	h.responseWriter.WriteSuccess(w, resp)
 }
 
@@ -105,7 +105,7 @@ func (h *SubscriptionHandler) Unsubscribe(w http.ResponseWriter, r *http.Request
 	}
 
 	logger := loggerPkg.From(r.Context())
-	logger.Debugw("Unsubscribe request completed successfully")
+	logger.Debug("Unsubscribe request completed successfully")
 	h.responseWriter.WriteSuccess(w, resp)
 }
 
@@ -128,7 +128,7 @@ func (h *SubscriptionHandler) GetWeather(w http.ResponseWriter, r *http.Request)
 	}
 
 	logger := loggerPkg.From(r.Context())
-	logger.Debugw("GetWeather request completed successfully", "city", city)
+	logger.Debug("GetWeather request completed successfully", "city", city)
 	h.responseWriter.WriteSuccess(w, resp)
 }
 

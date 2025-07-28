@@ -10,7 +10,7 @@ import (
 
 func SendError(c *gin.Context, code int, msg string) {
 	logger := loggerPkg.From(c.Request.Context())
-	logger.Errorw("handler error", "msg", msg, "code", code)
+	logger.Error("handler error", "msg", msg, "code", code)
 	c.JSON(code, gin.H{"error": msg})
 }
 

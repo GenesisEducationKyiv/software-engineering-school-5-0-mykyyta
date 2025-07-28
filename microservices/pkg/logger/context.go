@@ -11,18 +11,24 @@ import (
 type ctxKey struct{}
 
 // With adds a logger to the context
-func With(ctx context.Context, log *zap.SugaredLogger) context.Context {
+func With(ctx context.Context, log *Logger) context.Context {
 	return context.WithValue(ctx, ctxKey{}, log)
 }
 
 // From retrieves a logger from the context, returns a no-op logger if none exists
-func From(ctx context.Context) *zap.SugaredLogger {
+func From(ctx context.Context) *Logger {
 	if v := ctx.Value(ctxKey{}); v != nil {
-		if lgr, ok := v.(*zap.SugaredLogger); ok {
+		if lgr, ok := v.(*Logger); ok {
 			return lgr
 		}
 	}
-	return zap.NewNop().Sugar()
+
+	// Return a no-op logger
+	nopCore := zap.NewNop()
+	return &Logger{
+		sugar: nopCore.Sugar(),
+		base:  nopCore,
+	}
 }
 
 // HashEmail creates a short hash of an email for logging (privacy-safe)

@@ -25,9 +25,9 @@ func NewGorm(dsn string) (*Gorm, error) {
 func (db *Gorm) Close(ctx context.Context) {
 	logger := loggerPkg.From(ctx)
 	if sqlDB, err := db.Gorm.DB(); err != nil {
-		logger.Errorf("failed to get sql.DB: %v", err)
+		logger.Error("failed to get sql.DB: %v", err)
 	} else if err := sqlDB.Close(); err != nil {
-		logger.Errorf("failed to close DB: %v", err)
+		logger.Error("failed to close DB: %v", err)
 	} else {
 		logger.Info("DB connection closed")
 	}

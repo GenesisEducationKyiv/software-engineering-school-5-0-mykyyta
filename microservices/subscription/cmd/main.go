@@ -19,13 +19,13 @@ func main() {
 	}
 	defer func() {
 		if err := logger.Sync(); err != nil {
-			logger.Errorw("logger sync failed", "err", err)
+			logger.Error("logger sync failed", "err", err)
 		}
 	}()
 
-	logger.Infow("starting service", "env", env)
+	logger.Info("starting service", "env", env)
 
 	if err := app.Run(logger); err != nil {
-		logger.Fatalw("service crashed", "err", err)
+		logger.Fatal("service crashed", "err", err)
 	}
 }

@@ -30,23 +30,23 @@ func (h *EmailHandler) Send(w http.ResponseWriter, r *http.Request) {
 
 	var req domain.SendEmailRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Warnw("Invalid request format", "err", err)
+		logger.Warn("Invalid request format", "err", err)
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	if req.To == "" || req.Template == "" {
-		logger.Warnw("Missing required fields", "missing_to", req.To == "", "missing_template", req.Template == "")
+		logger.Warn("Missing required fields", "missing_to", req.To == "", "missing_template", req.Template == "")
 		http.Error(w, "missing required fields", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.sender.Send(ctx, req); err != nil {
-		logger.Errorw("Email request failed", "error_chain", err.Error())
+		logger.Error("Email request failed", "error_chain", err.Error())
 		http.Error(w, "failed to send email", http.StatusInternalServerError)
 		return
 	}
 
-	logger.Debugw("Email request completed successfully")
+	logger.Debug("Email request completed successfully")
 	w.WriteHeader(http.StatusOK)
 }

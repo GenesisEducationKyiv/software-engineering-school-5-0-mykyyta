@@ -37,21 +37,21 @@ func (h Subscribe) Handle(c *gin.Context) {
 	logger := loggerPkg.From(c.Request.Context())
 	var req SubscribeRequest
 	if err := c.ShouldBind(&req); err != nil {
-		logger.Warnw("invalid subscribe input", "err", err)
+		logger.Warn("invalid subscribe input", "err", err)
 		response.SendError(c, http.StatusBadRequest, "Invalid input")
 		return
 	}
 
 	freq := domain.Frequency(req.Frequency)
 	if !freq.Valid() {
-		logger.Warnw("invalid frequency value", "value", req.Frequency)
+		logger.Warn("invalid frequency value", "value", req.Frequency)
 		response.SendError(c, http.StatusBadRequest, "Invalid frequency value")
 		return
 	}
 
 	err := h.service.Subscribe(c.Request.Context(), req.Email, req.City, freq)
 	if err != nil {
-		logger.Warnw("subscribe failed", "email", req.Email, "city", req.City, "err", err)
+		logger.Warn("subscribe failed", "email", req.Email, "city", req.City, "err", err)
 		switch {
 		case errors.Is(err, subscription.ErrCityNotFound):
 			response.SendError(c, http.StatusBadRequest, "City not found")

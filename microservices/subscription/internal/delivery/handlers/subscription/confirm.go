@@ -33,7 +33,7 @@ func (h Confirm) Handle(c *gin.Context) {
 	token := c.Param("token")
 
 	if err := h.service.Confirm(c.Request.Context(), token); err != nil {
-		logger.Warnw("confirm failed", "token", token, "err", err)
+		logger.Warn("confirm failed", "token", token, "err", err)
 		switch {
 		case errors.Is(err, subscription.ErrInvalidToken):
 			response.SendError(c, http.StatusBadRequest, "Invalid token")
@@ -45,6 +45,6 @@ func (h Confirm) Handle(c *gin.Context) {
 		return
 	}
 
-	logger.Infow("subscription confirmed", "token", token)
+	logger.Info("subscription confirmed", "token", token)
 	response.SendSuccess(c, "Subscription confirmed successfully")
 }

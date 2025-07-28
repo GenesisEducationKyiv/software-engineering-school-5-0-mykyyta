@@ -45,7 +45,7 @@ func (d *EmailDispatcher) Start(ctx context.Context) {
 					logger.Info("Event source closed, dispatcher exiting")
 					return
 				}
-				logger.Infof("Event received: %s", freq)
+				logger.Info("Event received: %s", freq)
 				d.DispatchScheduledEmails(ctx, freq)
 			}
 		}
@@ -56,14 +56,14 @@ func (d *EmailDispatcher) DispatchScheduledEmails(ctx context.Context, freq stri
 	logger := loggerPkg.From(ctx)
 	tasks, err := d.SubService.GenerateWeatherReportTasks(ctx, freq)
 	if err != nil {
-		logger.Errorf("Failed to generate tasks: %v", err)
+		logger.Error("Failed to generate tasks: %v", err)
 		return
 	}
 
 	for _, task := range tasks {
-		logger.Infof("Enqueuing task for %q", task.Email)
+		logger.Info("Enqueuing task for %q", task.Email)
 		if err := d.TaskQueue.Enqueue(ctx, task); err != nil {
-			logger.Errorf("Failed to enqueue: %v", err)
+			logger.Error("Failed to enqueue: %v", err)
 		}
 	}
 }

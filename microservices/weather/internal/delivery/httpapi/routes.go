@@ -3,11 +3,12 @@ package httpapi
 import (
 	"net/http"
 
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.uber.org/zap"
 )
 
-func RegisterRoutes(mux *http.ServeMux, h *Handler, logger *zap.SugaredLogger) {
+func RegisterRoutes(mux *http.ServeMux, h *Handler, logger *loggerPkg.Logger) {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

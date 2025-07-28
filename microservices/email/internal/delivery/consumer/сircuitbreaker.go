@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type simpleCB struct {
@@ -36,7 +36,7 @@ func (c *simpleCB) CanExecute(ctx context.Context) bool {
 	}
 
 	if !c.openUntil.IsZero() {
-		logger.From(ctx).Infow("Circuit breaker recovered, allowing execution")
+		loggerPkg.From(ctx).Info("Circuit breaker recovered, allowing execution")
 		c.reset()
 	}
 	return true
@@ -50,7 +50,7 @@ func (c *simpleCB) RecordSuccess(ctx context.Context) {
 	c.reset()
 
 	if wasOpen {
-		logger.From(ctx).Infow("Circuit breaker closed after successful execution")
+		loggerPkg.From(ctx).Info("Circuit breaker closed after successful execution")
 	}
 }
 
@@ -59,11 +59,11 @@ func (c *simpleCB) RecordFailure(ctx context.Context) {
 	defer c.mu.Unlock()
 
 	c.failures++
-	logger.From(ctx).Warnw("Circuit breaker recorded failure", "failures", c.failures, "max_failures", c.maxFailures)
+	loggerPkg.From(ctx).Warn("Circuit breaker recorded failure", "failures", c.failures, "max_failures", c.maxFailures)
 
 	if c.failures >= c.maxFailures {
 		c.openUntil = time.Now().Add(c.openDuration)
-		logger.From(ctx).Errorw("Circuit breaker opened due to too many failures",
+		loggerPkg.From(ctx).Error("Circuit breaker opened due to too many failures",
 			"failures", c.failures,
 			"max_failures", c.maxFailures,
 			"open_until", c.openUntil,

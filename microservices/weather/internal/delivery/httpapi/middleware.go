@@ -6,12 +6,11 @@ import (
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 const RequestIDKey = "X-Request-Id"
 
-func loggingMiddleware(baseLogger *zap.SugaredLogger) func(http.Handler) http.Handler {
+func loggingMiddleware(baseLogger *loggerPkg.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			reqID := r.Header.Get(RequestIDKey)
@@ -39,13 +38,13 @@ func loggingMiddleware(baseLogger *zap.SugaredLogger) func(http.Handler) http.Ha
 			}
 
 			if status >= 500 {
-				logger.Errorw("http request failed", logFields...)
+				logger.Error("http request failed", logFields...)
 			} else if status >= 400 {
-				logger.Warnw("http request client error", logFields...)
+				logger.Warn("http request client error", logFields...)
 			} else if duration > 1000*time.Millisecond {
-				logger.Warnw("slow http request", logFields...)
+				logger.Warn("slow http request", logFields...)
 			} else {
-				logger.Infow("http request", logFields...)
+				logger.Info("http request", logFields...)
 			}
 		})
 	}

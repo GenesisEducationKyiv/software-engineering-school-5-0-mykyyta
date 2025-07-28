@@ -6,8 +6,6 @@ import (
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -16,7 +14,7 @@ import (
 
 const RequestIDKey = "x-request-id"
 
-func LoggingUnaryServerInterceptor(baseLogger *zap.SugaredLogger) grpc.UnaryServerInterceptor {
+func LoggingUnaryServerInterceptor(baseLogger *loggerPkg.Logger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
@@ -38,7 +36,7 @@ func LoggingUnaryServerInterceptor(baseLogger *zap.SugaredLogger) grpc.UnaryServ
 		ctx = loggerPkg.With(ctx, logger)
 
 		if err := grpc.SetHeader(ctx, metadata.Pairs(RequestIDKey, reqID)); err != nil {
-			logger.Warnw("failed to set request ID header", "error", err)
+			logger.Warn("failed to set request ID header", "error", err)
 		}
 
 		start := time.Now()
@@ -56,13 +54,13 @@ func LoggingUnaryServerInterceptor(baseLogger *zap.SugaredLogger) grpc.UnaryServ
 		}
 
 		if code == codes.Internal || code == codes.Unavailable || code == codes.DataLoss {
-			logger.Errorw("grpc request failed", logFields...)
+			logger.Error("grpc request failed", logFields...)
 		} else if code != codes.OK {
-			logger.Warnw("grpc request client error", logFields...)
+			logger.Warn("grpc request client error", logFields...)
 		} else if duration > 1000*time.Millisecond {
-			logger.Warnw("slow grpc request", logFields...)
+			logger.Warn("slow grpc request", logFields...)
 		} else {
-			logger.Infow("grpc request", logFields...)
+			logger.Info("grpc request", logFields...)
 		}
 
 		return resp, err

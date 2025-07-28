@@ -32,7 +32,7 @@ func (p LogWrapper) GetWeather(ctx context.Context, city string) (domain.Report,
 		status = err.Error()
 	}
 	logger := loggerPkg.From(ctx)
-	logger.Infow(
+	logger.Info(
 		"provider call",
 		"provider", p.provider,
 		"method", "GetWeather",
@@ -52,7 +52,7 @@ func (p LogWrapper) CityIsValid(ctx context.Context, city string) (bool, error) 
 		status = err.Error()
 	}
 	logger := loggerPkg.From(ctx)
-	logger.Infow(
+	logger.Info(
 		"provider call",
 		"provider", p.provider,
 		"method", "CityIsValid",

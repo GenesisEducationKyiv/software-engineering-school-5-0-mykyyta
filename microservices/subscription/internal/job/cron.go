@@ -36,7 +36,7 @@ func (s *CronEventSource) Start(ctx context.Context) {
 		}
 	})
 	if err != nil {
-		logger.Errorf("Failed to schedule hourly cron: %v", err)
+		logger.Error("Failed to schedule hourly cron: %v", err)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (s *CronEventSource) Start(ctx context.Context) {
 		}
 	})
 	if err != nil {
-		logger.Errorf("Failed to schedule daily cron: %v", err)
+		logger.Error("Failed to schedule daily cron: %v", err)
 		return
 	}
 

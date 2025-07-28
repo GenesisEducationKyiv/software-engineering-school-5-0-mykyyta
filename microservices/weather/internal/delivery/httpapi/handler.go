@@ -29,7 +29,7 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 	city, err := getQueryParam(r, "city")
 	if err != nil {
 		logger := loggerPkg.From(r.Context())
-		logger.Errorw("missing city query parameter", "error", err)
+		logger.Error("missing city query parameter", "error", err)
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
@@ -38,11 +38,11 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger := loggerPkg.From(r.Context())
 		if errors.Is(err, domain.ErrCityNotFound) {
-			logger.Warnw("city not found", "city", city)
+			logger.Warn("city not found", "city", city)
 			http.Error(w, `{"error":"city not found"}`, http.StatusNotFound)
 			return
 		}
-		logger.Errorw("failed to get weather", "city", city, "error", err)
+		logger.Error("failed to get weather", "city", city, "error", err)
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
@@ -61,7 +61,7 @@ func (h *Handler) ValidateCity(w http.ResponseWriter, r *http.Request) {
 	city, err := getQueryParam(r, "city")
 	if err != nil {
 		logger := loggerPkg.From(r.Context())
-		logger.Errorw("missing city query parameter", "error", err)
+		logger.Error("missing city query parameter", "error", err)
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
@@ -70,11 +70,11 @@ func (h *Handler) ValidateCity(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger := loggerPkg.From(r.Context())
 		if errors.Is(err, domain.ErrCityNotFound) {
-			logger.Warnw("city not found", "city", city)
+			logger.Warn("city not found", "city", city)
 			http.Error(w, `{"error":"city not found"}`, http.StatusNotFound)
 			return
 		}
-		logger.Errorw("failed to validate city", "city", city, "error", err)
+		logger.Error("failed to validate city", "city", city, "error", err)
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}

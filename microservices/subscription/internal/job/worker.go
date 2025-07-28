@@ -49,7 +49,7 @@ func (w *Worker) Start(ctx context.Context) {
 				logger.Info("Queue closed, worker exiting")
 				return
 			default:
-				logger.Errorf("Failed to dequeue task: %v", err)
+				logger.Error("Failed to dequeue task: %v", err)
 				continue
 			}
 		}
@@ -65,15 +65,15 @@ func (w *Worker) Start(ctx context.Context) {
 			defer func() {
 				if r := recover(); r != nil {
 					logger := loggerPkg.From(taskCtx)
-					logger.Errorf("Panic recovered while handling task for %s: %v", t.Email, r)
+					logger.Error("Panic recovered while handling task for %s: %v", t.Email, r)
 				}
 			}()
 			logger := loggerPkg.From(taskCtx)
 			err := w.subService.ProcessWeatherReportTask(taskCtx, t)
 			if err != nil {
-				logger.Errorf("Failed to process task for %s: %v", t.Email, err)
+				logger.Error("Failed to process task for %s: %v", t.Email, err)
 			} else {
-				logger.Infof("Task processed for %s", t.Email)
+				logger.Info("Task processed for %s", t.Email)
 			}
 		}(ctx, task)
 	}

@@ -41,7 +41,7 @@ func RequestMiddleware(next http.Handler) http.Handler {
 		dur := time.Since(start)
 
 		if ww.status >= 500 {
-			loggerPkg.From(ctx).Errorw(
+			loggerPkg.From(ctx).Error(
 				"http request failed",
 				"method", r.Method,
 				"path", r.URL.Path,
@@ -49,7 +49,7 @@ func RequestMiddleware(next http.Handler) http.Handler {
 				"duration_ms", dur.Milliseconds(),
 			)
 		} else if ww.status >= 400 {
-			loggerPkg.From(ctx).Warnw(
+			loggerPkg.From(ctx).Warn(
 				"http request client error",
 				"method", r.Method,
 				"path", r.URL.Path,
@@ -57,7 +57,7 @@ func RequestMiddleware(next http.Handler) http.Handler {
 				"duration_ms", dur.Milliseconds(),
 			)
 		} else if dur > 1000*time.Millisecond { // Log slow requests
-			loggerPkg.From(ctx).Warnw(
+			loggerPkg.From(ctx).Warn(
 				"slow http request",
 				"method", r.Method,
 				"path", r.URL.Path,
@@ -65,7 +65,7 @@ func RequestMiddleware(next http.Handler) http.Handler {
 				"duration_ms", dur.Milliseconds(),
 			)
 		} else {
-			loggerPkg.From(ctx).Debugw(
+			loggerPkg.From(ctx).Debug(
 				"http request",
 				"method", r.Method,
 				"path", r.URL.Path,

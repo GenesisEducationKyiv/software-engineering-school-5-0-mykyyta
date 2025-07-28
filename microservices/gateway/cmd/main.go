@@ -19,11 +19,11 @@ func main() {
 	}
 	defer func() {
 		if err := logger.Sync(); err != nil {
-			logger.Errorw("logger sync failed", "err", err)
+			logger.Error("logger sync failed", "err", err)
 		}
 	}()
 
 	if err := app.Run(logger); err != nil {
-		logger.Fatalf("Application failed: %v", err)
+		logger.Fatal("Application failed: %v", err)
 	}
 }

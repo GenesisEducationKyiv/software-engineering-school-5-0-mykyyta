@@ -24,7 +24,7 @@ func New(apiKey, from string) *SendGrid {
 
 func (s *SendGrid) Send(ctx context.Context, to, subject, plain, html string) error {
 	logger := loggerPkg.From(ctx)
-	logger.Debugw("Sending email via SendGrid API", "user", loggerPkg.HashEmail(to))
+	logger.Debug("Sending email via SendGrid API", "user", loggerPkg.HashEmail(to))
 
 	from := mail.NewEmail("weatherApp", s.from)
 	toUser := mail.NewEmail("User", to)
@@ -33,7 +33,7 @@ func (s *SendGrid) Send(ctx context.Context, to, subject, plain, html string) er
 
 	resp, err := s.client.Send(message)
 	if err != nil {
-		logger.Errorw("SendGrid API failed",
+		logger.Error("SendGrid API failed",
 			"provider", "sendgrid",
 			"error", "connection",
 			"details", err.Error())
@@ -41,13 +41,13 @@ func (s *SendGrid) Send(ctx context.Context, to, subject, plain, html string) er
 	}
 
 	if resp.StatusCode >= 400 {
-		logger.Errorw("SendGrid API error",
+		logger.Error("SendGrid API error",
 			"provider", "sendgrid",
 			"status_code", resp.StatusCode,
 			"error", "api_response")
 		return fmt.Errorf("sendgrid API error: status %d", resp.StatusCode)
 	}
 
-	logger.Debugw("Email sent via SendGrid", "status_code", resp.StatusCode)
+	logger.Debug("Email sent via SendGrid", "status_code", resp.StatusCode)
 	return nil
 }

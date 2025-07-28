@@ -70,13 +70,13 @@ func (e *Client) send(ctx context.Context, req Request) error {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			logger.Warnf("error closing response body: %v", err)
+			logger.Warn("error closing response body: %v", err)
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("email service returned status %d", resp.StatusCode)
 	}
-	logger.Infof("Email sent to %s with template %s", req.To, req.Template)
+	logger.Info("Email sent to %s with template %s", req.To, req.Template)
 	return nil
 }
 

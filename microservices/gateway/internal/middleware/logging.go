@@ -5,11 +5,9 @@ import (
 	"time"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
-
-	"go.uber.org/zap"
 )
 
-func WithLogger(logger *zap.SugaredLogger) func(http.Handler) http.Handler {
+func WithLogger(logger *loggerPkg.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := loggerPkg.With(r.Context(), logger)
@@ -58,28 +56,28 @@ func Logging() func(http.Handler) http.Handler {
 			logger := loggerPkg.From(r.Context())
 
 			if ww.status >= 500 {
-				logger.Errorw("HTTP request failed",
+				logger.Error("HTTP request failed",
 					"method", r.Method,
 					"path", r.URL.Path,
 					"status", ww.status,
 					"duration_ms", dur.Milliseconds(),
 					"request_id", requestID)
 			} else if ww.status >= 400 {
-				logger.Warnw("HTTP client error",
+				logger.Warn("HTTP client error",
 					"method", r.Method,
 					"path", r.URL.Path,
 					"status", ww.status,
 					"duration_ms", dur.Milliseconds(),
 					"request_id", requestID)
 			} else if dur > 1000*time.Millisecond {
-				logger.Warnw("Slow HTTP request",
+				logger.Warn("Slow HTTP request",
 					"method", r.Method,
 					"path", r.URL.Path,
 					"status", ww.status,
 					"duration_ms", dur.Milliseconds(),
 					"request_id", requestID)
 			} else {
-				logger.Debugw("HTTP request",
+				logger.Debug("HTTP request",
 					"method", r.Method,
 					"path", r.URL.Path,
 					"status", ww.status,

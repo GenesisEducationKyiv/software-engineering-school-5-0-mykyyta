@@ -7,7 +7,7 @@ import (
 	"subscription/internal/job"
 	"subscription/internal/subscription"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type WeatherScheduler struct {
@@ -42,15 +42,15 @@ func (s *WeatherScheduler) Start(ctx context.Context) {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-		wLogger := logger.From(ctx).With("module", "scheduler")
-		s.worker.Start(logger.With(ctx, wLogger))
+		wLogger := loggerPkg.From(ctx).With("module", "scheduler")
+		s.worker.Start(loggerPkg.With(ctx, wLogger))
 	}()
 
-	dLogger := logger.From(ctx).With("module", "scheduler")
-	s.dispatcher.Start(logger.With(ctx, dLogger))
+	dLogger := loggerPkg.From(ctx).With("module", "scheduler")
+	s.dispatcher.Start(loggerPkg.With(ctx, dLogger))
 
-	cLogger := logger.From(ctx).With("module", "scheduler")
-	s.cron.Start(logger.With(ctx, cLogger))
+	cLogger := loggerPkg.From(ctx).With("module", "scheduler")
+	s.cron.Start(loggerPkg.With(ctx, cLogger))
 }
 
 func (s *WeatherScheduler) Stop(ctx context.Context) {
@@ -60,9 +60,9 @@ func (s *WeatherScheduler) Stop(ctx context.Context) {
 
 	s.wg.Wait()
 
-	cLogger := logger.From(ctx).With("module", "scheduler")
-	s.cron.Stop(logger.With(ctx, cLogger))
+	cLogger := loggerPkg.From(ctx).With("module", "scheduler")
+	s.cron.Stop(loggerPkg.With(ctx, cLogger))
 
-	qLogger := logger.From(ctx).With("module", "scheduler")
-	s.queue.Close(logger.With(ctx, qLogger))
+	qLogger := loggerPkg.From(ctx).With("module", "scheduler")
+	s.queue.Close(loggerPkg.With(ctx, qLogger))
 }

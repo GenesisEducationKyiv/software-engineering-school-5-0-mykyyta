@@ -32,7 +32,7 @@ func (h Unsubscribe) Handle(c *gin.Context) {
 	token := c.Param("token")
 
 	if err := h.service.Unsubscribe(c.Request.Context(), token); err != nil {
-		logger.Warnw("unsubscribe failed", "token", token, "err", err)
+		logger.Warn("unsubscribe failed", "token", token, "err", err)
 		switch {
 		case errors.Is(err, subscription.ErrInvalidToken):
 			response.SendError(c, http.StatusBadRequest, "Invalid token")
@@ -44,6 +44,6 @@ func (h Unsubscribe) Handle(c *gin.Context) {
 		return
 	}
 
-	logger.Infow("unsubscribed successfully", "token", token)
+	logger.Info("unsubscribed successfully", "token", token)
 	response.SendSuccess(c, "Unsubscribed successfully")
 }

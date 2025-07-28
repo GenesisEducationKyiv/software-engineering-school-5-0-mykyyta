@@ -3,7 +3,11 @@
 # Script to check compilation of all microservices
 echo "🔍 Checking compilation of all microservices..."
 echo
-cd ".."
+
+# Get script directory and navigate to microservices root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MICROSERVICES_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$MICROSERVICES_DIR" || exit 1
 
 MICROSERVICES=("weather" "subscription" "email" "gateway")
 FAILED=0
@@ -20,7 +24,7 @@ for service in "${MICROSERVICES[@]}"; do
         FAILED=$((FAILED + 1))
     fi
 
-    cd ..
+    cd "$MICROSERVICES_DIR"
     echo
 done
 

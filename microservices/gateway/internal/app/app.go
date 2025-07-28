@@ -15,8 +15,6 @@ import (
 	"gateway/internal/service"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
-
-	"go.uber.org/zap"
 )
 
 type App struct {
@@ -50,11 +48,11 @@ func NewApp(cfg *config.Config, ctx context.Context) *App {
 func (a *App) Start(ctx context.Context) error {
 	logger := loggerPkg.From(ctx)
 
-	logger.Infow("API Gateway starting", "addr", a.server.Addr)
+	logger.Info("API Gateway starting", "addr", a.server.Addr)
 
 	go func() {
 		if err := a.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Errorw("Server error", "err", err)
+			logger.Error("Server error", "err", err)
 		}
 	}()
 
@@ -62,23 +60,23 @@ func (a *App) Start(ctx context.Context) error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Infow("Shutting down API Gateway")
+	logger.Info("Shutting down API Gateway")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := a.server.Shutdown(shutdownCtx); err != nil {
-		logger.Errorw("Server shutdown failed", "err", err)
+		logger.Error("Server shutdown failed", "err", err)
 		return err
 	}
 
-	logger.Infow("API Gateway shutdown completed")
+	logger.Info("API Gateway shutdown completed")
 	return nil
 }
 
-func Run(logger *zap.SugaredLogger) error {
+func Run(logger *loggerPkg.Logger) error {
 	cfg, err := config.Load()
 	if err != nil {
-		logger.Errorw("Failed to load configuration", "err", err)
+		logger.Error("Failed to load configuration", "err", err)
 		return err
 	}
 

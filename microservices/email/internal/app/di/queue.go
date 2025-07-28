@@ -10,7 +10,7 @@ import (
 	"email/internal/email"
 	"email/internal/infra/rabbitmq"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -24,7 +24,7 @@ type QueueModule struct {
 func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, redisClient *redis.Client) (*QueueModule, error) {
 	rmqConn, err := rabbitmq.NewConnection(cfg.RabbitMQURL)
 	if err != nil {
-		logger.From(ctx).Errorw("Failed to connect to RabbitMQ", "err", err)
+		loggerPkg.From(ctx).Error("Failed to connect to RabbitMQ", "err", err)
 		return nil, err
 	}
 
@@ -39,10 +39,10 @@ func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, 
 		},
 	)
 	if err != nil {
-		logger.From(ctx).Errorw("Failed to setup RabbitMQ", "err", err)
+		loggerPkg.From(ctx).Error("Failed to setup RabbitMQ", "err", err)
 		err = rmqConn.Close()
 		if err != nil {
-			logger.From(ctx).Errorw("Error during RabbitMQ connection close", "err", err)
+			loggerPkg.From(ctx).Error("Error during RabbitMQ connection close", "err", err)
 		}
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, 
 		RabbitConn: rmqConn,
 		ShutdownFunc: func() error {
 			if err := rmqConn.Close(); err != nil {
-				logger.From(ctx).Errorw("Error during RabbitMQ connection close", "err", err)
+				loggerPkg.From(ctx).Error("Error during RabbitMQ connection close", "err", err)
 				return err
 			}
 			return nil

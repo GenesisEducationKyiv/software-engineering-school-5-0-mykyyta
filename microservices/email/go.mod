@@ -11,7 +11,6 @@ require (
 	github.com/redis/go-redis/v9 v9.11.0
 	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
 	github.com/stretchr/testify v1.10.0
-	go.uber.org/zap v1.27.0
 )
 
 require (
@@ -22,6 +21,7 @@ require (
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

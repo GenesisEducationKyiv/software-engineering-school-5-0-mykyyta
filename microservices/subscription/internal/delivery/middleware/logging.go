@@ -5,14 +5,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 const RequestIDKey = "X-Request-Id"
 
-func RequestLoggingMiddleware(baseLogger *zap.SugaredLogger) gin.HandlerFunc {
+func RequestLoggingMiddleware(baseLogger *loggerPkg.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		reqID := c.GetHeader(RequestIDKey)
 		if reqID == "" {
@@ -39,13 +38,13 @@ func RequestLoggingMiddleware(baseLogger *zap.SugaredLogger) gin.HandlerFunc {
 		}
 
 		if status >= 500 {
-			contextLogger.Errorw("http request failed", logFields...)
+			contextLogger.Error("http request failed", logFields...)
 		} else if status >= 400 {
-			contextLogger.Warnw("http request client error", logFields...)
+			contextLogger.Warn("http request client error", logFields...)
 		} else if duration > 1000*time.Millisecond {
-			contextLogger.Warnw("slow http request", logFields...)
+			contextLogger.Warn("slow http request", logFields...)
 		} else {
-			contextLogger.Debugw("http request", logFields...)
+			contextLogger.Debug("http request", logFields...)
 		}
 	}
 }

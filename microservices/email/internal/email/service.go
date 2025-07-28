@@ -31,27 +31,27 @@ func NewService(provider Provider, templateStore TemplateRenderer) Service {
 
 func (s Service) Send(ctx context.Context, req domain.SendEmailRequest) error {
 	logger := loggerPkg.From(ctx)
-	logger.Debugw("Starting email send operation",
+	logger.Debug("Starting email send operation",
 		"user", loggerPkg.HashEmail(req.To),
 		"template", string(req.Template),
 		"data_fields", len(req.Data))
 
 	subject, plain, html, err := s.templateStore.Render(ctx, req.Template, req.Data)
 	if err != nil {
-		logger.Errorw("Template processing failed",
+		logger.Error("Template processing failed",
 			"user", loggerPkg.HashEmail(req.To),
 			"template", string(req.Template))
 		return fmt.Errorf("template processing failed: %w", err)
 	}
 
 	if err := s.provider.Send(ctx, req.To, subject, plain, html); err != nil {
-		logger.Errorw("Email delivery failed",
+		logger.Error("Email delivery failed",
 			"user", loggerPkg.HashEmail(req.To),
 			"template", string(req.Template))
 		return fmt.Errorf("email delivery failed: %w", err)
 	}
 
-	logger.Debugw("Email sent successfully",
+	logger.Debug("Email sent successfully",
 		"user", loggerPkg.HashEmail(req.To),
 		"template", string(req.Template))
 	return nil

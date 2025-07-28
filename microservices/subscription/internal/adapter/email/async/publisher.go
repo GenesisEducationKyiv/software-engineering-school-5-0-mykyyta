@@ -43,6 +43,6 @@ func (p *RabbitPublisher) Publish(ctx context.Context, routingKey string, msg Id
 	}
 
 	logger := loggerPkg.From(ctx)
-	logger.Infow("Published message", "routingKey", routingKey, "msgId", msg.GetIdKey())
+	logger.Info("Published message", "routingKey", routingKey, "msgId", msg.GetIdKey())
 	return nil
 }

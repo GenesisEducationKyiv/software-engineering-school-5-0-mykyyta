@@ -45,17 +45,17 @@ func (s *Service) Subscribe(ctx context.Context, req subscription.SubscribeReque
 	req.Frequency = s.securityValidator.SanitizeInput(req.Frequency)
 
 	if err := s.securityValidator.ValidateCity(req.City); err != nil {
-		logger.Warnw("Security validation failed", "validation_error", err, "city", req.City)
+		logger.Warn("Security validation failed", "validation_error", err, "city", req.City)
 		return nil, fmt.Errorf("security validation failed: %w", err)
 	}
 
 	resp, err := s.subscriptionClient.Subscribe(ctx, req)
 	if err != nil {
-		logger.Errorw("Subscription service call failed", "err", err, "city", req.City)
+		logger.Error("Subscription service call failed", "err", err, "city", req.City)
 		return nil, fmt.Errorf("subscription service failed: %w", err)
 	}
 
-	logger.Debugw("Subscription successful", "city", req.City)
+	logger.Debug("Subscription successful", "city", req.City)
 	return resp, nil
 }
 
@@ -63,17 +63,17 @@ func (s *Service) Confirm(ctx context.Context, token string) (*subscription.Conf
 	logger := loggerPkg.From(ctx)
 
 	if err := s.securityValidator.ValidateToken(token); err != nil {
-		logger.Warnw("Token validation failed", "validation_error", err)
+		logger.Warn("Token validation failed", "validation_error", err)
 		return nil, fmt.Errorf("security validation failed: %w", err)
 	}
 
 	resp, err := s.subscriptionClient.Confirm(ctx, token)
 	if err != nil {
-		logger.Errorw("Confirm service call failed", "err", err)
+		logger.Error("Confirm service call failed", "err", err)
 		return nil, fmt.Errorf("confirm service failed: %w", err)
 	}
 
-	logger.Debugw("Confirmation successful")
+	logger.Debug("Confirmation successful")
 	return resp, nil
 }
 
@@ -81,17 +81,17 @@ func (s *Service) Unsubscribe(ctx context.Context, token string) (*subscription.
 	logger := loggerPkg.From(ctx)
 
 	if err := s.securityValidator.ValidateToken(token); err != nil {
-		logger.Warnw("Token validation failed", "validation_error", err)
+		logger.Warn("Token validation failed", "validation_error", err)
 		return nil, fmt.Errorf("security validation failed: %w", err)
 	}
 
 	resp, err := s.subscriptionClient.Unsubscribe(ctx, token)
 	if err != nil {
-		logger.Errorw("Unsubscribe service call failed", "err", err)
+		logger.Error("Unsubscribe service call failed", "err", err)
 		return nil, fmt.Errorf("unsubscribe service failed: %w", err)
 	}
 
-	logger.Debugw("Unsubscribe successful")
+	logger.Debug("Unsubscribe successful")
 	return resp, nil
 }
 
@@ -100,16 +100,16 @@ func (s *Service) GetWeather(ctx context.Context, city string) (*subscription.We
 
 	city = s.securityValidator.SanitizeInput(city)
 	if err := s.securityValidator.ValidateCity(city); err != nil {
-		logger.Warnw("City validation failed", "validation_error", err, "city", city)
+		logger.Warn("City validation failed", "validation_error", err, "city", city)
 		return nil, fmt.Errorf("security validation failed: %w", err)
 	}
 
 	resp, err := s.subscriptionClient.GetWeather(ctx, city)
 	if err != nil {
-		logger.Errorw("Weather service call failed", "err", err, "city", city)
+		logger.Error("Weather service call failed", "err", err, "city", city)
 		return nil, fmt.Errorf("weather service failed: %w", err)
 	}
 
-	logger.Debugw("Weather fetch successful", "city", city)
+	logger.Debug("Weather fetch successful", "city", city)
 	return resp, nil
 }

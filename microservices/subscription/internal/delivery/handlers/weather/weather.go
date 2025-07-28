@@ -37,14 +37,14 @@ func (h WeatherCurrent) Handle(c *gin.Context) {
 	logger := loggerPkg.From(c.Request.Context())
 	city := c.Query("city")
 	if city == "" {
-		logger.Warnw("city is required for weather", "query", c.Request.URL.RawQuery)
+		logger.Warn("city is required for weather", "query", c.Request.URL.RawQuery)
 		response.SendError(c, http.StatusBadRequest, "City is required")
 		return
 	}
 
 	data, err := h.service.GetWeather(c.Request.Context(), city)
 	if err != nil {
-		logger.Warnw("failed to fetch weather data", "city", city, "err", err)
+		logger.Warn("failed to fetch weather data", "city", city, "err", err)
 		switch {
 		case errors.Is(err, ErrCityNotFound):
 			response.SendError(c, http.StatusBadRequest, "City not found")
@@ -60,6 +60,6 @@ func (h WeatherCurrent) Handle(c *gin.Context) {
 		Description: data.Description,
 	}
 
-	logger.Infow("weather data fetched", "city", city, "data", dto)
+	logger.Info("weather data fetched", "city", city, "data", dto)
 	c.JSON(http.StatusOK, dto)
 }

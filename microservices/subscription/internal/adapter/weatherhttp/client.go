@@ -107,6 +107,6 @@ func (c *Client) doRequest(ctx context.Context, method, url string) (*http.Respo
 func (c *Client) closeBody(ctx context.Context, body io.Closer, operation string) {
 	logger := loggerPkg.From(ctx)
 	if err := body.Close(); err != nil {
-		logger.Warnf("Failed to close response body in %s: %v", operation, err)
+		logger.Warn("Failed to close response body in %s: %v", operation, err)
 	}
 }

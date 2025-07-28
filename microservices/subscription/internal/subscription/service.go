@@ -94,7 +94,7 @@ func (s Service) Subscribe(ctx context.Context, email, city string, frequency do
 	idKey := s.generateIdempotencyKey(email, token)
 	if err := s.emailService.SendConfirmationEmail(ctx, email, token, idKey); err != nil {
 		logger := loggerPkg.From(ctx)
-		logger.Errorf("Failed to send confirmation email to %s: %v", email, err)
+		logger.Error("Failed to send confirmation email to %s: %v", email, err)
 	}
 
 	return nil

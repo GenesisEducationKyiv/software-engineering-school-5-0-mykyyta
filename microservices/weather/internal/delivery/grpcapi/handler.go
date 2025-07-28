@@ -29,10 +29,10 @@ func (s *Handler) GetWeather(ctx context.Context, req *weatherpb.WeatherRequest)
 	if err != nil {
 		logger := loggerPkg.From(ctx)
 		if errors.Is(err, domain.ErrCityNotFound) {
-			logger.Warnw("city not found (gRPC)", "city", req.City)
+			logger.Warn("city not found (gRPC)", "city", req.City)
 			return nil, err
 		}
-		logger.Errorw("failed to get weather (gRPC)", "city", req.City, "error", err)
+		logger.Error("failed to get weather (gRPC)", "city", req.City, "error", err)
 		return nil, err
 	}
 	return &weatherpb.WeatherResponse{
@@ -47,16 +47,16 @@ func (s *Handler) ValidateCity(ctx context.Context, req *weatherpb.ValidateReque
 	if err != nil {
 		logger := loggerPkg.From(ctx)
 		if errors.Is(err, domain.ErrCityNotFound) {
-			logger.Warnw("city not found (gRPC)", "city", req.City)
+			logger.Warn("city not found (gRPC)", "city", req.City)
 			return nil, err
 		}
-		logger.Errorw("failed to validate city (gRPC)", "city", req.City, "error", err)
+		logger.Error("failed to validate city (gRPC)", "city", req.City, "error", err)
 		return nil, err
 	}
 
 	// Log successful gRPC city validation
 	logger := loggerPkg.From(ctx)
-	logger.Infow("city validation completed successfully (gRPC)", "city", req.City, "valid", ok)
+	logger.Info("city validation completed successfully (gRPC)", "city", req.City, "valid", ok)
 
 	return &weatherpb.ValidateResponse{Valid: ok}, nil
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/smtp"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type Gmail struct {
@@ -25,7 +25,7 @@ func New(username, password string) *Gmail {
 }
 
 func (g *Gmail) Send(ctx context.Context, to, subject, _ string, html string) error {
-	logger.From(ctx).Infow("Sending email via Gmail SMTP", "to", to, "host", g.host)
+	loggerPkg.From(ctx).Info("Sending email via Gmail SMTP", "to", to, "host", g.host)
 
 	addr := g.host + ":" + g.port
 
@@ -40,10 +40,10 @@ func (g *Gmail) Send(ctx context.Context, to, subject, _ string, html string) er
 	)
 
 	if err := smtp.SendMail(addr, auth, g.username, []string{to}, []byte(msg)); err != nil {
-		logger.From(ctx).Errorw("Gmail SMTP send failed", "to", to, "host", addr, "err", err)
+		loggerPkg.From(ctx).Error("Gmail SMTP send failed", "to", to, "host", addr, "err", err)
 		return err
 	}
 
-	logger.From(ctx).Infow("Email sent successfully via Gmail", "to", to)
+	loggerPkg.From(ctx).Info("Email sent successfully via Gmail", "to", to)
 	return nil
 }

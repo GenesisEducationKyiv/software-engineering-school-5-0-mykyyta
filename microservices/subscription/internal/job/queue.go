@@ -23,17 +23,17 @@ func NewLocalQueue(bufferSize int) *LocalQueue {
 func (q *LocalQueue) Enqueue(ctx context.Context, task Task) error {
 	logger := loggerPkg.From(ctx)
 	if task.Email == "" {
-		logger.Warnw("Skip enqueue: empty email", "city", task.City)
+		logger.Warn("Skip enqueue: empty email", "city", task.City)
 		return fmt.Errorf("cannot enqueue task: missing email")
 	}
 
-	logger.Infow("Task enqueued", "email", task.Email)
+	logger.Info("Task enqueued", "email", task.Email)
 
 	select {
 	case q.queue <- task:
 		return nil
 	case <-ctx.Done():
-		logger.Warnw("Enqueue cancelled by context", "email", task.Email)
+		logger.Warn("Enqueue cancelled by context", "email", task.Email)
 		return ctx.Err()
 	}
 }
