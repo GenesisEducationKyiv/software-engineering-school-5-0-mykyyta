@@ -47,14 +47,6 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Log successful weather request
-	logger := loggerPkg.From(r.Context())
-	logger.Infow("weather data retrieved successfully",
-		"city", city,
-		"temperature", report.Temperature,
-		"humidity", report.Humidity,
-		"description", report.Description)
-
 	resp := map[string]interface{}{
 		"city":        city,
 		"temperature": report.Temperature,
@@ -86,10 +78,6 @@ func (h *Handler) ValidateCity(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
-
-	// Log successful city validation
-	logger := loggerPkg.From(r.Context())
-	logger.Infow("city validation completed successfully", "city", city, "valid", valid)
 
 	resp := map[string]interface{}{
 		"city":  city,
