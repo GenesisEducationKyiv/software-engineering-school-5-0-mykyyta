@@ -160,9 +160,9 @@ func (a *App) StartServer(ctx context.Context) error {
 	}()
 
 	go func() {
-		logger.Info("Server listening on %s", a.Server.Addr)
+		logger.Info("Server listening", "addr", a.Server.Addr)
 		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("Server error: %v", err)
+			logger.Error("Server error", "error", err)
 		}
 		logger.Info("HTTP server stopped")
 	}()

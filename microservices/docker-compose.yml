@@ -29,7 +29,7 @@ services:
       --save ""
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
-      
+
   rabbitmq:
     image: rabbitmq:3.13-management
     restart: always
@@ -148,9 +148,6 @@ services:
     depends_on:
       - loki
 
-  # === ДОДАТКОВІ КОНТЕЙНЕРИ ДЛЯ ЛОГІВ ===
-
-  # Loki - збереження логів
   loki:
     image: grafana/loki:2.9.0
     container_name: loki
@@ -161,7 +158,6 @@ services:
     volumes:
       - loki-data:/loki
 
-  # Promtail - збір логів з контейнерів
   promtail:
     image: grafana/promtail:2.9.0
     container_name: promtail

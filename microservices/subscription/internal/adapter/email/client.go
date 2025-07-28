@@ -76,7 +76,7 @@ func (e *Client) send(ctx context.Context, req Request) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("email service returned status %d", resp.StatusCode)
 	}
-	logger.Info("Email sent to %s with template %s", req.To, req.Template)
+	logger.Info("Email sent", "to", req.To, "template", req.Template)
 	return nil
 }
 

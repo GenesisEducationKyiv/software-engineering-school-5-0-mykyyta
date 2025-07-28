@@ -64,47 +64,27 @@ func (l *Logger) With(args ...interface{}) *Logger {
 
 // Debug logs a debug message
 func (l *Logger) Debug(msg string, args ...interface{}) {
-	if len(args) > 0 {
-		l.sugar.Debugf(msg, args...)
-	} else {
-		l.sugar.Debug(msg)
-	}
+	l.sugar.Debugw(msg, args...)
 }
 
 // Info logs an info message
 func (l *Logger) Info(msg string, args ...interface{}) {
-	if len(args) > 0 {
-		l.sugar.Infof(msg, args...)
-	} else {
-		l.sugar.Info(msg)
-	}
+	l.sugar.Infow(msg, args...)
 }
 
 // Warn logs a warning message
 func (l *Logger) Warn(msg string, args ...interface{}) {
-	if len(args) > 0 {
-		l.sugar.Warnf(msg, args...)
-	} else {
-		l.sugar.Warn(msg)
-	}
+	l.sugar.Warnw(msg, args...)
 }
 
 // Error logs an error message
 func (l *Logger) Error(msg string, args ...interface{}) {
-	if len(args) > 0 {
-		l.sugar.Errorf(msg, args...)
-	} else {
-		l.sugar.Error(msg)
-	}
+	l.sugar.Errorw(msg, args...)
 }
 
 // Fatal logs a fatal message and exits
 func (l *Logger) Fatal(msg string, args ...interface{}) {
-	if len(args) > 0 {
-		l.sugar.Fatalf(msg, args...)
-	} else {
-		l.sugar.Fatal(msg)
-	}
+	l.sugar.Fatalw(msg, args...)
 }
 
 // Sync flushes any buffered log entries

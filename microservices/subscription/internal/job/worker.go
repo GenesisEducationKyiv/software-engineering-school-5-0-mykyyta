@@ -71,9 +71,9 @@ func (w *Worker) Start(ctx context.Context) {
 			logger := loggerPkg.From(taskCtx)
 			err := w.subService.ProcessWeatherReportTask(taskCtx, t)
 			if err != nil {
-				logger.Error("Failed to process task for %s: %v", t.Email, err)
+				logger.Error("Failed to process task", "email", t.Email, "error", err)
 			} else {
-				logger.Info("Task processed for %s", t.Email)
+				logger.Info("Task processed", "email", t.Email)
 			}
 		}(ctx, task)
 	}
