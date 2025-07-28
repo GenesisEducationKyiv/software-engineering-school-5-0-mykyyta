@@ -29,7 +29,7 @@ services:
       --save ""
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
-
+      
   rabbitmq:
     image: rabbitmq:3.13-management
     restart: always
@@ -48,8 +48,7 @@ services:
   migrate:
     image: migrate/migrate:v4.16.2
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     env_file:
       - ./subscription/.env
     volumes:
@@ -69,10 +68,8 @@ services:
       dockerfile: ./email/Dockerfile
     restart: on-failure
     depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      - redis
+      - rabbitmq
     ports:
       - "8081:8081"
     env_file:
@@ -107,14 +104,10 @@ services:
       dockerfile: ./subscription/Dockerfile
     restart: on-failure
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-      email:
-        condition: service_healthy
-      weather:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      - migrate
+      - email
+      - weather
+      - rabbitmq
     ports:
       - "8080:8080"
     env_file:
@@ -157,6 +150,11 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - loki-data:/loki
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3100/ready" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   promtail:
     image: grafana/promtail:2.9.0
