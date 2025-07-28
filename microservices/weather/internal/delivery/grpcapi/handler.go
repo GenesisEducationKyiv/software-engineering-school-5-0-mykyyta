@@ -53,5 +53,10 @@ func (s *Handler) ValidateCity(ctx context.Context, req *weatherpb.ValidateReque
 		logger.Errorw("failed to validate city (gRPC)", "city", req.City, "error", err)
 		return nil, err
 	}
+
+	// Log successful gRPC city validation
+	logger := loggerPkg.From(ctx)
+	logger.Infow("city validation completed successfully (gRPC)", "city", req.City, "valid", ok)
+
 	return &weatherpb.ValidateResponse{Valid: ok}, nil
 }

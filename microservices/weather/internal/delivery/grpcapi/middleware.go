@@ -6,6 +6,7 @@ import (
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -15,7 +16,7 @@ import (
 
 const RequestIDKey = "x-request-id"
 
-func LoggingUnaryServerInterceptor() grpc.UnaryServerInterceptor {
+func LoggingUnaryServerInterceptor(baseLogger *zap.SugaredLogger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
@@ -32,10 +33,13 @@ func LoggingUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			reqID = uuid.New().String()
 		}
 
-		logger := loggerPkg.From(ctx).With("request_id", reqID)
+		// Use the passed base logger instead of creating a new one
+		logger := baseLogger.With("request_id", reqID)
 		ctx = loggerPkg.With(ctx, logger)
 
-		grpc.SetHeader(ctx, metadata.Pairs(RequestIDKey, reqID))
+		if err := grpc.SetHeader(ctx, metadata.Pairs(RequestIDKey, reqID)); err != nil {
+			logger.Warnw("failed to set request ID header", "error", err)
+		}
 
 		start := time.Now()
 		resp, err = handler(ctx, req)

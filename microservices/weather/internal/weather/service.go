@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"weather/internal/domain"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type Provider interface {
@@ -22,18 +24,43 @@ func NewService(p Provider) Service {
 }
 
 func (s Service) GetWeather(ctx context.Context, city string) (domain.Report, error) {
-	return s.provider.GetWeather(ctx, city)
+	logger := loggerPkg.From(ctx)
+	logger.Infow("getting weather data from provider", "city", city)
+
+	report, err := s.provider.GetWeather(ctx, city)
+	if err != nil {
+		if errors.Is(err, domain.ErrCityNotFound) {
+			logger.Warnw("city not found in provider", "city", city)
+		} else {
+			logger.Errorw("failed to get weather from provider", "city", city, "error", err)
+		}
+		return domain.Report{}, err
+	}
+
+	logger.Infow("weather data retrieved from provider",
+		"city", city,
+		"temperature", report.Temperature,
+		"humidity", report.Humidity,
+		"description", report.Description)
+
+	return report, nil
 }
 
 func (s Service) CityIsValid(ctx context.Context, city string) (bool, error) {
+	logger := loggerPkg.From(ctx)
+	logger.Infow("validating city with provider", "city", city)
+
 	valid, aggErr := s.provider.CityIsValid(ctx, city)
 	if aggErr == nil {
+		logger.Infow("city validation completed by provider", "city", city, "valid", valid)
 		return valid, nil
 	}
 
 	if errors.Is(aggErr, domain.ErrCityNotFound) {
+		logger.Warnw("city not found during validation", "city", city)
 		return false, domain.ErrCityNotFound
 	}
 
+	logger.Errorw("city validation failed", "city", city, "error", aggErr)
 	return false, fmt.Errorf("validation failed for city %q: %w", city, aggErr)
 }

@@ -111,7 +111,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	// HTTP
 	mux := http.NewServeMux()
 	weatherHandler := httpapi.NewHandler(weatherService)
-	httpapi.RegisterRoutes(mux, weatherHandler)
+	httpapi.RegisterRoutes(mux, weatherHandler, logger)
 
 	httpLis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {
@@ -127,7 +127,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(grpcapi.LoggingUnaryServerInterceptor()),
+		grpc.UnaryInterceptor(grpcapi.LoggingUnaryServerInterceptor(logger)),
 	)
 	grpcHandler := grpcapi.NewHandler(weatherService)
 	weatherpb.RegisterWeatherServiceServer(grpcServer, grpcHandler)
