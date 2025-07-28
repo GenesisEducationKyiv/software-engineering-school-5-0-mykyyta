@@ -2,13 +2,14 @@ package app
 
 import (
 	"context"
-	"email/internal/adapter/gmail"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"email/internal/adapter/gmail"
 
 	"email/internal/app/di"
 	"email/internal/delivery/consumer"

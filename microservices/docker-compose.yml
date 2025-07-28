@@ -151,21 +151,28 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./loki/promtail-config.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
-    depends_on:
-      - loki
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.0.0
     container_name: grafana
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
+      - grafana-data:/var/lib/grafana
       - ./weather/grafana/provisioning:/etc/grafana/provisioning
       - ./weather/grafana/dashboards:/etc/grafana/dashboards
     depends_on:
       - loki
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   loki-data:
+  grafana-data:
