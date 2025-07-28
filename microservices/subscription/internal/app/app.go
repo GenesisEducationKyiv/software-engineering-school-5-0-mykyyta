@@ -97,7 +97,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 	logger.Info("Verified RabbitMQ exchange")
 	rabbitPublisher := async.NewRabbitPublisher(rmqConn.Channel(), cfg.RabbitMQExchange)
-	emailClient := async.NewAsyncClient(rabbitPublisher)
+	emailClient := async.NewAsyncClient(rabbitPublisher, cfg.BaseURL)
 
 	// Weather client
 	var weatherClient subscription.WeatherClient

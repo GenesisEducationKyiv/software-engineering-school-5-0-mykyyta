@@ -2,14 +2,13 @@ package app
 
 import (
 	"context"
+	"email/internal/adapter/gmail"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"email/internal/adapter/sendgrid"
 
 	"email/internal/app/di"
 	"email/internal/delivery/consumer"
@@ -77,7 +76,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	emailProvider := sendgrid.New(cfg.SendGridKey, cfg.EmailFrom)
+	emailProvider := gmail.New(cfg.GmailAddr, cfg.GmailPass)
 	emailService := email.NewService(emailProvider, templateStore)
 
 	redisClient, err := infra.NewRedisClient(ctx, cfg)

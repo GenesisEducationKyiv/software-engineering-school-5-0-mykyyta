@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/smtp"
+	"strings"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
@@ -11,39 +12,37 @@ import (
 type Gmail struct {
 	username string
 	password string
-	host     string
-	port     string
 }
 
 func New(username, password string) *Gmail {
 	return &Gmail{
 		username: username,
 		password: password,
-		host:     "smtp.gmail.com",
-		port:     "587",
 	}
 }
 
-func (g *Gmail) Send(ctx context.Context, to, subject, _ string, html string) error {
-	loggerPkg.From(ctx).Info("Sending email via Gmail SMTP", "to", to, "host", g.host)
+func (g *Gmail) Send(ctx context.Context, to, subject, plain, html string) error {
+	logger := loggerPkg.From(ctx)
 
-	addr := g.host + ":" + g.port
+	auth := smtp.PlainAuth("", g.username, g.password, "smtp.gmail.com")
 
-	auth := smtp.PlainAuth("", g.username, g.password, g.host)
+	var msg strings.Builder
+	msg.WriteString(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n", g.username, to, subject))
 
-	msg := fmt.Sprintf(
-		"From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/html; charset=\"UTF-8\"\r\n\r\n%s",
-		g.username,
-		to,
-		subject,
-		html,
-	)
-
-	if err := smtp.SendMail(addr, auth, g.username, []string{to}, []byte(msg)); err != nil {
-		loggerPkg.From(ctx).Error("Gmail SMTP send failed", "to", to, "host", addr, "err", err)
-		return err
+	if html != "" {
+		msg.WriteString("MIME-Version: 1.0\r\n")
+		msg.WriteString("Content-Type: text/html; charset=UTF-8\r\n\r\n")
+		msg.WriteString(html)
+	} else {
+		msg.WriteString("Content-Type: text/plain; charset=UTF-8\r\n\r\n")
+		msg.WriteString(plain)
 	}
 
-	loggerPkg.From(ctx).Info("Email sent successfully via Gmail", "to", to)
+	if err := smtp.SendMail("smtp.gmail.com:587", auth, g.username, []string{to}, []byte(msg.String())); err != nil {
+		logger.Error("Gmail SMTP failed", "err", err)
+		return fmt.Errorf("gmail send failed: %w", err)
+	}
+
+	logger.Debug("Email sent via Gmail")
 	return nil
 }
