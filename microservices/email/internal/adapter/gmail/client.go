@@ -12,19 +12,23 @@ import (
 type Gmail struct {
 	username string
 	password string
+	host     string
+	port     string
 }
 
 func New(username, password string) *Gmail {
 	return &Gmail{
 		username: username,
 		password: password,
+		host:     "smtp.gmail.com",
+		port:     "587",
 	}
 }
 
 func (g *Gmail) Send(ctx context.Context, to, subject, plain, html string) error {
 	logger := loggerPkg.From(ctx)
 
-	auth := smtp.PlainAuth("", g.username, g.password, "smtp.gmail.com")
+	auth := smtp.PlainAuth("", g.username, g.password, g.host)
 
 	var msg strings.Builder
 	msg.WriteString(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n", g.username, to, subject))
@@ -38,7 +42,8 @@ func (g *Gmail) Send(ctx context.Context, to, subject, plain, html string) error
 		msg.WriteString(plain)
 	}
 
-	if err := smtp.SendMail("smtp.gmail.com:587", auth, g.username, []string{to}, []byte(msg.String())); err != nil {
+	smtpAddr := fmt.Sprintf("%s:%s", g.host, g.port)
+	if err := smtp.SendMail(smtpAddr, auth, g.username, []string{to}, []byte(msg.String())); err != nil {
 		logger.Error("Gmail SMTP failed", "err", err)
 		return fmt.Errorf("gmail send failed: %w", err)
 	}
