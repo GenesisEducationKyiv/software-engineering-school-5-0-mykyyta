@@ -1,31 +1,12 @@
 {
   "id": null,
-  "title": "Microservices RED + USE Metrics",
-  "tags": ["microservices", "red", "use", "training"],
+  "title": "Essential Microservices Monitoring",
+  "tags": ["microservices", "essential", "monitoring"],
   "timezone": "browser",
   "panels": [
     {
       "id": 1,
-      "title": "RED: Request Rate (requests/min)",
-      "type": "timeseries",
-      "targets": [
-        {
-          "expr": "sum by (service) (count_over_time({job=\"containerlogs\"} | json | msg=~\".*HTTP request.*|.*Message received.*\" [1m]))",
-          "refId": "A",
-          "legendFormat": "{{service}} Requests"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "color": {"mode": "palette-classic"}
-        }
-      },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
-    },
-    {
-      "id": 2,
-      "title": "RED: Error Rate (%)",
+      "title": "Error Rate (%)",
       "type": "timeseries",
       "targets": [
         {
@@ -47,183 +28,10 @@
           }
         }
       },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
     },
     {
-      "id": 3,
-      "title": "RED: Response Duration (ms)",
-      "type": "timeseries",
-      "targets": [
-        {
-          "expr": "avg_over_time({job=\"containerlogs\"} | json | duration_ms != \"\" | unwrap duration_ms [5m])",
-          "refId": "A",
-          "legendFormat": "Avg Response Time"
-        },
-        {
-          "expr": "quantile_over_time(0.95, {job=\"containerlogs\"} | json | duration_ms != \"\" | unwrap duration_ms [5m])",
-          "refId": "B",
-          "legendFormat": "95th Percentile"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "color": {"mode": "palette-classic"}
-        }
-      },
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
-    },
-    {
-      "id": 4,
-      "title": "USE: Service Utilization",
-      "type": "stat",
-      "targets": [
-        {
-          "expr": "sum by (service) (count_over_time({job=\"containerlogs\"} | json | msg=~\".*started.*|.*running.*\" [5m]))",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "steps": [
-              {"color": "red", "value": 0},
-              {"color": "yellow", "value": 1},
-              {"color": "green", "value": 3}
-            ]
-          },
-          "mappings": [
-            {
-              "options": {
-                "0": {"text": "Down", "color": "red"},
-                "1": {"text": "Starting", "color": "yellow"}
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "from": 2,
-                "to": 999,
-                "result": {"text": "Healthy", "color": "green"}
-              },
-              "type": "range"
-            }
-          ]
-        }
-      },
-      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 16}
-    },
-    {
-      "id": 5,
-      "title": "USE: Queue Saturation",
-      "type": "timeseries",
-      "targets": [
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\", container_name=~\".*email.*\"} | json | msg=\"Circuit breaker is open\" [1m]))",
-          "refId": "A",
-          "legendFormat": "Circuit Breaker Open"
-        },
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\"} | json | msg=~\".*Slow.*processing.*\" [1m]))",
-          "refId": "B",
-          "legendFormat": "Slow Operations"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"}
-        }
-      },
-      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 16}
-    },
-    {
-      "id": 6,
-      "title": "USE: Resource Errors",
-      "type": "timeseries",
-      "targets": [
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\"} | json | msg=~\".*connection.*failed.*|.*timeout.*|.*refused.*\" [1m]))",
-          "refId": "A",
-          "legendFormat": "Connection Errors"
-        },
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\"} | json | msg=~\".*database.*error.*|.*query.*failed.*\" [1m]))",
-          "refId": "B",
-          "legendFormat": "Database Errors"
-        }
-      ],
-      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 16}
-    },
-    {
-      "id": 7,
-      "title": "Business Metrics: Email Operations",
-      "type": "timeseries",
-      "targets": [
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\"} | json | template=\"confirmation\" [1m]))",
-          "refId": "A",
-          "legendFormat": "Confirmation Emails"
-        },
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\"} | json | template=\"weather_report\" [1m]))",
-          "refId": "B",
-          "legendFormat": "Weather Reports"
-        },
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\"} | json | msg=~\"Email sent.*Gmail\" [1m]))",
-          "refId": "C",
-          "legendFormat": "Successfully Sent"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 22}
-    },
-    {
-      "id": 8,
-      "title": "Business Metrics: Subscription Activity",
-      "type": "timeseries",
-      "targets": [
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\"} | json | msg=~\".*POST /api/subscribe.*\" [1m]))",
-          "refId": "A",
-          "legendFormat": "New Subscriptions"
-        },
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\"} | json | msg=~\".*GET /api/confirm.*\" [1m]))",
-          "refId": "B",
-          "legendFormat": "Confirmations"
-        },
-        {
-          "expr": "sum(count_over_time({job=\"containerlogs\"} | json | msg=~\".*GET /api/unsubscribe.*\" [1m]))",
-          "refId": "C",
-          "legendFormat": "Unsubscriptions"
-        }
-      ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22}
-    },
-    {
-      "id": 9,
-      "title": "Critical Errors (Last 15 minutes)",
-      "type": "logs",
-      "targets": [
-        {
-          "expr": "{job=\"containerlogs\"} | json | level=\"error\" | line_format \"{{.ts}} [{{.service}}] {{.msg}}\"",
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "showLabels": false,
-        "showCommonLabels": true,
-        "wrapLogMessage": true,
-        "prettifyLogMessage": false,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
-      },
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 30}
-    },
-    {
-      "id": 10,
+      "id": 2,
       "title": "System Health Overview",
       "type": "stat",
       "targets": [
@@ -260,7 +68,29 @@
           ]
         }
       },
-      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 38}
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 8}
+    },
+    {
+      "id": 3,
+      "title": "Critical Errors (Last 15 minutes)",
+      "type": "logs",
+      "targets": [
+        {
+          "expr": "{job=\"containerlogs\"} | json | level=\"error\" | line_format \"{{.ts}} [{{.service}}] {{.msg}}\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": true,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 14}
     }
   ],
   "time": {
@@ -270,14 +100,6 @@
   "refresh": "30s",
   "annotations": {
     "list": [
-      {
-        "name": "Service Restarts",
-        "datasource": "Loki",
-        "enable": true,
-        "expr": "{job=\"containerlogs\"} | json | msg=~\".*started.*|.*Starting.*\"",
-        "iconColor": "blue",
-        "textFormat": "{{service}} restarted"
-      },
       {
         "name": "Critical Errors",
         "datasource": "Loki",
