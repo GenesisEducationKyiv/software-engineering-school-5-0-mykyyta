@@ -3,6 +3,7 @@ package gmail
 import (
 	"context"
 	"fmt"
+	"mime"
 	"net/smtp"
 	"strings"
 
@@ -31,7 +32,8 @@ func (g *Gmail) Send(ctx context.Context, to, subject, plain, html string) error
 	auth := smtp.PlainAuth("", g.username, g.password, g.host)
 
 	var msg strings.Builder
-	msg.WriteString(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n", g.username, to, subject))
+	encodedSubject := mime.QEncoding.Encode("utf-8", subject)
+	msg.WriteString(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n", g.username, to, encodedSubject))
 
 	if html != "" {
 		msg.WriteString("MIME-Version: 1.0\r\n")
