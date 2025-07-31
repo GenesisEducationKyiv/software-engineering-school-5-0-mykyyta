@@ -50,6 +50,9 @@ func (g *Gmail) Send(ctx context.Context, to, subject, plain, html string) error
 		return fmt.Errorf("gmail send failed: %w", err)
 	}
 
-	logger.Debug("Email sent via Gmail")
+	logger.Debug("Email sent via Gmail",
+		"to", to,
+		"subject", subject,
+		"has_html", html != "")
 	return nil
 }
