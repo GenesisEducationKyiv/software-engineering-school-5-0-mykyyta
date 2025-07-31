@@ -10,6 +10,9 @@ import (
 
 func main() {
 	env := os.Getenv("ENV")
+	if env == "" {
+		env = "production"
+	}
 	logger, err := loggerPkg.New(loggerPkg.Config{
 		Service: "weather",
 		Env:     env,

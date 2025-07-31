@@ -12,27 +12,22 @@ type Config struct {
 	Level   string
 }
 
-// Logger wraps zap.SugaredLogger with convenient methods
 type Logger struct {
 	sugar *zap.SugaredLogger
 	base  *zap.Logger
 }
 
-// New creates a new Logger instance
 func New(cfg Config) (*Logger, error) {
 	var logger *zap.Logger
 	var err error
 
 	if cfg.Env == "dev" || cfg.Env == "development" {
-		// Development: красивий вивід в консоль
 		logger, err = zap.NewDevelopment()
 	} else {
-		// Production: JSON формат для Loki
 		config := zap.NewProductionConfig()
 		config.OutputPaths = []string{"stdout"}
 		config.ErrorOutputPaths = []string{"stderr"}
 
-		// Встановлюємо log level якщо вказано
 		if cfg.Level != "" {
 			if level, parseErr := zapcore.ParseLevel(cfg.Level); parseErr == nil {
 				config.Level = zap.NewAtomicLevelAt(level)
