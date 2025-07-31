@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 	"subscription/internal/domain"
 )
 
@@ -21,10 +22,11 @@ func NewAsyncClient(publisher Publisher, baseURL string) *Client {
 }
 
 type EmailMessage struct {
-	IdKey    string            `json:"-"`
-	To       string            `json:"to"`
-	Template string            `json:"template"`
-	Data     map[string]string `json:"data"`
+	IdKey         string            `json:"-"`
+	CorrelationID string            `json:"correlation_id"`
+	To            string            `json:"to"`
+	Template      string            `json:"template"`
+	Data          map[string]string `json:"data"`
 }
 
 func (m EmailMessage) GetIdKey() string { return m.IdKey }
@@ -33,10 +35,11 @@ func (c *Client) SendConfirmationEmail(ctx context.Context, email, token, idKey 
 	confirmURL := fmt.Sprintf("%s/api/confirm/%s", c.baseURL, token)
 
 	msg := EmailMessage{
-		IdKey:    idKey,
-		To:       email,
-		Template: "confirmation",
-		Data:     map[string]string{"confirm_url": confirmURL},
+		IdKey:         idKey,
+		CorrelationID: loggerPkg.GetCorrelationID(ctx),
+		To:            email,
+		Template:      "confirmation",
+		Data:          map[string]string{"confirm_url": confirmURL},
 	}
 	return c.publisher.Publish(ctx, "email.confirmation", msg)
 }
@@ -45,9 +48,10 @@ func (c *Client) SendWeatherReport(ctx context.Context, email string, weather do
 	unsubscribeURL := fmt.Sprintf("%s/api/unsubscribe/%s", c.baseURL, token)
 
 	msg := EmailMessage{
-		IdKey:    idKey,
-		To:       email,
-		Template: "weather_report",
+		IdKey:         idKey,
+		CorrelationID: loggerPkg.GetCorrelationID(ctx),
+		To:            email,
+		Template:      "weather_report",
 		Data: map[string]string{
 			"temperature":     fmt.Sprintf("%.2f", weather.Temperature),
 			"humidity":        fmt.Sprintf("%d", weather.Humidity),

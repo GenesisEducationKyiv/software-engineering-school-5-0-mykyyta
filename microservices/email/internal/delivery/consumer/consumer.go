@@ -11,6 +11,7 @@ import (
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -76,17 +77,37 @@ func (c *Consumer) Start(ctx context.Context) error {
 	}
 }
 
+func extractCorrelationID(msgBody []byte) string {
+	var msgData struct {
+		CorrelationID string `json:"correlation_id"`
+	}
+
+	if err := json.Unmarshal(msgBody, &msgData); err == nil && msgData.CorrelationID != "" {
+		return msgData.CorrelationID
+	}
+
+	// Якщо немає correlation ID, генеруємо новий для цього повідомлення
+	return "email-" + uuid.New().String()[:8]
+}
+
 func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
 	logger := loggerPkg.From(ctx)
 
-	id := msg.MessageId
-	if id == "" {
+	messageId := msg.MessageId
+	if messageId == "" {
 		logger.Warn("Skipping message without ID", "routing_key", msg.RoutingKey)
 		_ = msg.Nack(false, false)
 		return
 	}
 
-	enrichedLogger := logger.With("message_id", id)
+	correlationID := extractCorrelationID(msg.Body)
+
+	enrichedLogger := logger.With(
+		"message_id", messageId,
+		"correlation_id", correlationID,
+	)
+
+	ctx = loggerPkg.WithCorrelationID(ctx, correlationID)
 	ctx = loggerPkg.With(ctx, enrichedLogger)
 
 	enrichedLogger.Debug("Message received", "routing_key", msg.RoutingKey)
@@ -100,7 +121,7 @@ func (c *Consumer) handle(ctx context.Context, msg amqp.Delivery) {
 	}
 
 	start := time.Now()
-	err := c.processIdempotently(ctx, id, msg)
+	err := c.processIdempotently(ctx, messageId, msg)
 	duration := time.Since(start)
 
 	if err != nil {

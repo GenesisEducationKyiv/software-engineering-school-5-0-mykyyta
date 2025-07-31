@@ -9,6 +9,8 @@ import (
 )
 
 type ctxKey struct{}
+type requestIDKey struct{}
+type correlationIDKey struct{}
 
 // With adds a logger to the context
 func With(ctx context.Context, log *Logger) context.Context {
@@ -29,6 +31,36 @@ func From(ctx context.Context) *Logger {
 		sugar: nopCore.Sugar(),
 		base:  nopCore,
 	}
+}
+
+// WithRequestID adds a request ID to the context (technical tracing within service)
+func WithRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, requestIDKey{}, requestID)
+}
+
+// GetRequestID retrieves a request ID from the context
+func GetRequestID(ctx context.Context) string {
+	if v := ctx.Value(requestIDKey{}); v != nil {
+		if reqID, ok := v.(string); ok {
+			return reqID
+		}
+	}
+	return ""
+}
+
+// WithCorrelationID adds a correlation ID to the context (business process tracing)
+func WithCorrelationID(ctx context.Context, correlationID string) context.Context {
+	return context.WithValue(ctx, correlationIDKey{}, correlationID)
+}
+
+// GetCorrelationID retrieves a correlation ID from the context
+func GetCorrelationID(ctx context.Context) string {
+	if v := ctx.Value(correlationIDKey{}); v != nil {
+		if corrID, ok := v.(string); ok {
+			return corrID
+		}
+	}
+	return ""
 }
 
 // HashEmail creates a short hash of an email for logging (privacy-safe)

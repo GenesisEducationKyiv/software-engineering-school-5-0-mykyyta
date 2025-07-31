@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const RequestIDKey = "x-request-id"
+const CorrelationIDKey = "x-correlation-id"
 
 func LoggingUnaryServerInterceptor(baseLogger *loggerPkg.Logger) grpc.UnaryServerInterceptor {
 	return func(
@@ -21,22 +21,28 @@ func LoggingUnaryServerInterceptor(baseLogger *loggerPkg.Logger) grpc.UnaryServe
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (resp interface{}, err error) {
-		var reqID string
+		reqID := uuid.New().String()
+
+		var corrID string
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
-			if values := md.Get(RequestIDKey); len(values) > 0 {
-				reqID = values[0]
+			if values := md.Get(CorrelationIDKey); len(values) > 0 {
+				corrID = values[0]
 			}
 		}
-		if reqID == "" {
-			reqID = uuid.New().String()
+		if corrID == "" {
+			corrID = "weather-" + uuid.New().String()[:8]
 		}
 
-		// Use the passed base logger instead of creating a new one
-		logger := baseLogger.With("request_id", reqID)
+		logger := baseLogger.With("request_id", reqID, "correlation_id", corrID)
+
+		ctx = loggerPkg.WithRequestID(ctx, reqID)
+		ctx = loggerPkg.WithCorrelationID(ctx, corrID)
 		ctx = loggerPkg.With(ctx, logger)
 
-		if err := grpc.SetHeader(ctx, metadata.Pairs(RequestIDKey, reqID)); err != nil {
-			logger.Warn("failed to set request ID header", "error", err)
+		if err := grpc.SetHeader(ctx, metadata.Pairs(
+			CorrelationIDKey, corrID,
+		)); err != nil {
+			logger.Warn("failed to set correlation header", "error", err)
 		}
 
 		start := time.Now()

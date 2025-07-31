@@ -5,12 +5,11 @@ import (
 	"time"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
-
 	"github.com/google/uuid"
 )
 
 const (
-	requestIDHeader string = "X-Request-ID"
+	CorrelationIDKey = "X-Correlation-Id"
 )
 
 type responseWriter struct {
@@ -25,15 +24,20 @@ func (rw *responseWriter) WriteHeader(code int) {
 
 func RequestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqID := r.Header.Get(requestIDHeader)
-		if reqID == "" {
-			reqID = uuid.NewString()
+		reqID := uuid.New().String()
+
+		corrID := r.Header.Get(CorrelationIDKey)
+		if corrID == "" {
+			corrID = "email-" + uuid.New().String()[:8]
 		}
 
-		logger := loggerPkg.From(r.Context()).With("request_id", reqID)
-		ctx := loggerPkg.With(r.Context(), logger)
+		w.Header().Set(CorrelationIDKey, corrID)
 
-		w.Header().Set(requestIDHeader, reqID)
+		logger := loggerPkg.From(r.Context()).With("request_id", reqID, "correlation_id", corrID)
+
+		ctx := loggerPkg.WithRequestID(r.Context(), reqID)
+		ctx = loggerPkg.WithCorrelationID(ctx, corrID)
+		ctx = loggerPkg.With(ctx, logger)
 
 		start := time.Now()
 		ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}

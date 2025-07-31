@@ -9,20 +9,24 @@ import (
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
-const RequestIDKey = "X-Request-Id"
+const CorrelationIDKey = "X-Correlation-Id"
 
 func RequestLoggingMiddleware(baseLogger *loggerPkg.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		reqID := c.GetHeader(RequestIDKey)
-		if reqID == "" {
-			reqID = uuid.New().String()
+		reqID := uuid.New().String()
+
+		corrID := c.GetHeader(CorrelationIDKey)
+		if corrID == "" {
+			corrID = generateCorrelationID(c)
 		}
 
-		c.Writer.Header().Set(RequestIDKey, reqID)
+		c.Writer.Header().Set(CorrelationIDKey, corrID)
 
-		contextLogger := baseLogger.With("request_id", reqID)
+		contextLogger := baseLogger.With("request_id", reqID, "correlation_id", corrID)
 
-		ctx := loggerPkg.With(c.Request.Context(), contextLogger)
+		ctx := loggerPkg.WithRequestID(c.Request.Context(), reqID)
+		ctx = loggerPkg.WithCorrelationID(ctx, corrID)
+		ctx = loggerPkg.With(ctx, contextLogger)
 		c.Request = c.Request.WithContext(ctx)
 
 		start := time.Now()
@@ -46,5 +50,25 @@ func RequestLoggingMiddleware(baseLogger *loggerPkg.Logger) gin.HandlerFunc {
 		} else {
 			contextLogger.Debug("http request", logFields...)
 		}
+	}
+}
+
+func generateCorrelationID(c *gin.Context) string {
+	operation := getOperationType(c)
+	return operation + "-" + uuid.New().String()[:8]
+}
+
+func getOperationType(c *gin.Context) string {
+	switch c.Request.URL.Path {
+	case "/subscribe":
+		return "sub"
+	case "/unsubscribe":
+		return "unsub"
+	case "/confirm":
+		return "confirm"
+	case "/weather":
+		return "weather"
+	default:
+		return "req"
 	}
 }

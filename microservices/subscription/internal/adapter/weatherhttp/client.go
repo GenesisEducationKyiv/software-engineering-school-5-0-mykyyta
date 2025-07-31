@@ -96,6 +96,10 @@ func (c *Client) doRequest(ctx context.Context, method, url string) (*http.Respo
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
+	if correlationID := loggerPkg.GetCorrelationID(ctx); correlationID != "" {
+		req.Header.Set("X-Correlation-Id", correlationID)
+	}
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)

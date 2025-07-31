@@ -63,7 +63,13 @@ func (e *Client) send(ctx context.Context, req Request) error {
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+
 	httpReq.Header.Set("Content-Type", "application/json")
+
+	if correlationID := loggerPkg.GetCorrelationID(ctx); correlationID != "" {
+		httpReq.Header.Set("X-Correlation-Id", correlationID)
+	}
+
 	resp, err := e.client.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to send email request: %w", err)

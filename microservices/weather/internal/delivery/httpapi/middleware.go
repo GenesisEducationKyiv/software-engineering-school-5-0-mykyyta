@@ -8,21 +8,25 @@ import (
 	"github.com/google/uuid"
 )
 
-const RequestIDKey = "X-Request-Id"
+const CorrelationIDKey = "X-Correlation-Id"
 
 func loggingMiddleware(baseLogger *loggerPkg.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			reqID := r.Header.Get(RequestIDKey)
-			if reqID == "" {
-				reqID = uuid.New().String()
+			reqID := uuid.New().String()
+
+			corrID := r.Header.Get(CorrelationIDKey)
+			if corrID == "" {
+				corrID = "weather-" + uuid.New().String()[:8]
 			}
 
-			w.Header().Set(RequestIDKey, reqID)
+			w.Header().Set(CorrelationIDKey, corrID)
 
-			// Use the passed base logger instead of creating a new one
-			logger := baseLogger.With("request_id", reqID)
-			ctx := loggerPkg.With(r.Context(), logger)
+			logger := baseLogger.With("request_id", reqID, "correlation_id", corrID)
+
+			ctx := loggerPkg.WithRequestID(r.Context(), reqID)
+			ctx = loggerPkg.WithCorrelationID(ctx, corrID)
+			ctx = loggerPkg.With(ctx, logger)
 
 			start := time.Now()
 			ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
