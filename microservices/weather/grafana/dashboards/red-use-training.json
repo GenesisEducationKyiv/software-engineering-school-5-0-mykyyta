@@ -28,7 +28,61 @@
           }
         }
       },
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "id": 4,
+      "title": "Request Duration Scatter Plot (Excluding Health Checks)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "avg_over_time({job=\"containerlogs\"} | json | msg=\"http request\" | path !~ \".*/health.*\" | unwrap duration_ms [1s])",
+          "refId": "A",
+          "legendFormat": "Request Duration"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "custom": {
+            "drawStyle": "points",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 0,
+            "fillOpacity": 0,
+            "pointSize": 5,
+            "spanNulls": false,
+            "showPoints": "always",
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      }
     },
     {
       "id": 2,

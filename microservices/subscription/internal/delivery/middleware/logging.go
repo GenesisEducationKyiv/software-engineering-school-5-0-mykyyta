@@ -41,14 +41,16 @@ func RequestLoggingMiddleware(baseLogger *loggerPkg.Logger) gin.HandlerFunc {
 			"duration_ms", duration.Milliseconds(),
 		}
 
+		finalLogger := loggerPkg.From(c.Request.Context())
+
 		if status >= 500 {
-			contextLogger.Error("http request failed", logFields...)
+			finalLogger.Error("http request failed", logFields...)
 		} else if status >= 400 {
-			contextLogger.Warn("http request client error", logFields...)
+			finalLogger.Warn("http request client error", logFields...)
 		} else if duration > 1000*time.Millisecond {
-			contextLogger.Warn("slow http request", logFields...)
+			finalLogger.Warn("slow http request", logFields...)
 		} else {
-			contextLogger.Debug("http request", logFields...)
+			finalLogger.Info("http request", logFields...)
 		}
 	}
 }

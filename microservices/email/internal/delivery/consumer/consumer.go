@@ -79,14 +79,13 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 func extractCorrelationID(msgBody []byte) string {
 	var msgData struct {
-		CorrelationID string `json:"correlation_id"`
+		CorrelationID string `json:"correlation_id"` //nolint:tagliatelle
 	}
 
 	if err := json.Unmarshal(msgBody, &msgData); err == nil && msgData.CorrelationID != "" {
 		return msgData.CorrelationID
 	}
 
-	// Якщо немає correlation ID, генеруємо новий для цього повідомлення
 	return "email-" + uuid.New().String()[:8]
 }
 

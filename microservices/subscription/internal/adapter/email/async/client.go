@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 	"subscription/internal/domain"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type Publisher interface {
@@ -23,7 +24,7 @@ func NewAsyncClient(publisher Publisher, baseURL string) *Client {
 
 type EmailMessage struct {
 	IdKey         string            `json:"-"`
-	CorrelationID string            `json:"correlation_id"`
+	CorrelationID string            `json:"correlation_id"` //nolint:tagliatelle
 	To            string            `json:"to"`
 	Template      string            `json:"template"`
 	Data          map[string]string `json:"data"`

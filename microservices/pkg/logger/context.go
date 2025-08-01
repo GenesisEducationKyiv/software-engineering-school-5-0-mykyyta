@@ -8,9 +8,11 @@ import (
 	"go.uber.org/zap"
 )
 
-type ctxKey struct{}
-type requestIDKey struct{}
-type correlationIDKey struct{}
+type (
+	ctxKey           struct{}
+	requestIDKey     struct{}
+	correlationIDKey struct{}
+)
 
 // With adds a logger to the context
 func With(ctx context.Context, log *Logger) context.Context {
