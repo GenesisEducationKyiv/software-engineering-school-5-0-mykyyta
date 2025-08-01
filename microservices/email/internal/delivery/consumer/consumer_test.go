@@ -51,8 +51,8 @@ type mockUseCase struct {
 	mock.Mock
 }
 
-func (m *mockUseCase) Send(req domain.SendEmailRequest) error {
-	args := m.Called(req)
+func (m *mockUseCase) Send(ctx context.Context, req domain.SendEmailRequest) error {
+	args := m.Called(ctx, req)
 	return args.Error(0)
 }
 
@@ -91,17 +91,17 @@ type mockBreaker struct {
 	mock.Mock
 }
 
-func (m *mockBreaker) CanExecute() bool {
-	args := m.Called()
+func (m *mockBreaker) CanExecute(ctx context.Context) bool {
+	args := m.Called(ctx)
 	return args.Bool(0)
 }
 
-func (m *mockBreaker) RecordSuccess() {
-	m.Called()
+func (m *mockBreaker) RecordSuccess(ctx context.Context) {
+	m.Called(ctx)
 }
 
-func (m *mockBreaker) RecordFailure() {
-	m.Called()
+func (m *mockBreaker) RecordFailure(ctx context.Context) {
+	m.Called(ctx)
 }
 
 func TestConsumer_Handle_Success(t *testing.T) {
@@ -137,18 +137,18 @@ func TestConsumer_Handle_Success(t *testing.T) {
 	idem.On("ClearProcessing", mock.Anything, "msg-1").Return(nil)
 
 	useCase := new(mockUseCase)
-	useCase.On("Send", req).Return(nil)
+	useCase.On("Send", mock.Anything, req).Return(nil)
 
 	logger := new(mockLogger)
 	logger.On("Println", mock.Anything).Maybe()
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
 
 	breaker := new(mockBreaker)
-	breaker.On("CanExecute").Return(true)
-	breaker.On("RecordSuccess").Return()
-	breaker.On("RecordFailure").Return()
+	breaker.On("CanExecute", mock.Anything).Return(true)
+	breaker.On("RecordSuccess", mock.Anything).Return()
+	breaker.On("RecordFailure", mock.Anything).Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 
 	go func() {
 		_ = c.Start(ctx)
@@ -189,11 +189,11 @@ func TestConsumer_AlreadyProcessed(t *testing.T) {
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
 
 	breaker := new(mockBreaker)
-	breaker.On("CanExecute").Return(true)
-	breaker.On("RecordSuccess").Return()
-	breaker.On("RecordFailure").Return()
+	breaker.On("CanExecute", mock.Anything).Return(true)
+	breaker.On("RecordSuccess", mock.Anything).Return()
+	breaker.On("RecordFailure", mock.Anything).Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 	go func() { _ = c.Start(ctx) }()
 	time.Sleep(50 * time.Millisecond)
 
@@ -231,11 +231,11 @@ func TestConsumer_InvalidJSON(t *testing.T) {
 	logger.On("Println", mock.Anything).Maybe()
 
 	breaker := new(mockBreaker)
-	breaker.On("CanExecute").Return(true)
-	breaker.On("RecordSuccess").Return()
-	breaker.On("RecordFailure").Return()
+	breaker.On("CanExecute", mock.Anything).Return(true)
+	breaker.On("RecordSuccess", mock.Anything).Return()
+	breaker.On("RecordFailure", mock.Anything).Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 	go func() { _ = c.Start(ctx) }()
 	time.Sleep(50 * time.Millisecond)
 
@@ -270,18 +270,18 @@ func TestConsumer_SendFails(t *testing.T) {
 	idem.On("ClearProcessing", mock.Anything, "msg-3").Return(nil)
 
 	useCase := new(mockUseCase)
-	useCase.On("Send", req).Return(fmt.Errorf("failed"))
+	useCase.On("Send", mock.Anything, req).Return(fmt.Errorf("failed"))
 
 	logger := new(mockLogger)
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
 	logger.On("Println", mock.Anything).Maybe()
 
 	breaker := new(mockBreaker)
-	breaker.On("CanExecute").Return(true)
-	breaker.On("RecordSuccess").Return()
-	breaker.On("RecordFailure").Return()
+	breaker.On("CanExecute", mock.Anything).Return(true)
+	breaker.On("RecordSuccess", mock.Anything).Return()
+	breaker.On("RecordFailure", mock.Anything).Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 	go func() { _ = c.Start(ctx) }()
 	time.Sleep(50 * time.Millisecond)
 
@@ -330,7 +330,7 @@ func TestConsumer_ConcurrentProcessing(t *testing.T) {
 
 	useCase := new(mockUseCase)
 	for _, req := range requests {
-		useCase.On("Send", req).Return(nil)
+		useCase.On("Send", mock.Anything, req).Return(nil)
 	}
 
 	logger := new(mockLogger)
@@ -338,11 +338,11 @@ func TestConsumer_ConcurrentProcessing(t *testing.T) {
 	logger.On("Printf", mock.Anything, mock.Anything).Maybe()
 
 	breaker := new(mockBreaker)
-	breaker.On("CanExecute").Return(true)
-	breaker.On("RecordSuccess").Return()
-	breaker.On("RecordFailure").Return()
+	breaker.On("CanExecute", mock.Anything).Return(true)
+	breaker.On("RecordSuccess", mock.Anything).Return()
+	breaker.On("RecordFailure", mock.Anything).Return()
 
-	c := consumer.NewConsumer(source, useCase, idem, logger, breaker)
+	c := consumer.NewConsumer(source, useCase, idem, breaker)
 
 	go func() {
 		_ = c.Start(ctx)

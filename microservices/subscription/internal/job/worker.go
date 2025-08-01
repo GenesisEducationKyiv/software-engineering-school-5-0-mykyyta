@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"time"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type Task struct {
@@ -35,45 +36,45 @@ func NewWorker(queue taskSource, subservice taskService) *Worker {
 }
 
 func (w *Worker) Start(ctx context.Context) {
-	log.Println("[Worker] Started")
+	logger := loggerPkg.From(ctx)
 
 	for {
 		task, err := w.queue.Dequeue(ctx)
 		if err != nil {
 			switch {
 			case errors.Is(err, context.Canceled):
-				log.Println("[Worker] Shutdown signal received. Stopping...")
+				logger.Info("Worker shutdown signal received")
 				return
 			case errors.Is(err, io.EOF):
-				log.Println("[Worker] Queue closed. Exiting.")
+				logger.Info("Queue closed, worker exiting")
 				return
 			default:
-				log.Printf("[Worker] Failed to dequeue task: %v", err)
+				logger.Error("Failed to dequeue task: %v", err)
 				continue
 			}
 		}
 
 		if task.Email == "" {
-			log.Println("[Worker] Empty email in task. Skipping.")
+			logger.Warn("Empty email in task, skipping")
 			continue
 		}
 
-		go func(t Task) {
-			taskCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		go func(parentCtx context.Context, t Task) {
+			taskCtx, cancel := context.WithTimeout(parentCtx, 30*time.Second)
 			defer cancel()
-
 			defer func() {
 				if r := recover(); r != nil {
-					log.Printf("[Worker] Panic recovered while handling task for %s: %v", t.Email, r)
+					logger := loggerPkg.From(taskCtx)
+					logger.Error("Panic recovered while handling task for %s: %v", t.Email, r)
 				}
 			}()
-
+			logger := loggerPkg.From(taskCtx)
 			err := w.subService.ProcessWeatherReportTask(taskCtx, t)
 			if err != nil {
-				log.Printf("[Worker] failed to process task for %s: %v", t.Email, err)
+				logger.Error("Failed to process task", "email", t.Email, "error", err)
 			} else {
-				log.Printf("[Worker] successfully processed task for %s", t.Email)
+				logger.Info("Task processed", "email", t.Email)
 			}
-		}(task)
+		}(ctx, task)
 	}
 }

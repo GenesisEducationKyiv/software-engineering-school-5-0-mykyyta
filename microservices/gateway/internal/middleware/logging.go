@@ -1,19 +1,89 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
 	"time"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
-func Logging(logger *log.Logger) func(http.Handler) http.Handler {
+func WithLogger(logger *loggerPkg.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := loggerPkg.With(r.Context(), logger)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	status  int
+	written bool
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	if !rw.written {
+		rw.status = code
+		rw.written = true
+	}
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Write(data []byte) (int, error) {
+	if !rw.written {
+		rw.status = http.StatusOK
+		rw.written = true
+	}
+	return rw.ResponseWriter.Write(data)
+}
+
+func Logging() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
+			requestID := GetRequestID(r.Context())
 
-			next.ServeHTTP(w, r)
+			ww := &responseWriter{
+				ResponseWriter: w,
+				status:         http.StatusOK,
+				written:        false,
+			}
 
-			logger.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+			next.ServeHTTP(ww, r)
+
+			dur := time.Since(start)
+			logger := loggerPkg.From(r.Context())
+
+			if ww.status >= 500 {
+				logger.Error("HTTP request failed",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", ww.status,
+					"duration_ms", dur.Milliseconds(),
+					"request_id", requestID)
+			} else if ww.status >= 400 {
+				logger.Warn("HTTP client error",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", ww.status,
+					"duration_ms", dur.Milliseconds(),
+					"request_id", requestID)
+			} else if dur > 1000*time.Millisecond {
+				logger.Warn("Slow HTTP request",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", ww.status,
+					"duration_ms", dur.Milliseconds(),
+					"request_id", requestID)
+			} else {
+				logger.Debug("HTTP request",
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", ww.status,
+					"duration_ms", dur.Milliseconds(),
+					"request_id", requestID)
+			}
 		})
 	}
 }

@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"strings"
 
 	"email/internal/domain"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type templateParts struct {
@@ -62,21 +65,37 @@ func Load(path string) (*Store, error) {
 	return store, nil
 }
 
-func (s *Store) Render(templateName domain.TemplateName, data map[string]string) (subject, plain, html string, err error) {
+func (s *Store) Render(ctx context.Context, templateName domain.TemplateName, data map[string]string) (subject, plain, html string, err error) {
+	logger := loggerPkg.From(ctx)
+
 	tmpl, ok := s.templates[templateName]
 	if !ok {
+		logger.Error("Template not found",
+			"template", templateName,
+			"available", len(s.templates))
 		return "", "", "", fmt.Errorf("template %s not found", templateName)
 	}
+
+	logger.Debug("Rendering template", "template", templateName)
 
 	var subjectBuf, plainBuf, htmlBuf bytes.Buffer
 
 	if err := tmpl.Subject.Execute(&subjectBuf, data); err != nil {
+		logger.Error("Template render failed",
+			"template", templateName,
+			"part", "subject")
 		return "", "", "", fmt.Errorf("render subject: %w", err)
 	}
 	if err := tmpl.Plain.Execute(&plainBuf, data); err != nil {
+		logger.Error("Template render failed",
+			"template", templateName,
+			"part", "plain")
 		return "", "", "", fmt.Errorf("render plain: %w", err)
 	}
 	if err := tmpl.HTML.Execute(&htmlBuf, data); err != nil {
+		logger.Error("Template render failed",
+			"template", templateName,
+			"part", "html")
 		return "", "", "", fmt.Errorf("render html: %w", err)
 	}
 

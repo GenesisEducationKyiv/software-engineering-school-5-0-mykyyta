@@ -77,10 +77,10 @@ type WeatherServiceServer interface {
 type UnimplementedWeatherServiceServer struct{}
 
 func (UnimplementedWeatherServiceServer) GetWeather(context.Context, *WeatherRequest) (*WeatherResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetWeather not implemented")
+	return nil, status.Error(codes.Unimplemented, "method GetWeather not implemented")
 }
 func (UnimplementedWeatherServiceServer) ValidateCity(context.Context, *ValidateRequest) (*ValidateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ValidateCity not implemented")
+	return nil, status.Error(codes.Unimplemented, "method ValidateCity not implemented")
 }
 func (UnimplementedWeatherServiceServer) mustEmbedUnimplementedWeatherServiceServer() {}
 func (UnimplementedWeatherServiceServer) testEmbeddedByValue()                        {}

@@ -3,7 +3,6 @@ package logger
 import (
 	"bytes"
 	"context"
-	"log"
 	"strings"
 	"testing"
 
@@ -38,10 +37,9 @@ func (f *FakeLogger) String() string {
 
 func TestLogger_GetWeather_LogsOutput(t *testing.T) {
 	fakeLog := &FakeLogger{}
-	logger := log.New(fakeLog, "", 0)
 
 	fake := &fakeProvider{}
-	logged := NewWrapper(fake, "FakeWeather", logger)
+	logged := NewWrapper(fake, "FakeWeather")
 
 	ctx := context.Background()
 	_, err := logged.GetWeather(ctx, "Kyiv")
@@ -57,10 +55,9 @@ func TestLogger_GetWeather_LogsOutput(t *testing.T) {
 
 func TestLogger_CityIsValid_LogsOutput(t *testing.T) {
 	fakeLog := &FakeLogger{}
-	logger := log.New(fakeLog, "", 0)
 
 	fake := &fakeProvider{}
-	logged := NewWrapper(fake, "FakeWeather", logger)
+	logged := NewWrapper(fake, "FakeWeather")
 
 	ctx := context.Background()
 	_, err := logged.CityIsValid(ctx, "London")

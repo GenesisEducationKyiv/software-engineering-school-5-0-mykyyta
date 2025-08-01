@@ -48,8 +48,7 @@ services:
   migrate:
     image: migrate/migrate:v4.16.2
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     env_file:
       - ./subscription/.env
     volumes:
@@ -65,66 +64,56 @@ services:
 
   email:
     build:
-      context: ./email
+      context: .
+      dockerfile: ./email/Dockerfile
     restart: on-failure
     depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      - redis
+      - rabbitmq
     ports:
       - "8081:8081"
     env_file:
       - ./email/.env
-    volumes:
-      - ./email/logs:/app/logs
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8081/health" ]
-      interval: 3s
+      interval: 30s
       timeout: 5s
       retries: 5
 
   weather:
     build:
-      context: ./weather
+      context: .
+      dockerfile: ./weather/Dockerfile
     restart: on-failure
     depends_on:
-      redis:
-        condition: service_healthy
+      - redis
     ports:
       - "8082:8082"
     env_file:
       - ./weather/.env
-    volumes:
-      - ./weather/logs:/app/logs
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8082/health" ]
-      interval: 3s
+      interval: 30s
       timeout: 5s
       retries: 5
 
   subscription:
     build:
-      context: ./subscription
+      context: .
+      dockerfile: ./subscription/Dockerfile
     restart: on-failure
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-      email:
-        condition: service_healthy
-      weather:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      - migrate
+      - email
+      - weather
+      - rabbitmq
     ports:
       - "8080:8080"
     env_file:
       - ./subscription/.env
-    volumes:
-      - ./subscription/logs:/app/logs
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8080/health" ]
-      interval: 3s
+      interval: 30s
       timeout: 5s
       retries: 5
 
@@ -138,14 +127,52 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
 
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki-data:/loki
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3100/ready" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./loki/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.1.0
     container_name: grafana
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
+      - grafana-data:/var/lib/grafana
       - ./weather/grafana/provisioning:/etc/grafana/provisioning
       - ./weather/grafana/dashboards:/etc/grafana/dashboards
+    depends_on:
+      - loki
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+volumes:
+  loki-data:
+  grafana-data:

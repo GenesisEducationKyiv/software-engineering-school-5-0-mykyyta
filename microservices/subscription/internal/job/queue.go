@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"sync"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type LocalQueue struct {
@@ -20,18 +21,19 @@ func NewLocalQueue(bufferSize int) *LocalQueue {
 }
 
 func (q *LocalQueue) Enqueue(ctx context.Context, task Task) error {
+	logger := loggerPkg.From(ctx)
 	if task.Email == "" {
-		log.Printf("[Queue] Skip enqueue: empty email (city=%q)", task.City)
+		logger.Warn("Skip enqueue: empty email", "city", task.City)
 		return fmt.Errorf("cannot enqueue task: missing email")
 	}
 
-	log.Printf("[Queue] Enqueuing task for: %q", task.Email)
+	logger.Info("Task enqueued", "email", task.Email)
 
 	select {
 	case q.queue <- task:
 		return nil
 	case <-ctx.Done():
-		log.Printf("[Queue] Context cancelled while enqueuing for: %q", task.Email)
+		logger.Warn("Enqueue cancelled by context", "email", task.Email)
 		return ctx.Err()
 	}
 }
@@ -48,8 +50,11 @@ func (q *LocalQueue) Dequeue(ctx context.Context) (Task, error) {
 	}
 }
 
-func (q *LocalQueue) Close() {
+func (q *LocalQueue) Close(ctx context.Context) {
+	logger := loggerPkg.From(ctx)
+	logger.Info("Queue stopping")
 	q.once.Do(func() {
 		close(q.queue)
 	})
+	logger.Info("Queue stopped")
 }

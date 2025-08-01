@@ -5,27 +5,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"subscription/internal/domain"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type Client struct {
 	baseURL string
-	logger  *log.Logger
 	client  *http.Client
 }
 
-func NewClient(baseURL string, logger *log.Logger, client *http.Client) *Client {
+func NewClient(baseURL string, client *http.Client) *Client {
 	if client == nil {
 		client = &http.Client{Timeout: 5 * time.Second}
 	}
-
 	return &Client{
 		baseURL: baseURL,
-		logger:  logger,
 		client:  client,
 	}
 }
@@ -55,17 +53,22 @@ func (e *Client) SendWeatherReport(ctx context.Context, email string, weather do
 }
 
 func (e *Client) send(ctx context.Context, req Request) error {
+	logger := loggerPkg.From(ctx)
 	body, err := json.Marshal(req)
 	if err != nil {
 		return fmt.Errorf("failed to marshal email request: %w", err)
 	}
-
 	url := fmt.Sprintf("%s/api/email/send", e.baseURL)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+
 	httpReq.Header.Set("Content-Type", "application/json")
+
+	if correlationID := loggerPkg.GetCorrelationID(ctx); correlationID != "" {
+		httpReq.Header.Set("X-Correlation-Id", correlationID)
+	}
 
 	resp, err := e.client.Do(httpReq)
 	if err != nil {
@@ -73,15 +76,13 @@ func (e *Client) send(ctx context.Context, req Request) error {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			fmt.Printf("error closing response body: %v\n", err)
+			logger.Warn("error closing response body: %v", err)
 		}
 	}()
-
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("email service returned status %d", resp.StatusCode)
 	}
-
-	e.logger.Printf("Email sent to %s with template %s", req.To, req.Template)
+	logger.Info("Email sent", "to", req.To, "template", req.Template)
 	return nil
 }
 

@@ -9,6 +9,8 @@ import (
 	"subscription/internal/domain"
 	"subscription/internal/job"
 
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+
 	"github.com/google/uuid"
 )
 
@@ -91,7 +93,8 @@ func (s Service) Subscribe(ctx context.Context, email, city string, frequency do
 
 	idKey := s.generateIdempotencyKey(email, token)
 	if err := s.emailService.SendConfirmationEmail(ctx, email, token, idKey); err != nil {
-		fmt.Printf("Failed to send confirmation email to %s: %v\n", email, err)
+		logger := loggerPkg.From(ctx)
+		logger.Error("Failed to send confirmation email to %s: %v", email, err)
 	}
 
 	return nil

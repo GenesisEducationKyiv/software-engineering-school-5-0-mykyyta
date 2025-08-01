@@ -2,7 +2,6 @@ package di
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"email/internal/adapter/idempotency"
@@ -10,6 +9,8 @@ import (
 	"email/internal/delivery/consumer"
 	"email/internal/email"
 	"email/internal/infra/rabbitmq"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -20,9 +21,10 @@ type QueueModule struct {
 	ShutdownFunc func() error
 }
 
-func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, redisClient *redis.Client, logger *log.Logger) (*QueueModule, error) {
+func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, redisClient *redis.Client) (*QueueModule, error) {
 	rmqConn, err := rabbitmq.NewConnection(cfg.RabbitMQURL)
 	if err != nil {
+		loggerPkg.From(ctx).Error("Failed to connect to RabbitMQ", "err", err)
 		return nil, err
 	}
 
@@ -37,19 +39,28 @@ func NewQueueModule(ctx context.Context, cfg *config.Config, svc email.Service, 
 		},
 	)
 	if err != nil {
+		loggerPkg.From(ctx).Error("Failed to setup RabbitMQ", "err", err)
+		err = rmqConn.Close()
+		if err != nil {
+			loggerPkg.From(ctx).Error("Error during RabbitMQ connection close", "err", err)
+		}
 		return nil, err
 	}
 
 	source := rabbitmq.NewSource(rmqConn, "email.queue")
-	store := idempotency.NewRedisStore(redisClient, 24*time.Hour, logger)
+	store := idempotency.NewRedisStore(redisClient, 24*time.Hour)
 	breaker := consumer.NewDefaultCB()
-	cons := consumer.NewConsumer(source, svc, store, logger, breaker)
+	cons := consumer.NewConsumer(source, svc, store, breaker)
 
 	return &QueueModule{
 		Consumer:   cons,
 		RabbitConn: rmqConn,
 		ShutdownFunc: func() error {
-			return rmqConn.Close()
+			if err := rmqConn.Close(); err != nil {
+				loggerPkg.From(ctx).Error("Error during RabbitMQ connection close", "err", err)
+				return err
+			}
+			return nil
 		},
 	}, nil
 }

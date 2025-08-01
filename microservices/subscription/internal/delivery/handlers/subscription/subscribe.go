@@ -5,9 +5,12 @@ import (
 	"errors"
 	"net/http"
 
-	"subscription/internal/delivery/handlers/response"
 	"subscription/internal/domain"
+
+	"subscription/internal/delivery/handlers/response"
 	"subscription/internal/subscription"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,20 +34,24 @@ type SubscribeRequest struct {
 }
 
 func (h Subscribe) Handle(c *gin.Context) {
+	logger := loggerPkg.From(c.Request.Context())
 	var req SubscribeRequest
 	if err := c.ShouldBind(&req); err != nil {
+		logger.Warn("invalid subscribe input", "err", err)
 		response.SendError(c, http.StatusBadRequest, "Invalid input")
 		return
 	}
 
 	freq := domain.Frequency(req.Frequency)
 	if !freq.Valid() {
+		logger.Warn("invalid frequency value", "value", req.Frequency)
 		response.SendError(c, http.StatusBadRequest, "Invalid frequency value")
 		return
 	}
 
 	err := h.service.Subscribe(c.Request.Context(), req.Email, req.City, freq)
 	if err != nil {
+		logger.Warn("subscribe failed", "email", req.Email, "city", req.City, "err", err)
 		switch {
 		case errors.Is(err, subscription.ErrCityNotFound):
 			response.SendError(c, http.StatusBadRequest, "City not found")
