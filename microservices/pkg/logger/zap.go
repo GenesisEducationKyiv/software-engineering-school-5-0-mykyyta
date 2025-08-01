@@ -4,6 +4,8 @@ package logger
 import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"os"
+	"time"
 )
 
 type Config struct {
@@ -34,7 +36,32 @@ func New(cfg Config) (*Logger, error) {
 			}
 		}
 
-		logger, err = config.Build()
+		encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
+		writeSyncer := zapcore.AddSync(os.Stdout)
+
+		// Core for all levels except Info (no sampling)
+		nonInfoCore := zapcore.NewCore(
+			encoder,
+			writeSyncer,
+			zap.LevelEnablerFunc(func(level zapcore.Level) bool {
+				return level != zapcore.InfoLevel && level >= config.Level.Level()
+			}),
+		)
+
+		// Core for Info level only (with sampling)
+		infoCore := zapcore.NewSamplerWithOptions(
+			zapcore.NewCore(
+				encoder,
+				writeSyncer,
+				zapcore.InfoLevel,
+			),
+			time.Second, // Sample window
+			50,          // First 50 per second
+			50,          // Then every 50th
+		)
+
+		core := zapcore.NewTee(nonInfoCore, infoCore)
+		logger = zap.New(core)
 	}
 
 	if err != nil {
