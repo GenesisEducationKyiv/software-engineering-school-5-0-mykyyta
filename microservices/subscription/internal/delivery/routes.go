@@ -16,16 +16,17 @@ import (
 	"github.com/gin-gonic/gin"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	metricsPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/metrics"
 )
 
 type weatherService interface {
 	GetWeather(ctx context.Context, city string) (domain.Report, error)
 }
 
-func SetupRoutes(subService subscription.Service, weatherClient weatherService, logger *loggerPkg.Logger) *gin.Engine {
+func SetupRoutes(subService subscription.Service, weatherClient weatherService, logger *loggerPkg.Logger, metrics *metricsPkg.Metrics) *gin.Engine {
 	router := gin.Default()
 
-	router.Use(middleware.RequestLoggingMiddleware(logger))
+	router.Use(middleware.RequestLoggingMiddleware(logger, metrics, "subscription"))
 
 	subscribeHandler := subscription2.NewSubscribe(subService)
 	confirmHandler := subscription2.NewConfirm(subService)

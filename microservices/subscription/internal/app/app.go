@@ -26,6 +26,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	metricsPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/metrics"
 )
 
 type App struct {
@@ -118,6 +119,12 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		logger.Info("Using HTTP weather client")
 	}
 
+	// Metrics
+	metrics := metricsPkg.New(metricsPkg.Config{
+		Namespace: "subscription",
+		Subsystem: "service",
+	})
+
 	// Adapters
 	tokenProvider := jwt.NewJWT(cfg.JWTSecret)
 	subscriptionRepo := gorm.NewRepo(db.Gorm)
@@ -134,7 +141,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	scheduler := di.NewScheduler(subService)
 
 	// HTTP server
-	router := delivery.SetupRoutes(subService, weatherClient, logger)
+	router := delivery.SetupRoutes(subService, weatherClient, logger, metrics)
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: router,
