@@ -43,6 +43,9 @@ func RequestMiddleware(metrics *metrics.Metrics) func(http.Handler) http.Handler
 			ctx = loggerPkg.WithCorrelationID(ctx, corrID)
 			ctx = loggerPkg.With(ctx, logger)
 
+			metrics.IncActiveConnections("email-service", r.Method, r.URL.Path)
+			defer metrics.DecActiveConnections("email-service", r.Method, r.URL.Path)
+
 			start := time.Now()
 			ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(ww, r.WithContext(ctx))
