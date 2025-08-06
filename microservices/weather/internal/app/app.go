@@ -29,6 +29,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	metricsPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/metrics"
 )
 
 type App struct {
@@ -73,16 +74,22 @@ func Run(lg *loggerPkg.Logger) error {
 
 func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	var redisClient *redis.Client
-	var metrics di.CacheMetrics
+	var cacheMetrics di.CacheMetrics
 	var httpClient *http.Client
 	var weatherProvider weather.Provider
 
 	logger := loggerPkg.From(ctx)
 
+	// Initialize HTTP metrics
+	httpMetrics := metricsPkg.New(metricsPkg.Config{
+		Namespace: "weather",
+		Subsystem: "service",
+	})
+
 	if cfg.BenchmarkMode {
 		logger.Info(" Running in BENCHMARK MODE — skipping Redis and using BenchmarkProvider")
 		redisClient = nil
-		metrics = cache.NewNoopMetrics()
+		cacheMetrics = cache.NewNoopMetrics()
 		weatherProvider = benchmark.NewProvider()
 
 	} else {
@@ -92,8 +99,8 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 		}
 		redisClient = redis
 
-		metrics = cache.NewMetrics()
-		metrics.Register()
+		cacheMetrics = cache.NewMetrics()
+		cacheMetrics.Register()
 
 		httpClient = &http.Client{Timeout: 5 * time.Second}
 
@@ -101,7 +108,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 			Cfg:         cfg,
 			RedisClient: redisClient,
 			HttpClient:  httpClient,
-			Metrics:     metrics,
+			Metrics:     cacheMetrics,
 		})
 	}
 
@@ -110,7 +117,7 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	// HTTP
 	mux := http.NewServeMux()
 	weatherHandler := httpapi.NewHandler(weatherService)
-	httpapi.RegisterRoutes(mux, weatherHandler, logger)
+	httpapi.RegisterRoutes(mux, weatherHandler, logger, httpMetrics)
 
 	httpLis, err := net.Listen("tcp", ":"+cfg.Port)
 	if err != nil {

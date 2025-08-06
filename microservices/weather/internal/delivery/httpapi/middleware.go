@@ -1,16 +1,18 @@
 package httpapi
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	metricsPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/metrics"
 	"github.com/google/uuid"
 )
 
 const CorrelationIDKey = "X-Correlation-Id"
 
-func loggingMiddleware(baseLogger *loggerPkg.Logger) func(http.Handler) http.Handler {
+func loggingMiddleware(baseLogger *loggerPkg.Logger, metrics *metricsPkg.Metrics) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			reqID := uuid.New().String()
@@ -28,27 +30,54 @@ func loggingMiddleware(baseLogger *loggerPkg.Logger) func(http.Handler) http.Han
 			ctx = loggerPkg.WithCorrelationID(ctx, corrID)
 			ctx = loggerPkg.With(ctx, logger)
 
+			method := r.Method
+			path := r.URL.Path
+			metrics.IncActiveConnections("weather-service", method, path)
+
 			start := time.Now()
 			ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(ww, r.WithContext(ctx))
 			duration := time.Since(start)
 
+			metrics.DecActiveConnections("weather-service", method, path)
+
 			status := ww.status
-			logFields := []interface{}{
-				"method", r.Method,
-				"path", r.URL.Path,
-				"status", status,
-				"duration_ms", duration.Milliseconds(),
-			}
+			statusStr := fmt.Sprintf("%d", status)
+
+			metrics.RecordRequest("weather-service", method, path, statusStr, duration)
 
 			if status >= 500 {
-				logger.Error("http request failed", logFields...)
+				metrics.RecordError("weather-service", method, path, statusStr, "server_error")
+
+				loggerPkg.From(ctx).Error("http request failed",
+					"method", method,
+					"path", path,
+					"status", status,
+					"duration_ms", duration.Milliseconds(),
+				)
 			} else if status >= 400 {
-				logger.Warn("http request client error", logFields...)
+				metrics.RecordError("weather-service", method, path, statusStr, "client_error")
+
+				loggerPkg.From(ctx).Warn("http request client error",
+					"method", method,
+					"path", path,
+					"status", status,
+					"duration_ms", duration.Milliseconds(),
+				)
 			} else if duration > 1000*time.Millisecond {
-				logger.Warn("slow http request", logFields...)
+				loggerPkg.From(ctx).Warn("slow http request",
+					"method", method,
+					"path", path,
+					"status", status,
+					"duration_ms", duration.Milliseconds(),
+				)
 			} else {
-				logger.Info("http request", logFields...)
+				loggerPkg.From(ctx).Info("http request",
+					"method", method,
+					"path", path,
+					"status", status,
+					"duration_ms", duration.Milliseconds(),
+				)
 			}
 		})
 	}
