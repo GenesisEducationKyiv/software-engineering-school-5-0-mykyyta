@@ -24,7 +24,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-// RequestMiddleware creates middleware with injected metrics
+// RequestMiddleware creates middleware with injected metrics.
 func RequestMiddleware(metrics *metrics.Metrics) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
