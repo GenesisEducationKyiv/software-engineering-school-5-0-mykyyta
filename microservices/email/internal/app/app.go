@@ -16,6 +16,7 @@ import (
 	infra "email/internal/infra/redis"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"email/internal/adapter/template"
 	"email/internal/config"
@@ -23,6 +24,7 @@ import (
 	"email/internal/email"
 
 	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	metricsPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/metrics"
 )
 
 type App struct {
@@ -94,8 +96,15 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	handler := delivery.NewEmailHandler(emailService)
 
+	metrics := metricsPkg.New(metricsPkg.Config{
+		Namespace: "email",
+		Subsystem: "http",
+	})
+
 	mux := http.NewServeMux()
-	delivery.RegisterRoutes(mux, handler)
+	delivery.RegisterRoutes(mux, handler, metrics)
+
+	mux.Handle("/metrics", promhttp.Handler())
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
