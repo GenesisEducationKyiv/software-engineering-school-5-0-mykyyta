@@ -13,9 +13,16 @@ func main() {
 	if env == "" {
 		env = "production"
 	}
+
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
 	logger, err := loggerPkg.New(loggerPkg.Config{
 		Service: "gateway",
 		Env:     env,
+		Level:   logLevel,
 	})
 	if err != nil {
 		panic(err)
