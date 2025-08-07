@@ -2,10 +2,11 @@ package logger
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"weather/internal/weather"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"weather/internal/domain"
 )
@@ -13,42 +14,51 @@ import (
 type LogWrapper struct {
 	next     weather.Provider
 	provider string
-	logger   *log.Logger
 }
 
-func NewWrapper(next weather.Provider, providerName string, logger *log.Logger) LogWrapper {
+func NewWrapper(next weather.Provider, providerName string) LogWrapper {
 	return LogWrapper{
 		next:     next,
 		provider: providerName,
-		logger:   logger,
 	}
 }
 
 func (p LogWrapper) GetWeather(ctx context.Context, city string) (domain.Report, error) {
 	start := time.Now()
 	res, err := p.next.GetWeather(ctx, city)
-	p.log("GetWeather", city, time.Since(start), err)
+	dur := time.Since(start)
+	status := "OK"
+	if err != nil {
+		status = err.Error()
+	}
+	logger := loggerPkg.From(ctx)
+	logger.Info(
+		"provider call",
+		"provider", p.provider,
+		"method", "GetWeather",
+		"city", city,
+		"duration_ms", dur.Milliseconds(),
+		"status", status,
+	)
 	return res, err
 }
 
 func (p LogWrapper) CityIsValid(ctx context.Context, city string) (bool, error) {
 	start := time.Now()
 	ok, err := p.next.CityIsValid(ctx, city)
-	p.log("CityIsValid", city, time.Since(start), err)
-	return ok, err
-}
-
-func (p LogWrapper) log(method, city string, duration time.Duration, err error) {
+	dur := time.Since(start)
 	status := "OK"
 	if err != nil {
-		status = "ERR: " + err.Error()
+		status = err.Error()
 	}
-
-	p.logger.Printf("[%s] %s(%q) took %s → %s",
-		p.provider,
-		method,
-		city,
-		duration.Truncate(time.Millisecond),
-		status,
+	logger := loggerPkg.From(ctx)
+	logger.Info(
+		"provider call",
+		"provider", p.provider,
+		"method", "CityIsValid",
+		"city", city,
+		"duration_ms", dur.Milliseconds(),
+		"status", status,
 	)
+	return ok, err
 }

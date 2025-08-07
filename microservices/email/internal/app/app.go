@@ -2,92 +2,109 @@ package app
 
 import (
 	"context"
-	"email/internal/adapter/sendgrid"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"email/internal/adapter/gmail"
+
 	"email/internal/app/di"
 	"email/internal/delivery/consumer"
 	infra "email/internal/infra/redis"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"email/internal/adapter/template"
 	"email/internal/config"
 	"email/internal/delivery"
 	"email/internal/email"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
+	metricsPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/metrics"
 )
 
 type App struct {
 	Server        *http.Server
-	Logger        *log.Logger
 	QueueConsumer *consumer.Consumer
 	ShutdownFunc  func() error
 }
 
-func Run(logger *log.Logger) error {
+func Run(logger *loggerPkg.Logger) error {
+	logger.Info("Starting email service application")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	ctx = loggerPkg.With(ctx, logger)
 
 	cfg := config.LoadConfig()
 
-	app, err := NewApp(ctx, cfg, logger)
+	app, err := NewApp(ctx, cfg)
 	if err != nil {
+		logger.Error("Failed to create application", "err", err)
 		return fmt.Errorf("creating application: %w", err)
 	}
 
 	if err := app.Start(ctx); err != nil {
+		logger.Error("Failed to start application", "err", err)
 		return fmt.Errorf("starting server: %w", err)
 	}
+
+	logger.Info("Email service started successfully", "http_port", cfg.Port)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
-	logger.Println("Shutdown signal received")
-
-	cancel()
+	logger.Info("Shutdown signal received")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := app.Shutdown(shutdownCtx); err != nil {
+		logger.Error("Shutdown failed", "err", err)
 		return fmt.Errorf("shutdown error: %w", err)
 	}
 
-	logger.Println("Server exited gracefully")
+	logger.Info("Server exited gracefully")
 	return nil
 }
 
-func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, error) {
+func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	templateStore, err := template.Load("template")
 	if err != nil {
-		logger.Printf("Loading templates: %v", err)
+		loggerPkg.From(ctx).Error("Failed to load email templates", "template_dir", "template", "err", err)
 		return nil, err
 	}
 
-	emailProvider := sendgrid.New(cfg.SendGridKey, cfg.EmailFrom)
+	emailProvider := gmail.New(cfg.GmailAddr, cfg.GmailPass)
 	emailService := email.NewService(emailProvider, templateStore)
 
 	redisClient, err := infra.NewRedisClient(ctx, cfg)
 	if err != nil {
+		loggerPkg.From(ctx).Error("Failed to connect to Redis", "redis_url", cfg.RedisURL, "err", err)
 		return nil, fmt.Errorf("redis error: %w", err)
 	}
 
-	queueModule, err := di.NewQueueModule(ctx, cfg, emailService, redisClient, logger)
+	queueModule, err := di.NewQueueModule(ctx, cfg, emailService, redisClient)
 	if err != nil {
-		logger.Printf("Failed to init queue module: %v", err)
+		loggerPkg.From(ctx).Error("Failed to init queue module", "err", err)
 		return nil, err
 	}
 
-	handler := delivery.NewEmailHandler(emailService, logger)
+	handler := delivery.NewEmailHandler(emailService)
+
+	metrics := metricsPkg.New(metricsPkg.Config{
+		Namespace: "email",
+		Subsystem: "http",
+	})
 
 	mux := http.NewServeMux()
-	delivery.RegisterRoutes(mux, handler)
+	delivery.RegisterRoutes(mux, handler, metrics)
+
+	mux.Handle("/metrics", promhttp.Handler())
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
@@ -96,24 +113,24 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *log.Logger) (*App, 
 
 	return &App{
 		Server:        server,
-		Logger:        logger,
 		QueueConsumer: queueModule.Consumer,
 		ShutdownFunc:  queueModule.ShutdownFunc,
 	}, nil
 }
 
 func (a *App) Start(ctx context.Context) error {
+	logger := loggerPkg.From(ctx)
 	go func() {
-		a.Logger.Printf("Email service running at %s", a.Server.Addr)
+		logger.Info("Email service running", "addr", a.Server.Addr)
 		if err := a.Server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			a.Logger.Printf("Server error: %v", err)
+			logger.Error("Server error", "err", err)
 		}
 	}()
 
 	go func() {
-		a.Logger.Println("Starting async consumer...")
+		logger.Info("Starting async consumer...")
 		if err := a.QueueConsumer.Start(ctx); err != nil {
-			a.Logger.Printf("Consumer error: %v", err)
+			logger.Error("Consumer error", "err", err)
 		}
 	}()
 
@@ -122,12 +139,20 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func (a *App) Shutdown(ctx context.Context) error {
-	a.Logger.Println("Shutting down email service...")
+	logger := loggerPkg.From(ctx)
+	logger.Info("Shutting down email service...")
 
 	if err := a.Server.Shutdown(ctx); err != nil {
+		logger.Error("HTTP server shutdown failed", "err", err)
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	a.Logger.Println("Shutdown complete")
+	if a.ShutdownFunc != nil {
+		if err := a.ShutdownFunc(); err != nil {
+			logger.Error("Resource cleanup failed", "err", err)
+		}
+	}
+
+	logger.Info("Email service shutdown completed")
 	return nil
 }

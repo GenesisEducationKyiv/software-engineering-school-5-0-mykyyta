@@ -1,14 +1,16 @@
 package response
 
 import (
-	"log"
 	"net/http"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SendError(c *gin.Context, code int, msg string) {
-	log.Printf("error: %s", msg) // або прибрати лог, якщо не потрібно
+	logger := loggerPkg.From(c.Request.Context())
+	logger.Error("handler error", "msg", msg, "code", code)
 	c.JSON(code, gin.H{"error": msg})
 }
 

@@ -8,7 +8,9 @@ import (
 	"subscription/internal/domain"
 
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 	"google.golang.org/grpc"
 )
 
@@ -29,6 +31,8 @@ func NewClient(ctx context.Context, addr string) (*Client, error) {
 }
 
 func (c *Client) GetWeather(ctx context.Context, city string) (domain.Report, error) {
+	ctx = c.addCorrelationIDToContext(ctx)
+
 	resp, err := c.client.GetWeather(ctx, &weatherpb2.WeatherRequest{City: city})
 	if err != nil {
 		return domain.Report{}, err
@@ -41,11 +45,21 @@ func (c *Client) GetWeather(ctx context.Context, city string) (domain.Report, er
 }
 
 func (c *Client) CityIsValid(ctx context.Context, city string) (bool, error) {
+	ctx = c.addCorrelationIDToContext(ctx)
+
 	resp, err := c.client.ValidateCity(ctx, &weatherpb2.ValidateRequest{City: city})
 	if err != nil {
 		return false, err
 	}
 	return resp.Valid, nil
+}
+
+func (c *Client) addCorrelationIDToContext(ctx context.Context) context.Context {
+	if correlationID := loggerPkg.GetCorrelationID(ctx); correlationID != "" {
+		md := metadata.Pairs("x-correlation-id", correlationID)
+		return metadata.NewOutgoingContext(ctx, md)
+	}
+	return ctx
 }
 
 func (c *Client) Close() error {

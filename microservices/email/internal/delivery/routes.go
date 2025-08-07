@@ -1,11 +1,16 @@
 package delivery
 
-import "net/http"
+import (
+	"net/http"
 
-func RegisterRoutes(mux *http.ServeMux, handler *EmailHandler) {
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/metrics"
+)
+
+func RegisterRoutes(mux *http.ServeMux, handler *EmailHandler, metrics *metrics.Metrics) {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	mux.HandleFunc("/api/email/send", handler.Send)
+	emailHandler := http.HandlerFunc(handler.Send)
+	mux.Handle("/api/email/send", RequestMiddleware(metrics)(emailHandler))
 }

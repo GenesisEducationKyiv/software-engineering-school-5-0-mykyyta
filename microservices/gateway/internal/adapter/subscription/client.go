@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"gateway/internal/middleware"
 )
 
 type Client struct {
@@ -109,6 +111,10 @@ func (c *Client) postJSON(ctx context.Context, endpoint string, reqBody interfac
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "api-gateway/1.0.0")
 
+	if requestID := middleware.GetRequestID(ctx); requestID != "" {
+		req.Header.Set("X-Request-ID", requestID)
+	}
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -136,6 +142,10 @@ func (c *Client) get(ctx context.Context, endpoint string, respBody interface{})
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "api-gateway/1.0.0")
+
+	if requestID := middleware.GetRequestID(ctx); requestID != "" {
+		req.Header.Set("X-Request-ID", requestID)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

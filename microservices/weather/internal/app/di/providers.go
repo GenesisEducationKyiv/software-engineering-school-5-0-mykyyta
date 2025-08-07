@@ -1,7 +1,6 @@
 package di
 
 import (
-	"log"
 	"net/http"
 
 	"weather/internal/adapter/cache"
@@ -18,7 +17,6 @@ import (
 
 type ProviderDeps struct {
 	Cfg         *config.Config
-	Logger      *log.Logger
 	RedisClient *redis.Client
 	HttpClient  *http.Client
 	Metrics     CacheMetrics
@@ -59,8 +57,8 @@ func BuildProviders(deps ProviderDeps) weather.Provider {
 		)
 	}
 
-	loggedWeatherAPI := logger.NewWrapper(wrappedWeatherAPI, "WeatherAPI", deps.Logger)
-	loggedTomorrowIO := logger.NewWrapper(wrappedTomorrowIO, "TomorrowIO", deps.Logger)
+	loggedWeatherAPI := logger.NewWrapper(wrappedWeatherAPI, "WeatherAPI")
+	loggedTomorrowIO := logger.NewWrapper(wrappedTomorrowIO, "TomorrowIO")
 
 	nodeWeatherAPI := chain.NewNode(loggedWeatherAPI)
 	nodeTomorrowIO := chain.NewNode(loggedTomorrowIO)

@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -13,15 +14,14 @@ import (
 type RabbitPublisher struct {
 	channel  *amqp.Channel
 	exchange string
-	logger   *log.Logger
 }
 
 type IdKeyGetter interface {
 	GetIdKey() string
 }
 
-func NewRabbitPublisher(ch *amqp.Channel, exchange string, logger *log.Logger) *RabbitPublisher {
-	return &RabbitPublisher{channel: ch, exchange: exchange, logger: logger}
+func NewRabbitPublisher(ch *amqp.Channel, exchange string) *RabbitPublisher {
+	return &RabbitPublisher{channel: ch, exchange: exchange}
 }
 
 func (p *RabbitPublisher) Publish(ctx context.Context, routingKey string, msg IdKeyGetter) error {
@@ -42,6 +42,7 @@ func (p *RabbitPublisher) Publish(ctx context.Context, routingKey string, msg Id
 		return fmt.Errorf("rabbitmq publish error: %w", err)
 	}
 
-	p.logger.Printf("Published to %s", routingKey)
+	logger := loggerPkg.From(ctx)
+	logger.Info("Published message", "routingKey", routingKey, "msgId", msg.GetIdKey())
 	return nil
 }

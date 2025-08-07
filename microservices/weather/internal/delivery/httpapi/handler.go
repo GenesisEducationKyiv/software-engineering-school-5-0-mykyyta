@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"weather/internal/domain"
+
+	loggerPkg "github.com/GenesisEducationKyiv/software-engineering-school-5-0-mykyyta/microservices/pkg/logger"
 )
 
 type weatherService interface {
@@ -26,17 +28,21 @@ func NewHandler(ws weatherService) *Handler {
 func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 	city, err := getQueryParam(r, "city")
 	if err != nil {
+		logger := loggerPkg.From(r.Context())
+		logger.Error("missing city query parameter", "error", err)
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
 
 	report, err := h.ws.GetWeather(r.Context(), city)
 	if err != nil {
+		logger := loggerPkg.From(r.Context())
 		if errors.Is(err, domain.ErrCityNotFound) {
+			logger.Warn("city not found", "city", city)
 			http.Error(w, `{"error":"city not found"}`, http.StatusNotFound)
 			return
 		}
-
+		logger.Error("failed to get weather", "city", city, "error", err)
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
@@ -54,12 +60,21 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ValidateCity(w http.ResponseWriter, r *http.Request) {
 	city, err := getQueryParam(r, "city")
 	if err != nil {
+		logger := loggerPkg.From(r.Context())
+		logger.Error("missing city query parameter", "error", err)
 		http.Error(w, `{"error":"city query parameter is required"}`, http.StatusBadRequest)
 		return
 	}
 
 	valid, err := h.ws.CityIsValid(r.Context(), city)
 	if err != nil {
+		logger := loggerPkg.From(r.Context())
+		if errors.Is(err, domain.ErrCityNotFound) {
+			logger.Warn("city not found", "city", city)
+			http.Error(w, `{"error":"city not found"}`, http.StatusNotFound)
+			return
+		}
+		logger.Error("failed to validate city", "city", city, "error", err)
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
