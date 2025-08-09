@@ -1,0 +1,317 @@
+name: Microservices Unit Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'microservices/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'microservices/**'
+
+jobs:
+  detect-changes:
+    name: Detect changed microservices
+    runs-on: ubuntu-latest
+    outputs:
+      email: ${{ steps.changes.outputs.email }}
+      gateway: ${{ steps.changes.outputs.gateway }}
+      subscription: ${{ steps.changes.outputs.subscription }}
+      weather: ${{ steps.changes.outputs.weather }}
+      pkg: ${{ steps.changes.outputs.pkg }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            email:
+              - 'microservices/email/**'
+              - 'microservices/pkg/**'
+            gateway:
+              - 'microservices/gateway/**'
+              - 'microservices/pkg/**'
+            subscription:
+              - 'microservices/subscription/**'
+              - 'microservices/pkg/**'
+            weather:
+              - 'microservices/weather/**'
+              - 'microservices/pkg/**'
+            pkg:
+              - 'microservices/pkg/**'
+
+  test-email:
+    name: Test Email Service
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.email == 'true'
+    defaults:
+      run:
+        working-directory: microservices/email
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-email-${{ hashFiles('microservices/email/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-email-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run unit tests
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          gotestsum --format testname -- -race -coverprofile=coverage.out ./...
+
+      - name: Generate coverage report
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: email-coverage
+          path: microservices/email/coverage.html
+
+  test-gateway:
+    name: Test Gateway Service
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.gateway == 'true'
+    defaults:
+      run:
+        working-directory: microservices/gateway
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-gateway-${{ hashFiles('microservices/gateway/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-gateway-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run unit tests
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          gotestsum --format testname -- -race -coverprofile=coverage.out ./...
+
+      - name: Generate coverage report
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-coverage
+          path: microservices/gateway/coverage.html
+
+  test-subscription:
+    name: Test Subscription Service
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.subscription == 'true'
+    defaults:
+      run:
+        working-directory: microservices/subscription
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-subscription-${{ hashFiles('microservices/subscription/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-subscription-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run unit tests (excluding integration tests)
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          gotestsum --format testname -- -race -coverprofile=coverage.out $(go list ./... | grep -v /test/integration)
+
+      - name: Generate coverage report
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: subscription-coverage
+          path: microservices/subscription/coverage.html
+
+  test-weather:
+    name: Test Weather Service
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.weather == 'true'
+    defaults:
+      run:
+        working-directory: microservices/weather
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-weather-${{ hashFiles('microservices/weather/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-weather-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run unit tests
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          gotestsum --format testname -- -race -coverprofile=coverage.out ./...
+
+      - name: Generate coverage report
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-coverage
+          path: microservices/weather/coverage.html
+
+  test-pkg:
+    name: Test Shared Packages
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.pkg == 'true'
+    strategy:
+      matrix:
+        package: [logger, metrics]
+    defaults:
+      run:
+        working-directory: microservices/pkg/${{ matrix.package }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-pkg-${{ matrix.package }}-${{ hashFiles('microservices/pkg/${{ matrix.package }}/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-pkg-${{ matrix.package }}-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run unit tests
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          gotestsum --format testname -- -race -coverprofile=coverage.out ./...
+
+      - name: Generate coverage report
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ matrix.package }}-coverage
+          path: microservices/pkg/${{ matrix.package }}/coverage.html
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-email, test-gateway, test-subscription, test-weather, test-pkg]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          echo "Unit test results:"
+          echo "Email: ${{ needs.test-email.result || 'skipped' }}"
+          echo "Gateway: ${{ needs.test-gateway.result || 'skipped' }}"
+          echo "Subscription: ${{ needs.test-subscription.result || 'skipped' }}"
+          echo "Weather: ${{ needs.test-weather.result || 'skipped' }}"
+          echo "Pkg: ${{ needs.test-pkg.result || 'skipped' }}"
+          
+          # Fail if any required test failed
+          if [[ "${{ needs.test-email.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-gateway.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-subscription.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-weather.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-pkg.result }}" == "failure" ]]; then
+            echo "One or more unit tests failed"
+            exit 1
+          fi
+          
+          echo "All unit tests passed or were skipped"
