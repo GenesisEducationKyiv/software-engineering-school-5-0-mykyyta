@@ -23,12 +23,11 @@ This project implements a **microservices architecture** with the following serv
 
 ## ✨ Features
 
-- 📧 **Email Subscriptions** - Users can subscribe with email and city
-- ✅ **Double Opt-in** - Secure email confirmation via JWT tokens
-- 🌤️ **Weather Updates** - Daily/hourly weather notifications
-- 🔄 **Unsubscribe** - Easy unsubscription via secure links
-- 📊 **Monitoring** - Comprehensive logging and metrics
-- 🚀 **Scalable** - Microservices architecture for horizontal scaling
+- **Email Subscriptions** - Users can subscribe with email and city
+- **Double Opt-in** - Secure email confirmation via JWT tokens
+- **Weather Updates** - Daily/hourly weather notifications
+- **Unsubscribe** - Easy unsubscription via secure links
+- **Monitoring** - Comprehensive logging and metrics
 
 ## 🚀 Quick Start
 
