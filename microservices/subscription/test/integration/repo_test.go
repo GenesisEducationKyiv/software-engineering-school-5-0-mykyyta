@@ -4,9 +4,10 @@ package subscription_test
 
 import (
 	"context"
-	"subscription/test/integration/testutils"
 	"testing"
 	"time"
+
+	"subscription/test/integration/testutils"
 
 	"subscription/internal/adapter/gorm"
 	"subscription/internal/domain"
